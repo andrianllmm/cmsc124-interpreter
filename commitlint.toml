@@ -1,0 +1,245 @@
+# Example configuration for cargo-commitlint
+# Compatible with commitlint (Node.js) configuration format
+#
+# Copy this file to one of:
+#   - commitlint.toml
+#   - .commitlint.toml
+#   - .commitlintrc.toml
+#   - .cargo/commitlint.toml
+#
+# Or use JSON/YAML formats:
+#   - .commitlintrc.json
+#   - .commitlintrc.yaml
+#   - .commitlintrc.yml
+
+# Extend shared configurations (built-in presets)
+# Options: "conventional", "@commitlint/config-conventional"
+# extends = ["conventional"]
+
+# Help URL displayed in error messages
+# helpUrl = "https://github.com/conventional-changelog/commitlint/#what-is-commitlint"
+
+# Default ignores for common non-conventional commits
+# Set to false to validate all commits including merges, reverts, etc.
+defaultIgnores = true
+
+# Custom ignore patterns (regex)
+# Commits matching these patterns will skip validation
+ignores = [
+    # "^Merge branch",
+    # "^Revert",
+    # "^WIP:",
+]
+
+# ============================================================================
+# RULES CONFIGURATION
+# ============================================================================
+# Each rule can have:
+#   - level: 0 = disabled, 1 = warning, 2 = error
+#   - applicable: "always" or "never" (inverts the rule)
+#   - value: rule-specific configuration
+#
+# Format: { level = 2, applicable = "always", value = ... }
+
+[rules]
+
+# ============================================================================
+# TYPE RULES - Validates the commit type (feat, fix, etc.)
+# ============================================================================
+
+# Allowed commit types
+[rules.type-enum]
+level = 2
+applicable = "always"
+value = [
+    "docs",      # Documentation changes
+    "feat",      # New features/functionality
+    "fix",       # Bug fixes/corrections
+    "refactor",  # Code restructuring without functionality change
+    "ux",        # UX/interface/usability improvements
+    "meta",      # Repository maintenance/build configuration/tooling
+    "test",      # Adding/modifying tests
+    # Do not use "chore"; it is not an allowed commit prefix for this course.
+]
+
+# Type case validation
+[rules.type-case]
+level = 2
+applicable = "always"
+value = ["lower-case"]
+
+# Type cannot be empty
+[rules.type-empty]
+level = 2
+applicable = "never"
+value = []
+
+# Maximum type length
+# [rules.type-max-length]
+# level = 2
+# applicable = "always"
+# value = 10
+
+# Minimum type length
+# [rules.type-min-length]
+# level = 2
+# applicable = "always"
+# value = 2
+
+# ============================================================================
+# SCOPE RULES - Validates the commit scope (optional part in parentheses)
+# ============================================================================
+
+# Allowed scopes (empty means any scope is allowed)
+# [rules.scope-enum]
+# level = 2
+# applicable = "always"
+# value = ["api", "core", "cli", "config", "docs"]
+
+# Scope case validation
+[rules.scope-case]
+level = 2
+applicable = "always"
+value = ["lower-case", "kebab-case"]
+
+# Whether scope can be empty
+# [rules.scope-empty]
+# level = 2
+# applicable = "never"
+# value = []
+
+# Maximum scope length
+# [rules.scope-max-length]
+# level = 2
+# applicable = "always"
+# value = 20
+
+# ============================================================================
+# SUBJECT RULES - Validates the commit subject (description)
+# ============================================================================
+
+# Subject case validation
+# Options: "lower-case", "upper-case", "camel-case", "kebab-case",
+#          "pascal-case", "sentence-case", "snake-case", "start-case"
+[rules.subject-case]
+level = 2
+applicable = "always"
+value = ["lower-case", "sentence-case"]
+
+# Subject cannot be empty
+[rules.subject-empty]
+level = 2
+applicable = "never"
+value = []
+
+# Subject must not end with period
+[rules.subject-full-stop]
+level = 2
+applicable = "never"
+value = "."
+
+# Maximum subject length
+# [rules.subject-max-length]
+# level = 2
+# applicable = "always"
+# value = 72
+
+# Minimum subject length
+# [rules.subject-min-length]
+# level = 2
+# applicable = "always"
+# value = 10
+
+# ============================================================================
+# HEADER RULES - Validates the entire first line
+# ============================================================================
+
+# Maximum header length (type + scope + subject)
+[rules.header-max-length]
+level = 2
+applicable = "always"
+value = 100
+
+# Minimum header length
+# [rules.header-min-length]
+# level = 2
+# applicable = "always"
+# value = 10
+
+# Header must not end with period
+[rules.header-full-stop]
+level = 2
+applicable = "never"
+value = "."
+
+# Header must be trimmed (no leading/trailing whitespace)
+[rules.header-trim]
+level = 2
+applicable = "always"
+value = []
+
+# ============================================================================
+# BODY RULES - Validates the commit body (after blank line)
+# ============================================================================
+
+# Body must have leading blank line
+[rules.body-leading-blank]
+level = 1
+applicable = "always"
+value = []
+
+# Maximum body line length
+[rules.body-max-line-length]
+level = 2
+applicable = "always"
+value = 100
+
+# Maximum body total length
+# [rules.body-max-length]
+# level = 2
+# applicable = "always"
+# value = 1000
+
+# ============================================================================
+# FOOTER RULES - Validates the commit footer (trailers)
+# ============================================================================
+
+# Footer must have leading blank line
+[rules.footer-leading-blank]
+level = 1
+applicable = "always"
+value = []
+
+# Maximum footer line length
+[rules.footer-max-line-length]
+level = 2
+applicable = "always"
+value = 100
+
+# ============================================================================
+# OTHER RULES
+# ============================================================================
+
+# Require signed-off-by trailer
+# [rules.signed-off-by]
+# level = 2
+# applicable = "always"
+# value = "Signed-off-by:"
+
+# Require specific trailer
+# [rules.trailer-exists]
+# level = 2
+# applicable = "always"
+# value = "Ticket"
+
+# ============================================================================
+# PARSER CONFIGURATION
+# ============================================================================
+
+[parser]
+# Regex pattern for parsing commit header
+# Default matches: type(scope)!: subject
+header_pattern = "^(?P<type>\\w+)(?:\\((?P<scope>[^)]+)\\))?(?P<breaking>!)?:\\s*(?P<subject>.*)$"
+
+# Note keywords that indicate breaking changes
+note_keywords = ["BREAKING CHANGE", "BREAKING-CHANGE"]
