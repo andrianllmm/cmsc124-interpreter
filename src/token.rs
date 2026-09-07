@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Error};
 
-enum TokenType {
+pub enum TokenType {
     Equals,
     LParen,
     RParen,
@@ -13,7 +13,7 @@ enum TokenType {
     Null,
 }
 
-struct Token {
+pub struct Token {
     token_type: TokenType,
     lexeme: String,
     literal: String,
@@ -21,7 +21,7 @@ struct Token {
 }
 
 impl Token {
-    fn new(token_type: TokenType, lexeme: &str, literal: &str, line: i32) -> Token {
+    pub fn new(token_type: TokenType, lexeme: &str, literal: &str, line: i32) -> Token {
         return Token {
             token_type,
             lexeme: String::from(lexeme),
@@ -31,19 +31,19 @@ impl Token {
     }
 
     // getters
-    fn get_type(&self) -> &TokenType {
+    pub fn get_type(&self) -> &TokenType {
         return &self.token_type;
     }
 
-    fn get_lexeme(&self) -> &String{
+    pub fn get_lexeme(&self) -> &String{
         return &self.lexeme;
     }
 
-    fn get_literal(&self) -> &String{
+    pub fn get_literal(&self) -> &String{
         return &self.literal;
     }
 
-    fn get_line(&self) -> i32 {
+    pub fn get_line(&self) -> i32 {
         return self.line;
     }
 }
