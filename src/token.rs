@@ -10,7 +10,7 @@ pub enum TokenType {
     Divide,
     Add,
     Subtract,
-    Null,
+    Eof,
 }
 
 pub struct Token {
@@ -61,7 +61,7 @@ impl TokenType {
             TokenType::Divide => "DIVIDE",
             TokenType::Add => "ADD",
             TokenType::Subtract => "SUBTRACT",
-            TokenType::Null => "NULL",
+            TokenType::Eof => "EOF",
         };
     }
 }
