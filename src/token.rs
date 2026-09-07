@@ -1,16 +1,16 @@
 use std::fmt::{Display, Formatter, Error};
 
 enum TokenType {
-    EQUALS,
-    LPAREN,
-    RPAREN,
-    MORE,
-    LESS,
-    MULTIPLY,
-    DIVIDE,
-    ADD,
-    SUBTRACT,
-    NULL
+    Equals,
+    LParen,
+    RParen,
+    More,
+    Less,
+    Multiply,
+    Divide,
+    Add,
+    Subtract,
+    Null,
 }
 
 struct Token {
@@ -52,16 +52,16 @@ impl Token {
 impl TokenType {
     fn as_str(&self) -> &'static str {
         return match self {
-            TokenType::EQUALS => "EQUALS",
-            TokenType::LPAREN => "LPAREN",
-            TokenType::RPAREN => "RPAREN",
-            TokenType::MORE => "MORE",
-            TokenType::LESS => "LESS",
-            TokenType::MULTIPLY => "MULTIPLY",
-            TokenType::DIVIDE => "DIVIDE",
-            TokenType::ADD => "ADD",
-            TokenType::SUBTRACT => "SUBTRACT",
-            TokenType::NULL => "NULL",
+            TokenType::Equals => "EQUALS",
+            TokenType::LParen => "LPAREN",
+            TokenType::RParen => "RPAREN",
+            TokenType::More => "MORE",
+            TokenType::Less => "LESS",
+            TokenType::Multiply => "MULTIPLY",
+            TokenType::Divide => "DIVIDE",
+            TokenType::Add => "ADD",
+            TokenType::Subtract => "SUBTRACT",
+            TokenType::Null => "NULL",
         };
     }
 }
