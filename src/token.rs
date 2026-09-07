@@ -1,3 +1,15 @@
+enum TokenType {
+    EQUALS,
+    L_PAREN,
+    R_PAREN,
+    MORE,
+    LESS,
+    MULTIPLY,
+    DIVIDE,
+    ADD,
+    SUBTRACT,
+}
+
 struct Token {
     token_type: String,
     lexeme: String,
@@ -16,24 +28,7 @@ impl Token {
         };
     }
 
-
-    // getters and setters
-    fn set_type(&mut self, token_type: &str) {
-        self.token_type = token_type;
-    }
-
-    fn set_lexeme(&mut self, lexeme: &str) {
-        self.lexeme = lexeme;
-    }
-
-    fn set_literal(&mut self, literal: &str) {
-        self.literal = literal;
-    }
-
-    fn set_line(&mut self, line: i32) {
-        self.line = line;
-    }
-
+    // getters
     fn get_type(&self) -> String{
         return self.token_type;
     }
