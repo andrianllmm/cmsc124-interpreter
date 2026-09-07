@@ -7,15 +7,13 @@
 
 ## Overview
 
-[One paragraph: what the language is for, who would use it, what writing it
-feels like.]
+Grizzly is a small programming language for manipulating tabular data. It is designed for researchers and others who regularly perform repetitive data-cleaning and transformation tasks without wanting to use a general-purpose language or database query language. Tables are first-class values in Grizzly. Users can define tables directly or load them from files, then apply operations for filtering, transforming, and organizing data. Inspired by Python’s pandas and SQL, Grizzly uses a simple, operation-oriented syntax designed specifically for tabular data. Its goal is to make data transformations concise and readable. Grizzly is not intended to replace Python, pandas, or SQL. Instead, it explores how a small domain-specific language can make common tabular-data tasks easier to express.
 
 ## Host language and build
 
-- Host language: [language and version]
-- Version metadata: [file that pins it, e.g. rust-toolchain.toml, go.mod]
+- Host language: Rust (Release)
+- Version metadata: rust-toolchain.toml
 - Build: `./build.sh`
-- [Anything a fresh clone needs to know.]
 
 ## Running it
 
@@ -31,7 +29,8 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 ## File extension
 
-`[.ext]` [Must match the `ext` field in every tests/lab*/manifest.json.]
+Grizzly source files use .grz
+Examples include hello.grz
 
 ## Lexical structure
 
@@ -39,49 +38,84 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 | Keyword | Purpose        |
 | ------- | -------------- |
-| [word]  | [what it does] |
+| if      | Begins a conditional statement. |
+| else    | Begins the alternative branch of a conditional. |
+| true    | Boolean literal representing true |
+| false   | Boolean literal representing false. |
+| null    | Represents absence of a value. |
+| and     | Logical AND. |
+| or      | Logical OR. |
+| not     | Logical negation. |
+| table   | Begins a table literal. |
+| load    | Loads a table from a file. |
+| save    | Saves a table to a file. |
+| show    | Displays a value. |
+| where   | Filters table rows using a condition. |
+| select  | Selects table columns by name. |
+| at      | Performs positional table selection. |
+| rows    | Specifies rows for positional table selection. |
+| columns | Specifies columns for positional table selection. |
+| add     | Adds a column. |
+| take    | Limits the number of rows returned. |
+| sort    | Sorts a table. |
+| descending | Sorts values from greatest to least. |
+| by      | Specifies the column used for sorting or grouping. |
+| group   | Begins a grouping operation. |
+| calculate| Defines an aggregation. |
 
 ### Operators
 
 | Operator | Category                                             | Operands          | Associativity       | Precedence    |
 | -------- | ---------------------------------------------------- | ----------------- | ------------------- | ------------- |
-| [op]     | [arithmetic, comparison, logical, assignment, other] | [unary or binary] | [left, right, none] | [1 = loosest] |
+| =     | Assignment | Binary | Right | 1 |
+| *     | Arithmetic | Binary | Right | 3 |
+| /     | Arithmetic | Binary | Right | 3 |
+| +     | Arithmetic | Binary | Right | 2 |
+| -     | Arithmetic | Binary | Right | 2 |
+| not     | Logical | Unary | Right | 3 |
+| and     | Logical | Binary | Right | 2 |
+| or     | Logical | Binary | Right | 1 |
+| ==     | Comparison | Binary | Right | 1 |
+| >     | Comparison | Binary | Right | 1 |
+| >=     | Comparison | Binary | Right | 1 |
+| <     | Comparison | Binary | Right | 1 |
+| <=     | Comparison | Binary | Right | 1 |
 
 ### Literals
 
 | Kind      | Syntax                            | Produces             |
 | --------- | --------------------------------- | -------------------- |
-| [number]  | [e.g. 42, 3.14]                   | [what runtime value] |
-| [string]  | [e.g. "hello", escapes supported] | [what runtime value] |
-| [boolean] | [true, false]                     | [what runtime value] |
-| [nil]     | [spelling]                        | [what runtime value] |
+| Number  | 42, 3.14                   | Number Value |
+| String  | "Hello" (Double quotes always) | String Value |
+| Boolean | true, false                     | Boolean Value |
+| Null   | Null                        | Null Value |
 
 ### Identifiers
 
-- Start characters: [which]
-- Continue characters: [which]
-- Case-sensitive: [yes or no]
-- [Reserved patterns, length limits, or other restrictions.]
+- Start characters: ASCII letters (A-Z, a-z) and _
+- Continue characters: ASCII letters (A-Z, a-z) and _
+- Case-sensitive: Yes
+- May not be reserved keywords.
 
 ### Comments
 
-- Line comments: [token]
-- Block comments: [tokens, or "not supported"]
+- Line comments: //
+- Block comments: Not supported
 - Nesting: [supported or not]
 - [Harness note: comment_prefix in tests/lab*/manifest.json is set to the
   token above.]
 
 ## Whitespace and termination
 
-- Whitespace significant: [yes or no, and where]
-- Statement terminator: [e.g. semicolon, newline, none]
-- Block delimiters: [e.g. braces, indentation]
-- Grouping delimiters: [e.g. parentheses]
+- Whitespace significant: Separates tokens but have no semantic meaning.
+- Statement terminator: Newline
+- Block delimiters: Indentation
+- Grouping delimiters: Parenthesis
 
 ## Token output format
 
 ```
-[one line of real --tokenize output]
+Token(type=IDENTIFIER, lexeme=sales, literal=null, line=1)
 ```
 
 [What each field means. Frozen as of Lab 1; changes are recorded in the
