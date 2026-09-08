@@ -2,8 +2,8 @@
 
 ## Creators
 
-- [Full name] ([github-username])
-- [Full name] ([github-username])
+- Andrian Lloyd M. Maagma (andrianllmm)
+- Julian Hanns T. Medalla (jtmedalla)
 
 ## Overview
 
