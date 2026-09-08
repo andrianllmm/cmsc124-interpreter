@@ -67,19 +67,19 @@ Examples include hello.grz
 
 | Operator | Category                                             | Operands          | Associativity       | Precedence    |
 | -------- | ---------------------------------------------------- | ----------------- | ------------------- | ------------- |
-| =     | Assignment | Binary | Right | 1 |
-| *     | Arithmetic | Binary | Right | 3 |
-| /     | Arithmetic | Binary | Right | 3 |
-| +     | Arithmetic | Binary | Right | 2 |
-| -     | Arithmetic | Binary | Right | 2 |
-| not     | Logical | Unary | Right | 3 |
-| and     | Logical | Binary | Right | 2 |
-| or     | Logical | Binary | Right | 1 |
-| ==     | Comparison | Binary | Right | 1 |
-| >     | Comparison | Binary | Right | 1 |
-| >=     | Comparison | Binary | Right | 1 |
-| <     | Comparison | Binary | Right | 1 |
-| <=     | Comparison | Binary | Right | 1 |
+| =     | Assignment | Binary | Left |  |
+| *     | Arithmetic | Binary | Left |  |
+| /     | Arithmetic | Binary | Left |  |
+| +     | Arithmetic | Binary | Left |  |
+| -     | Arithmetic | Binary | Left |  |
+| not     | Logical | Unary | Left |  |
+| and     | Logical | Binary | Left |  |
+| or     | Logical | Binary | Left |  |
+| ==     | Comparison | Binary | Left |  |
+| >     | Comparison | Binary | Left |  |
+| >=     | Comparison | Binary | Left |  |
+| <     | Comparison | Binary | Left |  |
+| <=     | Comparison | Binary | Left |  |
 
 ### Literals
 
