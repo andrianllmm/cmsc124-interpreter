@@ -1,4 +1,8 @@
 use std::process::exit;
+use crate::scanner::Scanner;
+
+mod token;
+mod scanner;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -27,7 +31,7 @@ fn run_program(_path: &str) {
 }
 
 fn run_tokenize_file(path: &str) {
-    let _source = match std::fs::read_to_string(path) {
+    let source = match std::fs::read_to_string(path) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
@@ -35,7 +39,18 @@ fn run_tokenize_file(path: &str) {
         }
     };
 
-    // TODO: replace with real Scanner once implemented
-    println!("Token(type=EOF, lexeme=, literal=null, line=1)");
+    let mut scanner = Scanner::new(source.chars().collect());
+    scanner.scan_tokens();
+
+    if scanner.had_error() {
+        exit(1);
+    }
+
+    let tokens = scanner.get_tokens();
+
+    for token in tokens {
+        println!("{}", token);
+    }
+
     exit(0);
 }
