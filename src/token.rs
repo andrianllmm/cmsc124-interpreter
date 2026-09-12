@@ -10,6 +10,30 @@ pub enum TokenType {
     Divide,
     Add,
     Subtract,
+    If,
+    Else,
+    True,
+    False,
+    Null,
+    And,
+    Or,
+    Not,
+    Table,      // begins a table literal
+    Load,       // loads a table from a file
+    Save,       // saves a table to a file
+    Show,       // displays a value
+    Where,      // filters table rows using a condition
+    Select,     // selects table columns by name
+    At,         // performs positional table selection
+    Rows,       // specifies rows for positional selection
+    Columns,    // specifies columns for positional selection
+    Add,        // adds a column
+    Take,       // limits the number of rows returned
+    Sort,       // sorts a table
+    Descending, // sorts values from greatest to least
+    By,         // specifies the column used for sorting or grouping
+    Group,      // begins a grouping operation
+    Calculate,  // defines an aggregation
     Eof,
 }
 
@@ -61,6 +85,32 @@ impl TokenType {
             TokenType::Divide => "DIVIDE",
             TokenType::Add => "ADD",
             TokenType::Subtract => "SUBTRACT",
+            TokenType::If => "IF",
+            TokenType::Else => "ELSE",
+            TokenType::True => "TRUE",
+            TokenType::False => "FALSE:",
+            TokenType::Null => "NULL",
+            TokenType::And => "AND",
+            TokenType::Or => "OR",
+            TokenType::Not => "NOT",
+            TokenType::Table => "TABLE",
+            TokenType::Load => "LOAD",
+            TokenType::Save => "SAVE",
+            TokenType::Show => "SHOW",
+            TokenType::Where => "WHERE",
+            TokenType::Select => "SELECT",
+            TokenType::At => "AT",
+            TokenType::Rows => "ROWS",
+            TokenType::Columns => "COLUMNS",
+            TokenType::Add => "ADD",
+            TokenType::Take => "TAKE",
+            TokenType::Sort => "SORT",
+            TokenType::Descending => "DESCENDING",
+            TokenType::By => "BY",
+            TokenType::Group => "GROUP",
+            TokenType::Calculate => "CALCULATE",
+            TokenType::String => "STRING",
+            TokenType::Comment => "COMMENT",
             TokenType::Eof => "EOF",
         };
     }
