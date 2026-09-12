@@ -101,10 +101,10 @@ impl Scanner {
     // matches the next character
     fn match_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() || self.peek() != expected {
-            return false;
+            false
         } else {
             self.current += 1;
-            return true;
+            true
         }
     }
 
