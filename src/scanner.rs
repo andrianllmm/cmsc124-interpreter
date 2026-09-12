@@ -45,17 +45,42 @@ impl Scanner {
 
     // Consumes one lexeme starting at `current` and emits its token.
     fn scan_token(&mut self) {
-        let c = self.advance();
+        let c: char = self.advance();
         match c {
-            '=' => self.add_token(TokenType::Equals),
             '(' => self.add_token(TokenType::LParen),
             ')' => self.add_token(TokenType::RParen),
             '+' => self.add_token(TokenType::Add),
             '-' => self.add_token(TokenType::Subtract),
             '*' => self.add_token(TokenType::Multiply),
             '/' => self.add_token(TokenType::Divide),
-            '>' => self.add_token(TokenType::More),
-            '<' => self.add_token(TokenType::Less),
+            '=' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::Equals);
+                } else {
+                    self.add_token(TokenType::Assign);
+                }
+            }
+            '>' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::MoreEquals);
+                } else {
+                    self.add_token(TokenType::More);
+                }
+            }
+            '<' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::LessEquals);
+                } else {
+                    self.add_token(TokenType::Less);
+                }
+            }
+            '!' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::NotEquals);
+                } else {
+                    self.error(self.line, "Missing \'=\'")
+                }
+            }
 
             // Skip whitespace.
             ' ' | '\t' | '\r' => {}
@@ -73,6 +98,23 @@ impl Scanner {
         c
     }
 
+    // peeks at the next character
+    fn peek(&self) -> char {
+        // self.advance() causes self.current to point to next character
+        // use self.current instead of self.current + 1
+        self.source[self.current]
+    }
+
+    // matches the next character
+    fn match_expected(&mut self, expected: char) -> bool {
+        if self.is_at_end() || self.peek() != expected {
+            false
+        } else {
+            self.current += 1;
+            true
+        }
+    }
+
     // Records a finished token spanning `start..current`.
     fn add_token(&mut self, token_type: TokenType) {
         // Get the lexeme.
@@ -84,7 +126,7 @@ impl Scanner {
 
     // True once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+        self.current >= self.source.len() - 1
     }
 
     // True if the scan encountered an error.
