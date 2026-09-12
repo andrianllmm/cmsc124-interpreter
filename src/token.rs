@@ -51,7 +51,7 @@ impl TokenType {
             TokenType::Less => "LESS",
             TokenType::LessEquals => "LESS_EQUALS",
             TokenType::Eof => "EOF",
-        }
+        };
     }
 }
 

@@ -45,7 +45,7 @@ impl Scanner {
 
     // Consumes one lexeme starting at `current` and emits its token.
     fn scan_token(&mut self) {
-        let c:char = self.advance();
+        let c: char = self.advance();
         match c {
             '(' => self.add_token(TokenType::LParen),
             ')' => self.add_token(TokenType::RParen),
@@ -61,7 +61,7 @@ impl Scanner {
                     self.add_token(TokenType::Assign);
                 }
             }
-            '>' => { 
+            '>' => {
                 if self.peek() == '=' {
                     _ = self.advance();
                     self.add_token(TokenType::MoreEquals);
@@ -76,7 +76,7 @@ impl Scanner {
                 } else {
                     self.add_token(TokenType::Less);
                 }
-            },
+            }
 
             // Skip whitespace.
             ' ' | '\t' | '\r' => {}
