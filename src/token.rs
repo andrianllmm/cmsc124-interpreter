@@ -34,6 +34,9 @@ pub enum TokenType {
     By,         // specifies the column used for sorting or grouping
     Group,      // begins a grouping operation
     Calculate,  // defines an aggregation
+    String,
+    Comment,
+    Numbers,
     Eof,
 }
 
@@ -111,6 +114,7 @@ impl TokenType {
             TokenType::Calculate => "CALCULATE",
             TokenType::String => "STRING",
             TokenType::Comment => "COMMENT",
+            TokenType::Numbers => "NUMBERS",
             TokenType::Eof => "EOF",
         };
     }
