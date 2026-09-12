@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 pub enum TokenType {
     Equals,
@@ -26,7 +26,7 @@ impl Token {
             token_type,
             lexeme: String::from(lexeme),
             literal: String::from(literal),
-            line
+            line,
         };
     }
 
@@ -35,11 +35,11 @@ impl Token {
         return &self.token_type;
     }
 
-    pub fn get_lexeme(&self) -> &String{
+    pub fn get_lexeme(&self) -> &String {
         return &self.lexeme;
     }
 
-    pub fn get_literal(&self) -> &String{
+    pub fn get_literal(&self) -> &String {
         return &self.literal;
     }
 
@@ -68,7 +68,13 @@ impl TokenType {
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "Token(type={}, lexeme={}, literal={}, line={})",
-            self.token_type.as_str(), self.lexeme, self.literal, self.line )
+        write!(
+            f,
+            "Token(type={}, lexeme={}, literal={}, line={})",
+            self.token_type.as_str(),
+            self.lexeme,
+            self.literal,
+            self.line
+        )
     }
 }
