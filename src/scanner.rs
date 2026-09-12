@@ -54,24 +54,21 @@ impl Scanner {
             '*' => self.add_token(TokenType::Multiply),
             '/' => self.add_token(TokenType::Divide),
             '=' => {
-                if self.peek() == '=' {
-                    _ = self.advance();
+                if self.match_expected('=') {
                     self.add_token(TokenType::Equals);
                 } else {
                     self.add_token(TokenType::Assign);
                 }
             }
             '>' => {
-                if self.peek() == '=' {
-                    _ = self.advance();
+                if self.match_expected('=') {
                     self.add_token(TokenType::MoreEquals);
                 } else {
                     self.add_token(TokenType::More);
                 }
             }
             '<' => {
-                if self.peek() == '=' {
-                    _ = self.advance();
+                if self.match_expected('=') {
                     self.add_token(TokenType::LessEquals);
                 } else {
                     self.add_token(TokenType::Less);
@@ -95,9 +92,20 @@ impl Scanner {
     }
 
     // peeks at the next character
-    fn peek(&mut self) -> char {
+    fn peek(&self) -> char {
         // self.advance() causes self.current to point to next character
+        // use self.current instead of self.current + 1
         self.source[self.current]
+    }
+
+    // matches the next character
+    fn match_expected(&mut self, expected: char) -> bool {
+        if self.is_at_end() || self.peek() != expected {
+            return false;
+        } else {
+            self.current += 1;
+            return true;
+        }
     }
 
     // Records a finished token spanning `start..current`.
