@@ -37,7 +37,7 @@ impl Token {
 // string conversion of TokenType Enum
 impl TokenType {
     fn as_str(&self) -> &'static str {
-        return match self {
+        match self {
             TokenType::Assign => "ASSIGN",
             TokenType::LParen => "LPAREN",
             TokenType::RParen => "RPAREN",
@@ -51,7 +51,7 @@ impl TokenType {
             TokenType::Less => "LESS",
             TokenType::LessEquals => "LESS_EQUALS",
             TokenType::Eof => "EOF",
-        };
+        }
     }
 }
 

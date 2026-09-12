@@ -97,7 +97,7 @@ impl Scanner {
     // peeks at the next character
     fn peek(&mut self) -> char {
         // self.advance() causes self.current to point to next character
-        return self.source[self.current];
+        self.source[self.current]
     }
 
     // Records a finished token spanning `start..current`.
