@@ -1,15 +1,18 @@
 use std::fmt::{Display, Formatter, Error};
 
 pub enum TokenType {
-    Equals,
+    Assign,
     LParen,
     RParen,
-    More,
-    Less,
     Multiply,
     Divide,
     Add,
     Subtract,
+    Equals,
+    More,
+    MoreEquals,
+    Less,
+    LessEquals,
     Eof,
 }
 
@@ -52,15 +55,18 @@ impl Token {
 impl TokenType {
     fn as_str(&self) -> &'static str {
         return match self {
-            TokenType::Equals => "EQUALS",
+            TokenType::Assign => "ASSIGN",
             TokenType::LParen => "LPAREN",
             TokenType::RParen => "RPAREN",
-            TokenType::More => "MORE",
-            TokenType::Less => "LESS",
             TokenType::Multiply => "MULTIPLY",
             TokenType::Divide => "DIVIDE",
             TokenType::Add => "ADD",
             TokenType::Subtract => "SUBTRACT",
+            TokenType::Equals => "EQUALS",
+            TokenType::More => "MORE",
+            TokenType::MoreEquals => "MORE_EQUALS",
+            TokenType::Less => "LESS",
+            TokenType::LessEquals => "LESS_EQUALS",
             TokenType::Eof => "EOF",
         };
     }
