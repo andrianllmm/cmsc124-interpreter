@@ -74,6 +74,13 @@ impl Scanner {
                     self.add_token(TokenType::Less);
                 }
             }
+            '!' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::NotEquals);
+                } else {
+                    self.error(self.line, "Missing \'=\'")
+                }
+            }
 
             // Skip whitespace.
             ' ' | '\t' | '\r' => {}
