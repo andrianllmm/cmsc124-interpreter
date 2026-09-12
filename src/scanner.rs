@@ -55,7 +55,7 @@ impl Scanner {
             '/' => self.add_token(TokenType::Divide),
             '=' => {
                 if self.peek() == '=' {
-                    self.advance();
+                    _ = self.advance();
                     self.add_token(TokenType::Equals);
                 } else {
                     self.add_token(TokenType::Assign);
@@ -63,7 +63,7 @@ impl Scanner {
             }
             '>' => { 
                 if self.peek() == '=' {
-                    self.advance();
+                    _ = self.advance();
                     self.add_token(TokenType::MoreEquals);
                 } else {
                     self.add_token(TokenType::More);
@@ -71,7 +71,7 @@ impl Scanner {
             }
             '<' => {
                 if self.peek() == '=' {
-                    self.advance();
+                    _ = self.advance();
                     self.add_token(TokenType::LessEquals);
                 } else {
                     self.add_token(TokenType::Less);
@@ -96,13 +96,8 @@ impl Scanner {
 
     // peeks at the next character
     fn peek(&mut self) -> char {
-        if !self.is_at_end() {
-            return self.source[self.current + 1];
-        }
-
-        // temporary fix, since whitespace is disregarded
-        // TODO: Refactor this to implement proper error handling
-        return ' ';
+        // self.advance() causes self.current to point to next character
+        return self.source[self.current];
     }
 
     // Records a finished token spanning `start..current`.
