@@ -1,8 +1,8 @@
-use std::process::exit;
 use crate::scanner::Scanner;
+use std::process::exit;
 
-mod token;
 mod scanner;
+mod token;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
