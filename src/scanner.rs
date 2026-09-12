@@ -37,7 +37,8 @@ impl Scanner {
         }
 
         // Append EOF.
-        self.tokens.push(Token::new(TokenType::Eof, "", "", self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "", "", self.line));
 
         &self.tokens
     }
@@ -57,7 +58,7 @@ impl Scanner {
             '<' => self.add_token(TokenType::Less),
 
             // Skip whitespace.
-            ' ' | '\t' | '\r' => {},
+            ' ' | '\t' | '\r' => {}
             // Increment line number.
             '\n' => self.line += 1,
             // Error on unexpected character.
@@ -77,7 +78,8 @@ impl Scanner {
         // Get the lexeme.
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         // Add the token.
-        self.tokens.push(Token::new(token_type, &lexeme, "", self.line));
+        self.tokens
+            .push(Token::new(token_type, &lexeme, "", self.line));
     }
 
     // True once `current` has passed the end of `source`.

@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 pub enum TokenType {
     Equals,
@@ -22,36 +22,19 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_type: TokenType, lexeme: &str, literal: &str, line: i32) -> Token {
-        return Token {
+        Token {
             token_type,
             lexeme: String::from(lexeme),
             literal: String::from(literal),
-            line
-        };
-    }
-
-    // getters
-    pub fn get_type(&self) -> &TokenType {
-        return &self.token_type;
-    }
-
-    pub fn get_lexeme(&self) -> &String{
-        return &self.lexeme;
-    }
-
-    pub fn get_literal(&self) -> &String{
-        return &self.literal;
-    }
-
-    pub fn get_line(&self) -> i32 {
-        return self.line;
+            line,
+        }
     }
 }
 
 // string conversion of TokenType Enum
 impl TokenType {
     fn as_str(&self) -> &'static str {
-        return match self {
+        match self {
             TokenType::Equals => "EQUALS",
             TokenType::LParen => "LPAREN",
             TokenType::RParen => "RPAREN",
@@ -62,13 +45,19 @@ impl TokenType {
             TokenType::Add => "ADD",
             TokenType::Subtract => "SUBTRACT",
             TokenType::Eof => "EOF",
-        };
+        }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "Token(type={}, lexeme={}, literal={}, line={})",
-            self.token_type.as_str(), self.lexeme, self.literal, self.line )
+        write!(
+            f,
+            "Token(type={}, lexeme={}, literal={}, line={})",
+            self.token_type.as_str(),
+            self.lexeme,
+            self.literal,
+            self.line
+        )
     }
 }
