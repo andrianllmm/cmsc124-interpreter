@@ -19,7 +19,7 @@ fn main() {
         None => repl::run(),
         _ => {
             eprintln!("Unknown usage");
-            exit(64);
+            exit(65);
         }
     }
 }
@@ -37,7 +37,7 @@ fn run_tokenize_file(path: &str) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
-            exit(1);
+            exit(65);
         }
     };
 
@@ -50,6 +50,6 @@ fn run_tokenize_file(path: &str) {
             }
             exit(0);
         }
-        Err(()) => exit(1),
+        Err(()) => exit(65),
     }
 }
