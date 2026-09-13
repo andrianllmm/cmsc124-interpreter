@@ -126,7 +126,7 @@ impl Scanner {
 
     // True once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len() - 1
+        self.current >= self.source.len()
     }
 
     // True if the scan encountered an error.
