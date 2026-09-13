@@ -42,17 +42,14 @@ fn run_tokenize_file(path: &str) {
     };
 
     let mut scanner = Scanner::new(source.chars().collect());
-    scanner.scan_tokens();
 
-    if scanner.had_error() {
-        exit(1);
+    match scanner.scan_tokens() {
+        Ok(tokens) => {
+            for token in tokens {
+                println!("{}", token);
+            }
+            exit(0);
+        }
+        Err(()) => exit(1),
     }
-
-    let tokens = scanner.get_tokens();
-
-    for token in tokens {
-        println!("{}", token);
-    }
-
-    exit(0);
 }

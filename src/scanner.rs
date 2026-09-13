@@ -22,13 +22,9 @@ impl Scanner {
         }
     }
 
-    // Get the tokens that have been scanned.
-    pub fn get_tokens(&self) -> &Vec<Token> {
-        &self.tokens
-    }
-
     // Scans one lexeme per iteration until the source is exhausted.
-    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+    // Returns the tokens, or `Err` if any lexical error was reported along the way.
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, ()> {
         while !self.is_at_end() {
             // Set start of the current token.
             self.start = self.current;
@@ -40,7 +36,11 @@ impl Scanner {
         self.tokens
             .push(Token::new(TokenType::Eof, "", "", self.line));
 
-        &self.tokens
+        if self.had_error {
+            Err(())
+        } else {
+            Ok(&self.tokens)
+        }
     }
 
     // Consumes one lexeme starting at `current` and emits its token.
@@ -178,11 +178,6 @@ impl Scanner {
     // True once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
-    }
-
-    // True if the scan encountered an error.
-    pub fn had_error(&self) -> bool {
-        self.had_error
     }
 
     // Reports a lexical error on stderr and marks the scan as failed, without halting it.
