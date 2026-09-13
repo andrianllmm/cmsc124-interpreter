@@ -50,6 +50,11 @@ fn run_tokenize_file(path: &str) {
             }
             exit(0);
         }
-        Err(()) => exit(65),
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{}", error);
+            }
+            exit(65);
+        }
     }
 }

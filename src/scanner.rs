@@ -1,49 +1,69 @@
 use crate::token::{Token, TokenType};
+use std::fmt::{self, Display, Formatter};
+
+// A lexical error encountered while scanning.
+pub struct ScanError {
+    pub line: i32,
+    pub kind: ScanErrorKind,
+}
+
+pub enum ScanErrorKind {
+    UnexpectedChar(char),
+    MissingOneOf(&'static [char]),
+}
+
+impl Display for ScanError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let message = match self.kind {
+            ScanErrorKind::UnexpectedChar(c) => format!("Unexpected character '{}'", c),
+            ScanErrorKind::MissingOneOf(chars) => {
+                let opts: Vec<String> = chars.iter().map(|c| format!("'{}'", c)).collect();
+                format!("Missing {}", opts.join(" or "))
+            }
+        };
+        write!(f, "Error at line {}: {}", self.line, message)
+    }
+}
 
 pub struct Scanner {
     source: Vec<char>,
     tokens: Vec<Token>,
+    errors: Vec<ScanError>,
     start: usize,
     current: usize,
     line: i32,
-    had_error: bool,
 }
 
 impl Scanner {
-    // Builds a scanner positioned at the start of `source`.
     pub fn new(source: Vec<char>) -> Scanner {
         Scanner {
             source,
             tokens: Vec::new(),
+            errors: Vec::new(),
             start: 0,
             current: 0,
             line: 1,
-            had_error: false,
         }
     }
 
     // Scans one lexeme per iteration until the source is exhausted.
-    // Returns the tokens, or `Err` if any lexical error was reported along the way.
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, ()> {
+    // Returns the tokens, or every lexical error collected along the way.
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, &Vec<ScanError>> {
         while !self.is_at_end() {
-            // Set start of the current token.
             self.start = self.current;
-            // Scan the current token.
             self.scan_token();
         }
 
-        // Append EOF.
         self.tokens
             .push(Token::new(TokenType::Eof, "", "", self.line));
 
-        if self.had_error {
-            Err(())
-        } else {
+        if self.errors.is_empty() {
             Ok(&self.tokens)
+        } else {
+            Err(&self.errors)
         }
     }
 
-    // Consumes one lexeme starting at `current` and emits its token.
     fn scan_token(&mut self) {
         let c: char = self.advance();
         match c {
@@ -112,7 +132,7 @@ impl Scanner {
                 if self.match_expected('=') {
                     self.add_token(TokenType::NotEquals);
                 } else {
-                    self.error(self.line, "Missing \'=\'")
+                    self.error(ScanErrorKind::MissingOneOf(&['=']));
                 }
             }
             '|' => {
@@ -121,20 +141,16 @@ impl Scanner {
                 } else if self.match_expected('=') {
                     self.add_token(TokenType::PipeAssign);
                 } else {
-                    self.error(self.line, "Missing \'>\' or \'=\'");
+                    self.error(ScanErrorKind::MissingOneOf(&['>', '=']));
                 }
             }
 
-            // Skip whitespace.
             ' ' | '\t' | '\r' => {}
-            // Increment line number.
             '\n' => self.line += 1,
-            // Error on unexpected character.
-            _ => self.error(self.line, "Unexpected character"),
+            _ => self.error(ScanErrorKind::UnexpectedChar(c)),
         }
     }
 
-    // Consumes the current character and advances `current` past it.
     fn advance(&mut self) -> char {
         let c = self.source[self.current];
         self.current += 1;
@@ -180,9 +196,10 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    // Reports a lexical error on stderr and marks the scan as failed, without halting it.
-    fn error(&mut self, line: i32, message: &str) {
-        eprintln!("Error at line {}: {}", line, message);
-        self.had_error = true;
+    fn error(&mut self, kind: ScanErrorKind) {
+        self.errors.push(ScanError {
+            line: self.line,
+            kind,
+        });
     }
 }
