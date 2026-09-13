@@ -143,6 +143,10 @@ impl Scanner {
 
     // peeks at the next character
     fn peek(&self) -> char {
+        // return sentinel if at end
+        if self.is_at_end() {
+            return '\0';
+        }
         // self.advance() causes self.current to point to next character
         // use self.current instead of self.current + 1
         self.source[self.current]
