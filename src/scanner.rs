@@ -49,13 +49,47 @@ impl Scanner {
         match c {
             '(' => self.add_token(TokenType::LParen),
             ')' => self.add_token(TokenType::RParen),
-            '+' => self.add_token(TokenType::Add),
-            '-' => self.add_token(TokenType::Subtract),
-            '*' => self.add_token(TokenType::Multiply),
-            '/' => self.add_token(TokenType::Divide),
+            '{' => self.add_token(TokenType::LBrace),
+            '}' => self.add_token(TokenType::RBrace),
+            ';' => self.add_token(TokenType::Terminator),
+            '+' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::AddAssign);
+                } else if self.match_expected('+') {
+                    self.add_token(TokenType::StringConcat);
+                } else {
+                    self.add_token(TokenType::Add);
+                }
+            }
+            '-' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::SubAssign);
+                } else if self.match_expected('>') {
+                    self.add_token(TokenType::LambdaArrow);
+                } else {
+                    self.add_token(TokenType::Subtract);
+                }
+            }
+            '*' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::MulAssign);
+                } else {
+                    self.add_token(TokenType::Multiply);
+                }
+            }
+            '/' => {
+                if self.match_expected('=') {
+                    self.add_token(TokenType::DivAssign);
+                } else {
+                    self.add_token(TokenType::Divide);
+                }
+            }
+            '^' => self.add_token(TokenType::Exponent),
             '=' => {
                 if self.match_expected('=') {
                     self.add_token(TokenType::Equals);
+                } else if self.match_expected('>') {
+                    self.add_token(TokenType::MatchArrow);
                 } else {
                     self.add_token(TokenType::Assign);
                 }
@@ -79,6 +113,15 @@ impl Scanner {
                     self.add_token(TokenType::NotEquals);
                 } else {
                     self.error(self.line, "Missing \'=\'")
+                }
+            }
+            '|' => {
+                if self.match_expected('>') {
+                    self.add_token(TokenType::Pipe);
+                } else if self.match_expected('=') {
+                    self.add_token(TokenType::PipeAssign);
+                } else {
+                    self.error(self.line, "Missing \'>\' or \'=\'");
                 }
             }
 
