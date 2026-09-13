@@ -1,6 +1,7 @@
 use crate::scanner::Scanner;
 use std::process::exit;
 
+mod repl;
 mod scanner;
 mod token;
 
@@ -15,6 +16,7 @@ fn main() {
             run_tokenize_file(path);
         }
         Some(path) if !path.starts_with("--") => run_program(path),
+        None => repl::run(),
         _ => {
             eprintln!("Unknown usage");
             exit(64);
