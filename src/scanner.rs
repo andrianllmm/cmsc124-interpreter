@@ -163,12 +163,16 @@ impl Scanner {
     }
 
     // Records a finished token spanning `start..current`.
-    fn add_token(&mut self, token_type: TokenType) {
+    fn add_token_literal(&mut self, token_type: TokenType, literal: &str) {
         // Get the lexeme.
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         // Add the token.
         self.tokens
-            .push(Token::new(token_type, &lexeme, "", self.line));
+            .push(Token::new(token_type, &lexeme, literal, self.line));
+    }
+
+    fn add_token(&mut self, token_type: TokenType) {
+        self.add_token_literal(token_type, "");
     }
 
     // True once `current` has passed the end of `source`.
