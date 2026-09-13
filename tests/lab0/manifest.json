@@ -1,5 +1,5 @@
 {
-  "ext": ".src",
+  "ext": ".griz",
   "mode": "sidecar",
   "run_entrypoint": "./run"
 }
