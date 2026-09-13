@@ -1,5 +1,6 @@
 use std::fmt::{Display, Error, Formatter};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     Assign,
     LParen,
@@ -30,6 +31,7 @@ pub enum TokenType {
     Eof,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
