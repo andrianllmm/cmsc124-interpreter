@@ -28,6 +28,7 @@ pub enum TokenType {
     StringConcat,
     LambdaArrow,
     MatchArrow,
+    String,
     Eof,
 }
 
@@ -80,6 +81,7 @@ impl TokenType {
             TokenType::StringConcat => "STRING_CONCAT",
             TokenType::LambdaArrow => "LAMBDA_ARROW",
             TokenType::MatchArrow => "MATCH_ARROW",
+            TokenType::String => "STRING",
             TokenType::Eof => "EOF",
         }
     }
