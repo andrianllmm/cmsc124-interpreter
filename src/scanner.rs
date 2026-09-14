@@ -3,7 +3,7 @@ use std::fmt::{self, Display, Formatter};
 
 // A lexical error encountered while scanning.
 pub struct ScanError {
-    pub line: i32,
+    pub line: u32,
     pub kind: ScanErrorKind,
 }
 
@@ -31,7 +31,7 @@ pub struct Scanner {
     errors: Vec<ScanError>,
     start: usize,
     current: usize,
-    line: i32,
+    line: u32,
 }
 
 impl Scanner {
