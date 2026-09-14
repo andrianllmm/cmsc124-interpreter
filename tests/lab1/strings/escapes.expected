@@ -1,0 +1,5 @@
+Token(type=STRING, lexeme="line1\nline2\ttabbed\n\"quoted\"\n\\backslash\\", literal=line1
+line2	tabbed
+"quoted"
+\backslash\, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)
