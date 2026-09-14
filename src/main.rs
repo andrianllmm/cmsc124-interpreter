@@ -1,6 +1,7 @@
 use crate::scanner::Scanner;
 use std::process::exit;
 
+mod keyword;
 mod repl;
 mod scanner;
 mod token;
