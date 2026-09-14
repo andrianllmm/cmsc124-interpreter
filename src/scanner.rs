@@ -10,6 +10,8 @@ pub struct ScanError {
 pub enum ScanErrorKind {
     UnexpectedChar(char),
     MissingOneOf(&'static [char]),
+    UnterminatedString,
+    InvalidEscapeSequence(char),
 }
 
 impl Display for ScanError {
@@ -20,6 +22,8 @@ impl Display for ScanError {
                 let opts: Vec<String> = chars.iter().map(|c| format!("'{}'", c)).collect();
                 format!("Missing {}", opts.join(" or "))
             }
+            ScanErrorKind::UnterminatedString => "Unterminated string".to_string(),
+            ScanErrorKind::InvalidEscapeSequence(c) => format!("Invalid escape sequence '\\{}'", c),
         };
         write!(f, "Error at line {}: {}", self.line, message)
     }
@@ -150,11 +154,55 @@ impl Scanner {
                 }
                 self.line += 1;
             }
+            '"' => {
+                self.scan_string();
+            }
 
             ' ' | '\t' | '\r' => {}
             '\n' => self.line += 1,
             _ => self.error(ScanErrorKind::UnexpectedChar(c)),
         }
+    }
+
+    // Scans a string literal.
+    fn scan_string(&mut self) {
+        let mut s = String::new();
+
+        while !self.is_at_end() && self.peek() != '\n' && self.peek() != '"' {
+            let c = self.advance();
+
+            // handle non-escape sequences
+            if c != '\\' {
+                s.push(c);
+                continue;
+            }
+
+            // check for unterminated string
+            if self.is_at_end() || self.peek() == '\n' {
+                self.error(ScanErrorKind::UnterminatedString);
+                return;
+            }
+
+            // handle escape sequences
+            match self.advance() {
+                'n' => s.push('\n'),
+                't' => s.push('\t'),
+                '"' => s.push('"'),
+                '\\' => s.push('\\'),
+                c => self.error(ScanErrorKind::InvalidEscapeSequence(c)),
+            }
+        }
+
+        // check for unterminated string
+        if self.is_at_end() || self.peek() == '\n' {
+            self.error(ScanErrorKind::UnterminatedString);
+            return;
+        }
+
+        // consume quote terminator
+        self.advance();
+
+        self.add_token_literal(TokenType::String, &s);
     }
 
     fn advance(&mut self) -> char {
