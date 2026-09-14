@@ -148,6 +148,7 @@ impl Scanner {
                 while !self.match_expected('\n') && !self.is_at_end() {
                     self.advance();
                 }
+                self.line += 1;
             }
 
             ' ' | '\t' | '\r' => {}
