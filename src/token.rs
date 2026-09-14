@@ -29,6 +29,12 @@ pub enum TokenType {
     LambdaArrow,
     MatchArrow,
     String,
+    /*
+        NOTE: separate implementation of int and float
+        specific to the language
+    */
+    Integer,
+    Float,
     Eof,
 }
 
@@ -82,6 +88,8 @@ impl TokenType {
             TokenType::LambdaArrow => "LAMBDA_ARROW",
             TokenType::MatchArrow => "MATCH_ARROW",
             TokenType::String => "STRING",
+            TokenType::Integer => "INTEGER",
+            TokenType::Float => "FLOAT",
             TokenType::Eof => "EOF",
         }
     }

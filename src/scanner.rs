@@ -12,6 +12,7 @@ pub enum ScanErrorKind {
     MissingOneOf(&'static [char]),
     UnterminatedString,
     InvalidEscapeSequence(char),
+    InvalidNumber,
 }
 
 impl Display for ScanError {
@@ -24,6 +25,7 @@ impl Display for ScanError {
             }
             ScanErrorKind::UnterminatedString => "Unterminated string".to_string(),
             ScanErrorKind::InvalidEscapeSequence(c) => format!("Invalid escape sequence '\\{}'", c),
+            ScanErrorKind::InvalidNumber => "Invalid number".to_string(),
         };
         write!(f, "Error at line {}: {}", self.line, message)
     }
@@ -70,6 +72,12 @@ impl Scanner {
 
     fn scan_token(&mut self) {
         let c: char = self.advance();
+
+        if c.is_ascii_digit() {
+            self.scan_numeric(c);
+            return;
+        }
+
         match c {
             '(' => self.add_token(TokenType::LParen),
             ')' => self.add_token(TokenType::RParen),
@@ -203,6 +211,38 @@ impl Scanner {
         self.advance();
 
         self.add_token_literal(TokenType::String, &s);
+    }
+
+    fn scan_numeric(&mut self, start: char) {
+        let mut s: String = start.to_string();
+        let mut is_float: bool = false;
+
+        while !self.is_at_end()
+            && self.peek() != '\n'
+            && !{ [' ', '\t', '\r'].contains(&self.peek()) }
+        {
+            let c: char = self.advance();
+
+            // check for float type
+            if c == '.' {
+                is_float = true;
+            }
+
+            // check if number is valid digit or dot
+            if !c.is_ascii_digit() && c != '.' {
+                self.error(ScanErrorKind::InvalidNumber);
+                return;
+            }
+
+            // add number to literal
+            s.push(c);
+        }
+
+        if is_float {
+            self.add_token_literal(TokenType::Float, &s);
+        } else {
+            self.add_token_literal(TokenType::Integer, &s);
+        }
     }
 
     fn advance(&mut self) -> char {
