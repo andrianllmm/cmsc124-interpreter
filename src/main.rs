@@ -19,7 +19,7 @@ fn main() {
         None => repl::run(),
         _ => {
             eprintln!("Unknown usage");
-            exit(64);
+            exit(65);
         }
     }
 }
@@ -37,22 +37,24 @@ fn run_tokenize_file(path: &str) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
-            exit(1);
+            exit(65);
         }
     };
 
     let mut scanner = Scanner::new(source.chars().collect());
-    scanner.scan_tokens();
 
-    if scanner.had_error() {
-        exit(1);
+    match scanner.scan_tokens() {
+        Ok(tokens) => {
+            for token in tokens {
+                println!("{}", token);
+            }
+            exit(0);
+        }
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{}", error);
+            }
+            exit(65);
+        }
     }
-
-    let tokens = scanner.get_tokens();
-
-    for token in tokens {
-        println!("{}", token);
-    }
-
-    exit(0);
 }

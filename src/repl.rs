@@ -24,15 +24,18 @@ pub fn run() {
         }
 
         let mut scanner = Scanner::new(line.chars().collect());
-        scanner.scan_tokens();
 
-        if scanner.had_error() {
-            continue;
-        }
-
-        let tokens = scanner.get_tokens();
-        for token in tokens {
-            println!("{}", token);
+        match scanner.scan_tokens() {
+            Ok(tokens) => {
+                for token in tokens {
+                    println!("{}", token);
+                }
+            }
+            Err(errors) => {
+                for error in errors {
+                    eprintln!("{}", error);
+                }
+            }
         }
     }
 }
