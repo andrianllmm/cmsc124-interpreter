@@ -1,3 +1,4 @@
+use crate::keyword::keyword_type;
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
@@ -165,11 +166,36 @@ impl Scanner {
             '"' => {
                 self.scan_string();
             }
+            'a'..='z' | 'A'..='Z' | '_' => {
+                self.scan_identifier();
+            }
 
             ' ' | '\t' | '\r' => {}
             '\n' => self.line += 1,
             _ => self.error(ScanErrorKind::UnexpectedChar(c)),
         }
+    }
+
+    // Scans an identifier or keyword.
+    fn scan_identifier(&mut self) {
+        while !self.is_at_end() {
+            let c = self.peek();
+
+            // Keep going as long as it's a letter, number, or _
+            if c.is_alphanumeric() || c == '_' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Get the lexeme.
+        let text: String = self.source[self.start..self.current].iter().collect();
+
+        // Get the token type.
+        let token_type = keyword_type(&text).unwrap_or(TokenType::Identifier);
+
+        self.add_token_literal(token_type, &text);
     }
 
     // Scans a string literal.
