@@ -144,6 +144,11 @@ impl Scanner {
                     self.error(ScanErrorKind::MissingOneOf(&['>', '=']));
                 }
             }
+            '#' => {
+                while !self.match_expected('\n') && !self.is_at_end() {
+                    self.advance();
+                }
+            }
 
             ' ' | '\t' | '\r' => {}
             '\n' => self.line += 1,
