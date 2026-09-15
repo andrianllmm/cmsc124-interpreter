@@ -249,15 +249,15 @@ impl Scanner {
         {
             let c: char = self.advance();
 
+            // check if number is valid digit or dot
+            if !c.is_ascii_digit() && (c != '.' || is_float) {
+                self.error(ScanErrorKind::InvalidNumber);
+                return;
+            }
+
             // check for float type
             if c == '.' {
                 is_float = true;
-            }
-
-            // check if number is valid digit or dot
-            if !c.is_ascii_digit() && c != '.' {
-                self.error(ScanErrorKind::InvalidNumber);
-                return;
             }
 
             // add number to literal
