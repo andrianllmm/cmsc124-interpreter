@@ -264,6 +264,11 @@ impl Scanner {
             s.push(c);
         }
 
+        if s.starts_with('.') || s.ends_with('.') {
+            self.error(ScanErrorKind::InvalidNumber);
+            return;
+        }
+
         if is_float {
             self.add_token_literal(TokenType::Float, &s);
         } else {
