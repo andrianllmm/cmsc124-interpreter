@@ -1,0 +1,5 @@
+Token(type=EQUALS, lexeme===, literal=, line=1)
+Token(type=ASSIGN, lexeme==, literal=, line=1)
+Token(type=STRING_CONCAT, lexeme=++, literal=, line=1)
+Token(type=ADD, lexeme=+, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)
