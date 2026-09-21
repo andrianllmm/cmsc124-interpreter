@@ -63,8 +63,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 | `+` `-`             | arithmetic | binary   | left          | 5            |                                                         |
 | `++`                | string     | binary   | left          | 5            | concatenation                                           |
 | `*` `/` `%`         | arithmetic | binary   | left          | 6            |                                                         |
-| `^`                 | arithmetic | binary   | right         | 7            | exponent                                                |
-| `-` (unary)         | arithmetic | unary    | right         | 8 (tightest) |                                                         |
+| `-` (unary)         | arithmetic | unary    | right         | 7            |                                                         |
+| `^`                 | arithmetic | binary   | right         | 8 (tightest) | exponent                                                |
 | `->`                | other      | n/a      | n/a           | n/a          | lambda arrow, introduces a lambda's body                |
 | `=>`                | other      | n/a      | n/a           | n/a          | match arrow, introduces a `case`/`else` clause's result |
 
@@ -128,18 +128,48 @@ Fields: token type, lexeme, literal value (or empty), line number.
 ## Grammar
 
 ```
-[Your complete context-free grammar, current as of the latest activity.
-Unambiguous, with precedence and associativity encoded in rule structure.]
+program     → exprStmt* EOF
+
+exprStmt    → expression ";"
+
+assignment  → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) 
+assignment
+            | pipe
+
+pipe        → logicOr ( "|>" logicOr )*
+
+logicOr     → logicAnd ( "or" logicAnd )*
+
+logicAnd    → logicNot ( "and" logicNot )*
+
+logicNot    → "not" logicNot
+            | comparison
+
+comparison  → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*
+
+term        → factor ( ( "+" | "-" | "++" ) factor )*
+
+factor      → unary ( ( "*" | "/" | "%" ) unary )*
+
+unary       → "-" unary
+            | exponent
+
+exponent    → primary ( "^" exponent )?
+
+primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
+            | IDENTIFIER
+            | "(" expression ")"
 ```
 
 ## Parse output format
 
 ```
-[one line of real --parse output, e.g. (+ 1.0 (* 2.0 3.0))]
+(+ 2 (* 3 4))
+(* (group (+ 2 3)) 4)
+(- (- 1 2) 3)
 ```
 
-- Groupings print as: [form]
-- Numbers print as: [form]
+- Groupings print as:  `(group <expr>)`
 
 ## Semantics
 
