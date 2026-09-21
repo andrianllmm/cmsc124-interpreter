@@ -253,12 +253,6 @@ impl Scanner {
         while !self.is_at_end() && self.peek().is_ascii_digit() || self.peek() == '.' {
             let c: char = self.advance();
 
-            // check if number is valid digit or dot
-            if !c.is_ascii_digit() && (c != '.' || is_float) && c == '_' || c.is_ascii_alphabetic()
-            {
-                break;
-            }
-
             // check for float type
             if c == '.' {
                 is_float = true;
