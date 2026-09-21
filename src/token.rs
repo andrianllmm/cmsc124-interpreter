@@ -59,17 +59,17 @@ pub enum TokenType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token {
+pub struct Token<'a> {
     token_type: TokenType,
-    lexeme: String,
+    lexeme: &'a str,
     line: u32,
 }
 
-impl Token {
-    pub fn new(token_type: TokenType, lexeme: &str, line: u32) -> Token {
+impl<'a> Token<'a> {
+    pub fn new(token_type: TokenType, lexeme: &'a str, line: u32) -> Token<'a> {
         Token {
             token_type,
-            lexeme: String::from(lexeme),
+            lexeme,
             line,
         }
     }
@@ -81,7 +81,7 @@ impl Token {
 
     #[allow(dead_code)]
     pub fn lexeme(&self) -> &str {
-        &self.lexeme
+        self.lexeme
     }
 
     #[allow(dead_code)]
@@ -157,7 +157,7 @@ impl TokenType {
     }
 }
 
-impl Display for Token {
+impl<'a> Display for Token<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(
             f,
