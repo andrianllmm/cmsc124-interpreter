@@ -61,8 +61,7 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.tokens
-            .push(Token::new(TokenType::Eof, "", "", self.line));
+        self.tokens.push(Token::new(TokenType::Eof, "", self.line));
 
         if self.errors.is_empty() {
             Ok(&self.tokens)
@@ -239,7 +238,7 @@ impl Scanner {
         // consume quote terminator
         self.advance();
 
-        self.add_token_literal(TokenType::String, &s);
+        self.add_token(TokenType::String(s));
     }
 
     fn scan_numeric(&mut self, start: char) {
@@ -273,9 +272,9 @@ impl Scanner {
         }
 
         if is_float {
-            self.add_token_literal(TokenType::Float, &s);
+            self.add_token(TokenType::Float(s));
         } else {
-            self.add_token_literal(TokenType::Integer, &s);
+            self.add_token(TokenType::Integer(s));
         }
     }
 
@@ -307,16 +306,11 @@ impl Scanner {
     }
 
     // Records a finished token spanning `start..current`.
-    fn add_token_literal(&mut self, token_type: TokenType, literal: &str) {
+    fn add_token(&mut self, token_type: TokenType) {
         // Get the lexeme.
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         // Add the token.
-        self.tokens
-            .push(Token::new(token_type, &lexeme, literal, self.line));
-    }
-
-    fn add_token(&mut self, token_type: TokenType) {
-        self.add_token_literal(token_type, "");
+        self.tokens.push(Token::new(token_type, &lexeme, self.line));
     }
 
     // True once `current` has passed the end of `source`.

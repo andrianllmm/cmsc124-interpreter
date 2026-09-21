@@ -1,6 +1,6 @@
 use std::fmt::{Display, Error, Formatter};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     Assign,
     LParen,
@@ -28,13 +28,13 @@ pub enum TokenType {
     StringConcat,
     LambdaArrow,
     MatchArrow,
-    String,
+    String(String),
     /*
         NOTE: separate implementation of int and float
         specific to the language
     */
-    Integer,
-    Float,
+    Integer(String),
+    Float(String),
     Identifier,
     Return,
     If,
@@ -57,16 +57,14 @@ pub enum TokenType {
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
-    literal: String,
     line: u32,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: &str, literal: &str, line: u32) -> Token {
+    pub fn new(token_type: TokenType, lexeme: &str, line: u32) -> Token {
         Token {
             token_type,
             lexeme: String::from(lexeme),
-            literal: String::from(literal),
             line,
         }
     }
@@ -102,9 +100,9 @@ impl TokenType {
             TokenType::StringConcat => "STRING_CONCAT",
             TokenType::LambdaArrow => "LAMBDA_ARROW",
             TokenType::MatchArrow => "MATCH_ARROW",
-            TokenType::String => "STRING",
-            TokenType::Integer => "INTEGER",
-            TokenType::Float => "FLOAT",
+            TokenType::String(_) => "STRING",
+            TokenType::Integer(_) => "INTEGER",
+            TokenType::Float(_) => "FLOAT",
             TokenType::Identifier => "IDENTIFIER",
             TokenType::Return => "RETURN",
             TokenType::If => "IF",
@@ -123,6 +121,13 @@ impl TokenType {
             TokenType::Eof => "EOF",
         }
     }
+
+    fn literal_str(&self) -> &str {
+        match self {
+            TokenType::String(s) | TokenType::Integer(s) | TokenType::Float(s) => s,
+            _ => "",
+        }
+    }
 }
 
 impl Display for Token {
@@ -132,7 +137,7 @@ impl Display for Token {
             "Token(type={}, lexeme={}, literal={}, line={})",
             self.token_type.as_str(),
             self.lexeme,
-            self.literal,
+            self.token_type.literal_str(),
             self.line
         )
     }
