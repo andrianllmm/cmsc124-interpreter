@@ -1,3 +1,4 @@
+use crate::parser::Parser;
 use crate::scanner::Scanner;
 use std::io::{self, Write};
 
@@ -25,17 +26,20 @@ pub fn run() {
 
         let mut scanner = Scanner::new(&line);
 
-        match scanner.scan_tokens() {
-            Ok(tokens) => {
-                for token in tokens {
-                    println!("{}", token);
-                }
-            }
+        let tokens = match scanner.scan_tokens() {
+            Ok(tokens) => tokens.clone(),
             Err(errors) => {
                 for error in errors {
                     eprintln!("{}", error);
                 }
+                continue;
             }
+        };
+
+        let mut parser = Parser::new(tokens);
+        match parser.parse() {
+            Ok(expr) => println!("{:?}", expr),
+            Err(error) => eprintln!("{}", error),
         }
     }
 }
