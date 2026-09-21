@@ -73,6 +73,21 @@ impl Token {
             line,
         }
     }
+
+    #[allow(dead_code)]
+    pub fn token_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
+    #[allow(dead_code)]
+    pub fn lexeme(&self) -> &str {
+        &self.lexeme
+    }
+
+    #[allow(dead_code)]
+    pub fn line(&self) -> u32 {
+        self.line
+    }
 }
 
 // string conversion of TokenType Enum
