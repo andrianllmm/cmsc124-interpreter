@@ -250,17 +250,8 @@ impl Scanner {
         let mut s: String = start.to_string();
         let mut is_float: bool = false;
 
-        while !self.is_at_end()
-            && self.peek() != '\n'
-            && !{ [' ', '\t', '\r'].contains(&self.peek()) }
-        {
+        while !self.is_at_end() && self.peek().is_ascii_digit() || self.peek() == '.' {
             let c: char = self.advance();
-
-            // check if number is valid digit or dot
-            if !c.is_ascii_digit() && (c != '.' || is_float) {
-                self.error(ScanErrorKind::InvalidNumber);
-                return;
-            }
 
             // check for float type
             if c == '.' {
@@ -269,6 +260,11 @@ impl Scanner {
 
             // add number to literal
             s.push(c);
+        }
+
+        if self.peek() == '_' || self.peek().is_ascii_alphabetic() {
+            self.error(ScanErrorKind::UnexpectedChar(self.peek()));
+            return;
         }
 
         if s.starts_with('.') || s.ends_with('.') {
