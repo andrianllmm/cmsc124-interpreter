@@ -1,6 +1,6 @@
 use std::fmt::{Display, Error, Formatter};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     Assign,
     LParen,
@@ -33,8 +33,8 @@ pub enum TokenType {
         NOTE: separate implementation of int and float
         specific to the language
     */
-    Integer(String),
-    Float(String),
+    Integer(i64),
+    Float(f64),
     Identifier,
     Return,
     If,
@@ -53,7 +53,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -122,10 +122,12 @@ impl TokenType {
         }
     }
 
-    fn literal_str(&self) -> &str {
+    fn literal_string(&self) -> String {
         match self {
-            TokenType::String(s) | TokenType::Integer(s) | TokenType::Float(s) => s,
-            _ => "",
+            TokenType::String(s) => s.clone(),
+            TokenType::Integer(n) => n.to_string(),
+            TokenType::Float(n) => n.to_string(),
+            _ => String::new(),
         }
     }
 }
@@ -137,7 +139,7 @@ impl Display for Token {
             "Token(type={}, lexeme={}, literal={}, line={})",
             self.token_type.as_str(),
             self.lexeme,
-            self.token_type.literal_str(),
+            self.token_type.literal_string(),
             self.line
         )
     }
