@@ -45,7 +45,7 @@ fn run_tokenize_file(path: &str) {
         }
     };
 
-    let mut scanner = Scanner::new(source.chars().collect());
+    let mut scanner = Scanner::new(&source);
 
     match scanner.scan_tokens() {
         Ok(tokens) => {

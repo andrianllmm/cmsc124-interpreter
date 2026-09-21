@@ -23,7 +23,7 @@ pub fn run() {
             break;
         }
 
-        let mut scanner = Scanner::new(line.chars().collect());
+        let mut scanner = Scanner::new(&line);
 
         match scanner.scan_tokens() {
             Ok(tokens) => {
