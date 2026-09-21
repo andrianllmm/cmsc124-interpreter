@@ -272,9 +272,15 @@ impl Scanner {
         }
 
         if is_float {
-            self.add_token(TokenType::Float(s));
+            match s.parse::<f64>() {
+                Ok(n) => self.add_token(TokenType::Float(n)),
+                Err(_) => self.error(ScanErrorKind::InvalidNumber),
+            }
         } else {
-            self.add_token(TokenType::Integer(s));
+            match s.parse::<i64>() {
+                Ok(n) => self.add_token(TokenType::Integer(n)),
+                Err(_) => self.error(ScanErrorKind::InvalidNumber),
+            }
         }
     }
 
