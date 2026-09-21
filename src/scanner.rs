@@ -32,17 +32,17 @@ impl Display for ScanError {
     }
 }
 
-pub struct Scanner {
-    source: Vec<char>,
-    tokens: Vec<Token>,
+pub struct Scanner<'a> {
+    source: &'a str,
+    tokens: Vec<Token<'a>>,
     errors: Vec<ScanError>,
     start: usize,
     current: usize,
     line: u32,
 }
 
-impl Scanner {
-    pub fn new(source: Vec<char>) -> Scanner {
+impl<'a> Scanner<'a> {
+    pub fn new(source: &'a str) -> Scanner<'a> {
         Scanner {
             source,
             tokens: Vec::new(),
@@ -55,7 +55,7 @@ impl Scanner {
 
     // Scans one lexeme per iteration until the source is exhausted.
     // Returns the tokens, or every lexical error collected along the way.
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, &Vec<ScanError>> {
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'a>>, &Vec<ScanError>> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -74,7 +74,7 @@ impl Scanner {
         let c: char = self.advance();
 
         if c.is_ascii_digit() {
-            self.scan_numeric(c);
+            self.scan_numeric();
             return;
         }
 
@@ -197,10 +197,10 @@ impl Scanner {
         }
 
         // Get the lexeme.
-        let text: String = self.source[self.start..self.current].iter().collect();
+        let text = &self.source[self.start..self.current];
 
         // Get the token type.
-        let token_type = keyword_type(&text).unwrap_or(TokenType::Identifier);
+        let token_type = keyword_type(text).unwrap_or(TokenType::Identifier);
 
         self.add_token(token_type);
     }
@@ -246,8 +246,7 @@ impl Scanner {
         self.add_token(TokenType::String(s));
     }
 
-    fn scan_numeric(&mut self, start: char) {
-        let mut s: String = start.to_string();
+    fn scan_numeric(&mut self) {
         let mut is_float: bool = false;
 
         while !self.is_at_end() && self.peek().is_ascii_digit() || self.peek() == '.' {
@@ -257,9 +256,6 @@ impl Scanner {
             if c == '.' {
                 is_float = true;
             }
-
-            // add number to literal
-            s.push(c);
         }
 
         if self.peek() == '_' || self.peek().is_ascii_alphabetic() {
@@ -267,39 +263,37 @@ impl Scanner {
             return;
         }
 
-        if s.starts_with('.') || s.ends_with('.') {
+        let text = &self.source[self.start..self.current];
+
+        if text.starts_with('.') || text.ends_with('.') {
             self.error(ScanErrorKind::InvalidNumber);
             return;
         }
 
         if is_float {
-            match s.parse::<f64>() {
+            match text.parse::<f64>() {
                 Ok(n) => self.add_token(TokenType::Float(n)),
                 Err(_) => self.error(ScanErrorKind::InvalidNumber),
             }
         } else {
-            match s.parse::<i64>() {
+            match text.parse::<i64>() {
                 Ok(n) => self.add_token(TokenType::Integer(n)),
                 Err(_) => self.error(ScanErrorKind::InvalidNumber),
             }
         }
     }
 
+    // advances past and returns the next character
     fn advance(&mut self) -> char {
-        let c = self.source[self.current];
-        self.current += 1;
+        let c = self.peek();
+        self.current += c.len_utf8();
         c
     }
 
     // peeks at the next character
     fn peek(&self) -> char {
         // return sentinel if at end
-        if self.is_at_end() {
-            return '\0';
-        }
-        // self.advance() causes self.current to point to next character
-        // use self.current instead of self.current + 1
-        self.source[self.current]
+        self.source[self.current..].chars().next().unwrap_or('\0')
     }
 
     // matches the next character
@@ -307,17 +301,17 @@ impl Scanner {
         if self.is_at_end() || self.peek() != expected {
             false
         } else {
-            self.current += 1;
+            self.current += expected.len_utf8();
             true
         }
     }
 
     // Records a finished token spanning `start..current`.
     fn add_token(&mut self, token_type: TokenType) {
-        // Get the lexeme.
-        let lexeme: String = self.source[self.start..self.current].iter().collect();
+        // Slice the lexeme directly out of the source.
+        let lexeme = &self.source[self.start..self.current];
         // Add the token.
-        self.tokens.push(Token::new(token_type, &lexeme, self.line));
+        self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
     // True once `current` has passed the end of `source`.
