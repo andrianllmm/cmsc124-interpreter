@@ -6,6 +6,8 @@ mod repl;
 mod scanner;
 mod token;
 
+const EX_DATAERR: i32 = 65;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -20,7 +22,7 @@ fn main() {
         None => repl::run(),
         _ => {
             eprintln!("Unknown usage");
-            exit(65);
+            exit(EX_DATAERR);
         }
     }
 }
@@ -38,7 +40,7 @@ fn run_tokenize_file(path: &str) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
-            exit(65);
+            exit(EX_DATAERR);
         }
     };
 
@@ -55,7 +57,7 @@ fn run_tokenize_file(path: &str) {
             for error in errors {
                 eprintln!("{}", error);
             }
-            exit(65);
+            exit(EX_DATAERR);
         }
     }
 }
