@@ -6,6 +6,7 @@ mod repl;
 mod scanner;
 mod token;
 
+const EX_USAGE: i32 = 64;
 const EX_DATAERR: i32 = 65;
 
 fn main() {
@@ -22,7 +23,7 @@ fn main() {
         None => repl::run(),
         _ => {
             eprintln!("Unknown usage");
-            exit(EX_DATAERR);
+            exit(EX_USAGE);
         }
     }
 }
