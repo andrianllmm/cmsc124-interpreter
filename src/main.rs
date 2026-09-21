@@ -1,7 +1,10 @@
+use crate::parser::Parser;
 use crate::scanner::Scanner;
 use std::process::exit;
 
+mod ast;
 mod keyword;
+mod parser;
 mod repl;
 mod scanner;
 mod token;
@@ -15,10 +18,14 @@ fn main() {
     let flag = args.get(1).map(String::as_str);
 
     match flag {
-        Some("--tokenize") => {
-            let path = args.get(2).expect("usage: run --tokenize <file>");
-            run_tokenize_file(path);
-        }
+        Some("--tokenize") => match args.get(2) {
+            Some(path) => run_tokenize_file(path),
+            None => usage_error("run --tokenize <file>"),
+        },
+        Some("--parse") => match args.get(2) {
+            Some(path) => run_parse_file(path),
+            None => usage_error("run --parse <file>"),
+        },
         Some(path) if !path.starts_with("--") => run_program(path),
         None => repl::run(),
         _ => {
@@ -26,6 +33,11 @@ fn main() {
             exit(EX_USAGE);
         }
     }
+}
+
+fn usage_error(usage: &str) {
+    eprintln!("usage: {}", usage);
+    exit(EX_USAGE);
 }
 
 fn run_program(_path: &str) {
@@ -58,6 +70,39 @@ fn run_tokenize_file(path: &str) {
             for error in errors {
                 eprintln!("{}", error);
             }
+            exit(EX_DATAERR);
+        }
+    }
+}
+
+fn run_parse_file(path: &str) {
+    let source = match std::fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(e) => {
+            eprintln!("Error reading file '{}': {}", path, e);
+            exit(EX_DATAERR);
+        }
+    };
+
+    let mut scanner = Scanner::new(source.chars().collect());
+    let tokens = match scanner.scan_tokens() {
+        Ok(tokens) => tokens.clone(),
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{}", error);
+            }
+            exit(EX_DATAERR);
+        }
+    };
+
+    let mut parser = Parser::new(tokens);
+    match parser.parse() {
+        Ok(expr) => {
+            println!("{:?}", expr);
+            exit(0);
+        }
+        Err(error) => {
+            eprintln!("{}", error);
             exit(EX_DATAERR);
         }
     }
