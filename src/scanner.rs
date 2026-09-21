@@ -83,6 +83,10 @@ impl Scanner {
             ')' => self.add_token(TokenType::RParen),
             '{' => self.add_token(TokenType::LBrace),
             '}' => self.add_token(TokenType::RBrace),
+            '[' => self.add_token(TokenType::LBracket),
+            ']' => self.add_token(TokenType::RBracket),
+            ',' => self.add_token(TokenType::Comma),
+            ':' => self.add_token(TokenType::Colon),
             ';' => self.add_token(TokenType::Terminator),
             '+' => {
                 if self.match_expected('=') {
@@ -117,6 +121,7 @@ impl Scanner {
                 }
             }
             '^' => self.add_token(TokenType::Exponent),
+            '%' => self.add_token(TokenType::Modulo),
             '=' => {
                 if self.match_expected('=') {
                     self.add_token(TokenType::Equals);
