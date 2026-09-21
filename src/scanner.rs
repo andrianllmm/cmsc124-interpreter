@@ -195,7 +195,7 @@ impl Scanner {
         // Get the token type.
         let token_type = keyword_type(&text).unwrap_or(TokenType::Identifier);
 
-        self.add_token_literal(token_type, &text);
+        self.add_token(token_type);
     }
 
     // Scans a string literal.
