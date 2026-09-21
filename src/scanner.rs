@@ -254,12 +254,16 @@ impl Scanner {
             && self.peek() != '\n'
             && !{ [' ', '\t', '\r'].contains(&self.peek()) }
         {
-            let c: char = self.advance();
+            let c: char = self.peek();
 
             // check if number is valid digit or dot
             if !c.is_ascii_digit() && (c != '.' || is_float) {
-                self.error(ScanErrorKind::InvalidNumber);
-                return;
+                if c != '_' || !c.is_ascii_alphabetic(){
+                    break;
+                } else {
+                    self.error(ScanErrorKind::InvalidNumber);
+                    return;
+                }
             }
 
             // check for float type
@@ -269,6 +273,8 @@ impl Scanner {
 
             // add number to literal
             s.push(c);
+
+            self.current += 1
         }
 
         if s.starts_with('.') || s.ends_with('.') {
