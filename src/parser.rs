@@ -47,7 +47,29 @@ impl<'a> Parser<'a> {
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.logic_and()
+        self.logic_or()
+    }
+
+    // logicOr -> logAnd ( "or" logicAnd)
+    fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.logic_and()?;
+
+        loop {
+            let is_or: bool = matches!(
+                self.peek().token_type(),
+                TokenType::Or
+            );
+
+            if !is_or {
+                break;
+            }
+
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.logic_and()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        return Ok(expr);
     }
 
     // logicAnd -> logicNot ("and" logicNot)
