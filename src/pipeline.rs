@@ -16,9 +16,11 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
         return Ok(());
     }
 
-    let expr = parse(tokens)?;
+    let exprs = parse(tokens)?;
     if let Some(Stage::Parse) = stage {
-        println!("{}", ast_printer::print(&expr));
+        for expr in &exprs {
+            println!("{}", ast_printer::print(expr));
+        }
         return Ok(());
     }
 
@@ -39,10 +41,10 @@ fn scan(source: &str) -> Result<Vec<Token<'_>>, ()> {
     }
 }
 
-fn parse(tokens: Vec<Token>) -> Result<Expr, ()> {
+fn parse(tokens: Vec<Token<'_>>) -> Result<Vec<Expr<'_>>, ()> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
-        Ok(expr) => Ok(expr),
+        Ok(exprs) => Ok(exprs.clone()),
         Err(error) => {
             eprintln!("{}", error);
             Err(())
