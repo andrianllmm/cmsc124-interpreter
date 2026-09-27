@@ -1,8 +1,10 @@
 use crate::parser::Parser;
 use crate::scanner::Scanner;
+use crate::stage::Stage;
+use crate::token::Token;
 use std::io::{self, Write};
 
-pub fn run() {
+pub fn run(stage: Option<Stage>) {
     let stdin = io::stdin();
     let mut line = String::new();
 
@@ -24,22 +26,39 @@ pub fn run() {
             break;
         }
 
-        let mut scanner = Scanner::new(&line);
+        run_line(&line, stage);
+    }
+}
 
-        let tokens = match scanner.scan_tokens() {
-            Ok(tokens) => tokens.clone(),
-            Err(errors) => {
-                for error in errors {
-                    eprintln!("{}", error);
-                }
-                continue;
+fn run_line(line: &str, stage: Option<Stage>) {
+    let mut scanner = Scanner::new(line);
+    let tokens = match scanner.scan_tokens() {
+        Ok(tokens) => tokens.clone(),
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{}", error);
             }
-        };
-
-        let mut parser = Parser::new(tokens);
-        match parser.parse() {
-            Ok(expr) => println!("{:?}", expr),
-            Err(error) => eprintln!("{}", error),
+            return;
         }
+    };
+    match stage {
+        Some(Stage::Tokenize) => print_tokens(&tokens),
+        Some(Stage::Parse) => print_parse(tokens),
+        // TODO: evaluate and print the result once it exists
+        None => {}
+    }
+}
+
+fn print_tokens(tokens: &[Token]) {
+    for token in tokens {
+        println!("{}", token);
+    }
+}
+
+fn print_parse(tokens: Vec<Token>) {
+    let mut parser = Parser::new(tokens);
+    match parser.parse() {
+        Ok(expr) => println!("{:?}", expr),
+        Err(error) => eprintln!("{}", error),
     }
 }
