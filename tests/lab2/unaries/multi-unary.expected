@@ -1,0 +1,1 @@
+Unary(Token { token_type: Subtract, lexeme: "-", line: 1 }, Unary(Token { token_type: Subtract, lexeme: "-", line: 1 }, Literal(Token { token_type: Integer(1), lexeme: "1", line: 1 })))

@@ -1,0 +1,1 @@
+Binary(Literal(Token { token_type: Integer(6), lexeme: "6", line: 1 }), Token { token_type: Exponent, lexeme: "^", line: 1 }, Literal(Token { token_type: Integer(7), lexeme: "7", line: 1 }))
