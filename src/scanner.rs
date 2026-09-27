@@ -197,7 +197,6 @@ impl<'a> Scanner<'a> {
         while !self.is_at_end() {
             let c = self.peek();
 
-            // Keep going as long as it's a letter, number, or _
             if c.is_ascii_alphanumeric() || c == '_' {
                 self.advance();
             } else {
@@ -205,10 +204,8 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        // Get the lexeme.
         let text = &self.source[self.start..self.current];
 
-        // Get the token type.
         let token_type = keyword_type(text).unwrap_or(TokenType::Identifier);
 
         self.add_token(token_type);
@@ -221,7 +218,6 @@ impl<'a> Scanner<'a> {
         while !self.is_at_end() && self.peek() != '\n' && self.peek() != '"' {
             let c = self.advance();
 
-            // handle non-escape sequences
             if c != '\\' {
                 s.push(c);
                 continue;
@@ -233,7 +229,6 @@ impl<'a> Scanner<'a> {
                 return;
             }
 
-            // handle escape sequences
             match self.advance() {
                 'n' => s.push('\n'),
                 't' => s.push('\t'),
@@ -249,7 +244,6 @@ impl<'a> Scanner<'a> {
             return;
         }
 
-        // consume quote terminator
         self.advance();
 
         self.add_token(TokenType::String(s));
@@ -262,7 +256,6 @@ impl<'a> Scanner<'a> {
         while !self.is_at_end() && (self.peek().is_ascii_digit() || self.peek() == '.') {
             let c: char = self.advance();
 
-            // check for float type
             if c == '.' {
                 is_float = true;
             }
@@ -317,9 +310,7 @@ impl<'a> Scanner<'a> {
 
     /// Records a finished token spanning `start..current`.
     fn add_token(&mut self, token_type: TokenType) {
-        // Slice the lexeme directly out of the source.
         let lexeme = &self.source[self.start..self.current];
-        // Add the token.
         self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
