@@ -189,7 +189,7 @@ impl<'a> Scanner<'a> {
             let c = self.peek();
 
             // Keep going as long as it's a letter, number, or _
-            if c.is_alphanumeric() || c == '_' {
+            if c.is_ascii_alphanumeric() || c == '_' {
                 self.advance();
             } else {
                 break;
