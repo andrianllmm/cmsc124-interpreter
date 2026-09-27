@@ -1,3 +1,5 @@
+//! Tokens produced by the scanner.
+
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]

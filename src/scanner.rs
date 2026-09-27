@@ -1,8 +1,10 @@
+//! Turns source text into tokens.
+
 use crate::keyword::keyword_type;
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
-// A lexical error encountered while scanning.
+/// A lexical error encountered while scanning.
 pub struct ScanError {
     pub line: u32,
     pub kind: ScanErrorKind,
@@ -53,8 +55,8 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Scans one lexeme per iteration until the source is exhausted.
-    // Returns the tokens, or every lexical error collected along the way.
+    /// Scans one lexeme per iteration until the source is exhausted.
+    /// Returns the tokens, or every lexical error collected along the way.
     pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'a>>, &Vec<ScanError>> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -179,7 +181,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Scans an identifier or keyword.
+    /// Scans an identifier or keyword.
     fn scan_identifier(&mut self) {
         while !self.is_at_end() {
             let c = self.peek();
@@ -201,7 +203,7 @@ impl<'a> Scanner<'a> {
         self.add_token(token_type);
     }
 
-    // Scans a string literal.
+    /// Scans a string literal. Strings can't span lines.
     fn scan_string(&mut self) {
         let mut s = String::new();
 
@@ -279,7 +281,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // advances past and returns the next character
+    /// Consumes and returns the current character.
     fn advance(&mut self) -> char {
         let c = self.peek();
         self.current += c.len_utf8();
@@ -302,7 +304,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Records a finished token spanning `start..current`.
+    /// Records a finished token spanning `start..current`.
     fn add_token(&mut self, token_type: TokenType) {
         // Slice the lexeme directly out of the source.
         let lexeme = &self.source[self.start..self.current];
@@ -310,7 +312,7 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
-    // True once `current` has passed the end of `source`.
+    /// True once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }

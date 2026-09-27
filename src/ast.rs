@@ -1,3 +1,5 @@
+//! Syntax tree built by the parser.
+
 use crate::token::Token;
 
 #[derive(Debug, Clone, PartialEq)]

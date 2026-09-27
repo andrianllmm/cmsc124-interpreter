@@ -1,3 +1,5 @@
+//! Interactive prompt.
+
 use crate::pipeline;
 use crate::stage::Stage;
 use std::io::{self, Write};

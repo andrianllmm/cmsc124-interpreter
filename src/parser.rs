@@ -1,8 +1,10 @@
+//! Recursive descent parser that turns tokens into expressions.
+
 use crate::ast::Expr;
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
-// A syntax error encountered while parsing.
+/// A syntax error encountered while parsing.
 pub struct ParseError {
     pub line: u32,
     pub message: String,
@@ -260,7 +262,7 @@ impl<'a> Parser<'a> {
         Err(self.error(token, "Expect expression."))
     }
 
-    // peeks at the current token without consuming it
+    /// Returns the current token without consuming it.
     fn peek(&self) -> &Token<'a> {
         &self.tokens[self.current]
     }
@@ -274,12 +276,12 @@ impl<'a> Parser<'a> {
         token
     }
 
-    // True once `current` has reached the EOF token
+    /// True once `current` has reached the EOF token.
     fn is_at_end(&self) -> bool {
         matches!(self.peek().token_type(), TokenType::Eof)
     }
 
-    // Builds a syntax error pointing at the given token
+    /// Builds a syntax error pointing at the given token.
     fn error(&self, token: Token<'a>, message: &str) -> ParseError {
         ParseError {
             line: token.line(),

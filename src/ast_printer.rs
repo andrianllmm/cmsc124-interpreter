@@ -1,7 +1,9 @@
+//! Prints the syntax tree for `--parse`.
+
 use crate::ast::Expr;
 use crate::token::TokenType;
 
-// Prints the tree in prefix parenthesized form
+/// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
 pub fn print(expr: &Expr) -> String {
     match expr {
         Expr::Binary(left, operator, right) => {

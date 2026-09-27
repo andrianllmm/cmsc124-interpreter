@@ -1,3 +1,8 @@
+//! Interpreter for Grizzly, a small language for transforming tabular data.
+//!
+//! Runs a file, or starts a REPL when no file is given. `--tokenize` and
+//! `--parse` stop after that stage and print its output.
+
 use crate::stage::Stage;
 use std::process::exit;
 

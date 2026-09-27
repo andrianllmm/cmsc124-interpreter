@@ -1,3 +1,5 @@
+//! Reserved words.
+
 use crate::token::TokenType;
 
 pub fn keyword_type(text: &str) -> Option<TokenType> {

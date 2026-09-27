@@ -1,3 +1,5 @@
+//! Runs source through each stage. Shared by file mode and the REPL.
+
 use crate::ast::Expr;
 use crate::ast_printer;
 use crate::parser::Parser;
@@ -5,8 +7,8 @@ use crate::scanner::Scanner;
 use crate::stage::Stage;
 use crate::token::Token;
 
-// Runs source through the pipeline, stopping after `stage` to print its output.
-// Err means errors were reported; callers decide whether to exit or keep going.
+/// Runs source through the pipeline, stopping after `stage` to print its output.
+/// Err means errors were reported; callers decide whether to exit or keep going.
 pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
     let tokens = scan(source)?;
     if let Some(Stage::Tokenize) = stage {
