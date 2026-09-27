@@ -21,7 +21,7 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
         for expr in &exprs {
             println!("{}", ast_printer::print(expr));
         }
-            return Ok(());
+        return Ok(());
     }
 
     // TODO: evaluate and print the result once the interpreter exists

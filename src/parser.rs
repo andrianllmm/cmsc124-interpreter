@@ -22,16 +22,18 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token<'a>>) -> Parser<'a> {
-        Parser { tokens, expressions: Vec::new(), current: 0 }
+        Parser {
+            tokens,
+            expressions: Vec::new(),
+            current: 0,
+        }
     }
 
     // Parses a single expression.
     pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
         while !self.is_at_end() {
             let expr: Expr<'_> = self.expression()?;
-            let is_terminator: bool = matches!(
-                self.peek().token_type(), TokenType::Terminator
-            );
+            let is_terminator: bool = matches!(self.peek().token_type(), TokenType::Terminator);
 
             if is_terminator {
                 self.expressions.push(expr);
@@ -41,8 +43,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        return Ok(&self.expressions);
-
+        Ok(&self.expressions)
     }
 
     // expression -> term
@@ -60,10 +61,7 @@ impl<'a> Parser<'a> {
         let mut expr: Expr<'_> = self.logic_or()?;
 
         loop {
-            let is_pipe: bool = matches!(
-                self.peek().token_type(),
-                TokenType::Pipe,
-            );
+            let is_pipe: bool = matches!(self.peek().token_type(), TokenType::Pipe,);
 
             if !is_pipe {
                 break;
@@ -74,7 +72,7 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
     // logicOr -> logAnd ( "or" logicAnd)
@@ -82,10 +80,7 @@ impl<'a> Parser<'a> {
         let mut expr: Expr<'_> = self.logic_and()?;
 
         loop {
-            let is_or: bool = matches!(
-                self.peek().token_type(),
-                TokenType::Or
-            );
+            let is_or: bool = matches!(self.peek().token_type(), TokenType::Or);
 
             if !is_or {
                 break;
@@ -96,7 +91,7 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
     // logicAnd -> logicNot ("and" logicNot )*
@@ -104,10 +99,7 @@ impl<'a> Parser<'a> {
         let mut expr: Expr<'_> = self.logic_not()?;
 
         loop {
-            let is_and: bool = matches!(
-                self.peek().token_type(),
-                TokenType::And
-            );
+            let is_and: bool = matches!(self.peek().token_type(), TokenType::And);
 
             if !is_and {
                 break;
@@ -118,23 +110,20 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
     // logicNot -> "not" logicNot | comparison
     fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
-        let is_logic_not: bool = matches!(
-            self.peek().token_type(),
-            TokenType::Not
-        );
+        let is_logic_not: bool = matches!(self.peek().token_type(), TokenType::Not);
 
         if is_logic_not {
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.logic_not()?;
             let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
-            return Ok(expr);
+            Ok(expr)
         } else {
-            return Ok(self.comparison()?);
+            self.comparison()
         }
     }
 
@@ -145,12 +134,12 @@ impl<'a> Parser<'a> {
         loop {
             let is_operator: bool = matches!(
                 self.peek().token_type(),
-                TokenType::Equals |
-                TokenType::NotEquals |
-                TokenType::Less |
-                TokenType::LessEquals |
-                TokenType::More |
-                TokenType::MoreEquals
+                TokenType::Equals
+                    | TokenType::NotEquals
+                    | TokenType::Less
+                    | TokenType::LessEquals
+                    | TokenType::More
+                    | TokenType::MoreEquals
             );
 
             if !is_operator {
@@ -162,10 +151,10 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
-    // term -> primary ( ( "+" | "-" | "++" ) primary )*
+    // term -> factor ( ( "+" | "-" | "++" ) factor )*
     fn term(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.factor()?;
 
@@ -193,9 +182,7 @@ impl<'a> Parser<'a> {
         loop {
             let is_operator: bool = matches!(
                 self.peek().token_type(),
-                TokenType::Multiply |
-                TokenType::Divide |
-                TokenType::Modulo
+                TokenType::Multiply | TokenType::Divide | TokenType::Modulo
             );
 
             if !is_operator {
@@ -207,23 +194,20 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
     // unary -> "-" unary | exponent
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
-        let is_unary_operator: bool = matches!(
-            self.peek().token_type(),
-            TokenType::Subtract
-        );
+        let is_unary_operator: bool = matches!(self.peek().token_type(), TokenType::Subtract);
 
         if is_unary_operator {
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.unary()?;
             let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
-            return Ok(expr);
+            Ok(expr)
         } else {
-            return Ok(self.exponent()?);
+            self.exponent()
         }
     }
 
@@ -231,9 +215,7 @@ impl<'a> Parser<'a> {
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.primary()?;
 
-        let is_exponent: bool = matches!(
-            self.peek().token_type(), TokenType::Exponent
-        );
+        let is_exponent: bool = matches!(self.peek().token_type(), TokenType::Exponent);
 
         if is_exponent {
             let exponent: Token<'_> = self.advance().clone();
@@ -241,10 +223,10 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary(Box::new(expr), exponent, Box::new(right));
         }
 
-        return Ok(expr);
+        Ok(expr)
     }
 
-    // primary -> INTEGER | FLOAT | STRING | "true" | "false" | "null"
+    // primary -> INTEGER | FLOAT | STRING | "true" | "false" | "null"| IDENTIFIER | "(" expression ")"
     fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
         let token = self.peek().clone();
 
@@ -266,14 +248,13 @@ impl<'a> Parser<'a> {
         if matches!(token.token_type(), TokenType::LParen) {
             self.advance();
             let expr: Expr<'_> = self.expression()?;
-            
+
             if !matches!(self.peek().token_type(), TokenType::RParen) {
                 return Err(self.error(token, "Missing ')'"));
             } else {
                 self.advance();
                 return Ok(Expr::Grouping(Box::new(expr)));
             }
-
         }
 
         Err(self.error(token, "Expect expression."))
