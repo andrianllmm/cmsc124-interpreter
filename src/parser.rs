@@ -47,7 +47,29 @@ impl<'a> Parser<'a> {
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.logic_or()
+        self.pipe()
+    }
+
+    // pipe -> logicOr ( "|>"  logicOr )*
+    fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.logic_or()?;
+
+        loop {
+            let is_pipe: bool = matches!(
+                self.peek().token_type(),
+                TokenType::Pipe,
+            );
+
+            if !is_pipe {
+                break;
+            }
+
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.logic_or()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        return Ok(expr);
     }
 
     // logicOr -> logAnd ( "or" logicAnd)
@@ -72,7 +94,7 @@ impl<'a> Parser<'a> {
         return Ok(expr);
     }
 
-    // logicAnd -> logicNot ("and" logicNot)
+    // logicAnd -> logicNot ("and" logicNot )*
     fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_not()?;
 
@@ -111,7 +133,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )
+    // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.term()?;
 
