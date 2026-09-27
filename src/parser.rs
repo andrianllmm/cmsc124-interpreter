@@ -1,4 +1,6 @@
 //! Recursive descent parser that turns tokens into expressions.
+//!
+//! Each rule method follows its rule from the grammar in the README.
 
 use crate::ast::Expr;
 use crate::token::{Token, TokenType};
@@ -31,7 +33,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Parses a single expression.
+    /// Parses every `;`-terminated expression up to EOF, stopping at the first error.
     pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
         while !self.is_at_end() {
             let expr: Expr<'_> = self.expression()?;
@@ -48,17 +50,18 @@ impl<'a> Parser<'a> {
         Ok(&self.expressions)
     }
 
-    // expression -> term
+    /// `expression → assignment`
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
         self.assignment()
     }
 
-    // assignment -> IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment | pipe
+    /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment | pipe`
     fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
+        // TODO: parse assignments once identifiers are supported
         self.pipe()
     }
 
-    // pipe -> logicOr ( "|>"  logicOr )*
+    /// `pipe → logicOr ( "|>" logicOr )*`
     fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_or()?;
 
@@ -77,7 +80,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicOr -> logAnd ( "or" logicAnd)
+    /// `logicOr → logicAnd ( "or" logicAnd )*`
     fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_and()?;
 
@@ -96,7 +99,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicAnd -> logicNot ("and" logicNot )*
+    /// `logicAnd → logicNot ( "and" logicNot )*`
     fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_not()?;
 
@@ -115,7 +118,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicNot -> "not" logicNot | comparison
+    /// `logicNot → "not" logicNot | comparison`
     fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
         let is_logic_not: bool = matches!(self.peek().token_type(), TokenType::Not);
 
@@ -129,7 +132,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*
+    /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*`
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.term()?;
 
@@ -156,7 +159,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // term -> factor ( ( "+" | "-" | "++" ) factor )*
+    /// `term → factor ( ( "+" | "-" | "++" ) factor )*`
     fn term(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.factor()?;
 
@@ -177,7 +180,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // factor -> unary (( "*" | "/" | "%" ) unary )
+    /// `factor → unary ( ( "*" | "/" | "%" ) unary )*`
     fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.unary()?;
 
@@ -199,7 +202,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // unary -> "-" unary | exponent
+    /// `unary → "-" unary | exponent`
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
         let is_unary_operator: bool = matches!(self.peek().token_type(), TokenType::Subtract);
 
@@ -213,7 +216,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // exponent -> primary ( "^" exponent )?
+    /// `exponent → primary ( "^" exponent )?`
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.primary()?;
 
@@ -228,8 +231,9 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // primary -> INTEGER | FLOAT | STRING | "true" | "false" | "null"| IDENTIFIER | "(" expression ")"
+    /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null" | IDENTIFIER | "(" expression ")"`
     fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
+        // TODO: parse IDENTIFIER
         let token = self.peek().clone();
 
         let is_literal = matches!(
@@ -267,7 +271,7 @@ impl<'a> Parser<'a> {
         &self.tokens[self.current]
     }
 
-    // consumes and returns the current token
+    /// Consumes and returns the current token. Stays on EOF so `peek` never goes out of bounds.
     fn advance(&mut self) -> &Token<'a> {
         let token = &self.tokens[self.current];
         if !self.is_at_end() {

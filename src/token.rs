@@ -90,8 +90,8 @@ impl<'a> Token<'a> {
     }
 }
 
-// string conversion of TokenType Enum
 impl TokenType {
+    /// Name shown in `--tokenize` output.
     fn as_str(&self) -> &'static str {
         match self {
             TokenType::Assign => "ASSIGN",

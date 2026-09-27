@@ -216,7 +216,7 @@ impl<'a> Scanner<'a> {
                 continue;
             }
 
-            // check for unterminated string
+            // A trailing `\` leaves the string unclosed.
             if self.is_at_end() || self.peek() == '\n' {
                 self.error(ScanErrorKind::UnterminatedString);
                 return;
@@ -288,13 +288,12 @@ impl<'a> Scanner<'a> {
         c
     }
 
-    // peeks at the next character
+    /// Returns the current character without consuming it, or `'\0'` at the end.
     fn peek(&self) -> char {
-        // return sentinel if at end
         self.source[self.current..].chars().next().unwrap_or('\0')
     }
 
-    // matches the next character
+    /// Consumes the current character only if it's `expected`.
     fn match_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() || self.peek() != expected {
             false

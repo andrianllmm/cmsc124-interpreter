@@ -10,7 +10,8 @@ pub fn run(stage: Option<Stage>) {
 
     loop {
         print!("> ");
-        // print! isn't line-buffered; without this the prompt won't show before read_line blocks
+        // Stdout is line-buffered and the prompt has no newline,
+        // so flush it before `read_line` blocks.
         io::stdout().flush().unwrap();
 
         // read_line appends, so leftover text from the previous line must be cleared
