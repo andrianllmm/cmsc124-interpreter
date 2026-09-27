@@ -16,6 +16,7 @@ pub fn keyword_type(text: &str) -> Option<TokenType> {
         "true" => Some(TokenType::True),
         "false" => Some(TokenType::False),
         "null" => Some(TokenType::Null),
+        "table" => Some(TokenType::Table),
         _ => None,
     }
 }

@@ -55,6 +55,7 @@ pub enum TokenType {
     True,
     False,
     Null,
+    Table,
     Eof,
 }
 
@@ -143,6 +144,7 @@ impl TokenType {
             TokenType::True => "TRUE",
             TokenType::False => "FALSE",
             TokenType::Null => "NULL",
+            TokenType::Table => "TABLE",
             TokenType::Eof => "EOF",
         }
     }
