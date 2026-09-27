@@ -33,7 +33,7 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 
 `.griz`
 
-# Lexical structure
+## Lexical structure
 
 ### Keywords
 
@@ -139,8 +139,7 @@ program     → exprStmt* EOF
 
 exprStmt    → expression ";"
 
-assignment  → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) 
-assignment
+assignment  → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
             | pipe
 
 pipe        → logicOr ( "|>" logicOr )*
@@ -176,7 +175,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 (- (- 1 2) 3)
 ```
 
-- Groupings print as:  `(group <expr>)`
+- Groupings print as: `(group <expr>)`
 
 ## Semantics
 
@@ -326,7 +325,6 @@ my_filter = (t, cond) -> filter(t, cond);
 ### Creating a table
 
 ```
-
 small = table [
   name  | dept   | salary
   "Ana" | "eng"  | 60000
@@ -345,7 +343,6 @@ employees |> filter(salary > 50000 and dept == "eng");
 
 employees |> select(name, dept, salary);
 employees |> drop(ssn, internal_notes);
-
 
 employees |= select(name, age) |> filter(age > 18);
 ```
@@ -379,7 +376,6 @@ employees
        headcount: count(salary)
      );
 
-
 employees
   |> group_by(dept)
   |> summarize(
@@ -388,7 +384,7 @@ employees
      );
 ```
 
-### Sorting, slicing, distinct
+### Slicing
 
 ```
 employees |> slice(10, 20);
@@ -411,7 +407,7 @@ combined = concat(q1_sales, q2_sales, q3_sales);
 renamed = employees |> rename(dept: department, salary: pay);
 ```
 
-### Column and Record access
+### Column and record access
 
 ```
 salaries = employees |> pull(salary)
