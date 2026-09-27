@@ -16,22 +16,65 @@ impl Display for ParseError {
 
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
+    expressions: Vec<Expr<'a>>,
     current: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token<'a>>) -> Parser<'a> {
-        Parser { tokens, current: 0 }
+        Parser { tokens, expressions: Vec::new(), current: 0 }
     }
 
     // Parses a single expression.
-    pub fn parse(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
+        while !self.is_at_end() {
+            let expr: Expr<'_> = self.expression()?;
+            let is_terminator: bool = matches!(
+                self.peek().token_type(), TokenType::Terminator
+            );
+
+            if is_terminator {
+                self.expressions.push(expr);
+                self.advance();
+            } else {
+                return Err(self.error(self.peek().clone(), "Missing terminator ';'"));
+            }
+        }
+
+        return Ok(&self.expressions);
+
     }
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.term()
+        self.comparison()
+    }
+
+    // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )
+    fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.term()?;
+
+        loop {
+            let is_operator: bool = matches!(
+                self.peek().token_type(),
+                TokenType::Equals |
+                TokenType::NotEquals |
+                TokenType::Less |
+                TokenType::LessEquals |
+                TokenType::More |
+                TokenType::MoreEquals
+            );
+
+            if !is_operator {
+                break;
+            }
+
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.term()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        return Ok(expr);
     }
 
     // term -> primary ( ( "+" | "-" | "++" ) primary )*
@@ -81,7 +124,6 @@ impl<'a> Parser<'a> {
 
     // unary -> "-" unary | exponent
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
-
         let is_unary_operator: bool = matches!(
             self.peek().token_type(),
             TokenType::Subtract
