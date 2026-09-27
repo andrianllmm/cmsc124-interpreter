@@ -151,7 +151,7 @@ impl TokenType {
         match self {
             TokenType::String(s) => s.escape_debug().to_string(),
             TokenType::Integer(n) => n.to_string(),
-            // Debug keeps the `.0` on whole floats, so `1.0` doesn't print as `1`
+            // Debug keeps the `.0` on whole floats, so `1.0` doesn't print as `1`.
             TokenType::Float(n) => format!("{:?}", n),
             _ => String::new(),
         }

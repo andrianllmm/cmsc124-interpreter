@@ -16,7 +16,7 @@ mod scanner;
 mod stage;
 mod token;
 
-// Exit codes follow BSD sysexits.h.
+// Exit codes follow BSD `sysexits.h`.
 const EX_USAGE: i32 = 64;
 const EX_DATAERR: i32 = 65;
 const EX_NOINPUT: i32 = 66;
@@ -45,7 +45,7 @@ fn main() {
 }
 
 fn run_program(_path: &str) {
-    // TODO: replace with real execution once the interpreter exists (Lab 4)
+    // TODO: Replace with real execution once the interpreter exists (Lab 4).
     println!("cmsc124-interpreter");
     println!("Members:");
     println!("Andrian Lloyd M. Maagma");

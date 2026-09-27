@@ -34,7 +34,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Parses every `;`-terminated expression up to EOF, stopping at the first error.
+    /// Parses each `;`-terminated expression, stopping at the first error.
     pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
         while !self.is_at_end() {
             let expr: Expr<'_> = self.expression()?;
@@ -56,9 +56,10 @@ impl<'a> Parser<'a> {
         self.assignment()
     }
 
-    /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment | pipe`
+    /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
+    /// | pipe`
     fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
-        // TODO: parse assignments once identifiers are supported
+        // TODO: Parse assignments once identifiers are supported.
         self.pipe()
     }
 
@@ -232,9 +233,10 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null" | IDENTIFIER | "(" expression ")"`
+    /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
+    /// | IDENTIFIER | "(" expression ")"`
     fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
-        // TODO: parse IDENTIFIER
+        // TODO: Parse IDENTIFIER.
         let token = self.peek().clone();
 
         let is_literal = matches!(
@@ -272,7 +274,9 @@ impl<'a> Parser<'a> {
         &self.tokens[self.current]
     }
 
-    /// Consumes and returns the current token. Stays on EOF so `peek` never goes out of bounds.
+    /// Consumes and returns the current token.
+    ///
+    /// Stays on EOF so `peek` never goes out of bounds.
     fn advance(&mut self) -> &Token<'a> {
         let token = &self.tokens[self.current];
         if !self.is_at_end() {
@@ -281,7 +285,7 @@ impl<'a> Parser<'a> {
         token
     }
 
-    /// True once `current` has reached the EOF token.
+    /// Returns `true` once `current` has reached the EOF token.
     fn is_at_end(&self) -> bool {
         matches!(self.peek().token_type(), TokenType::Eof)
     }

@@ -7,7 +7,7 @@ use crate::scanner::Scanner;
 use crate::stage::Stage;
 use crate::token::Token;
 
-/// Runs source through the pipeline, stopping after `stage` to print its output.
+/// Runs source through each stage, stopping after `stage` to print its output.
 /// With no `stage`, runs everything.
 ///
 /// Errors are already printed by the time `Err` returns,
@@ -29,7 +29,7 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
         return Ok(());
     }
 
-    // TODO: evaluate and print the result once the interpreter exists
+    // TODO: Evaluate and print the result once the interpreter exists.
     Ok(())
 }
 

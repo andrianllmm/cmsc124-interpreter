@@ -7,9 +7,9 @@ use crate::token::Token;
 pub enum Expr<'a> {
     /// A number, string, boolean, or `null`.
     Literal(Token<'a>),
-    /// `left operator right`
+    /// A binary operation: `left operator right`.
     Binary(Box<Expr<'a>>, Token<'a>, Box<Expr<'a>>),
-    /// `operator right`
+    /// A unary operation: `operator right`.
     Unary(Token<'a>, Box<Expr<'a>>),
     /// A parenthesized expression.
     Grouping(Box<Expr<'a>>),

@@ -12,7 +12,7 @@ pub struct ScanError {
 
 /// What went wrong while scanning.
 pub enum ScanErrorKind {
-    /// A character that can't start a token, or a letter or `_` right after a number.
+    /// A character that can't start a token, or a letter or `_` after a number.
     UnexpectedChar(char),
     /// An operator is incomplete, e.g. `!` without `=`.
     MissingOneOf(&'static [char]),
@@ -20,7 +20,7 @@ pub enum ScanErrorKind {
     UnterminatedString,
     /// Only `\n`, `\t`, `\"`, and `\\` are supported.
     InvalidEscapeSequence(char),
-    /// e.g. `1.`, `1.2.3`, or an integer too large for `i64`.
+    /// A malformed number, e.g. `1.`, `1.2.3`, or an integer too large for `i64`.
     InvalidNumber,
 }
 
@@ -238,7 +238,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        // check for unterminated string
+        // Unterminated string.
         if self.is_at_end() || self.peek() == '\n' {
             self.error(ScanErrorKind::UnterminatedString);
             return;
@@ -314,7 +314,7 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
-    /// True once `current` has passed the end of `source`.
+    /// Returns `true` once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
