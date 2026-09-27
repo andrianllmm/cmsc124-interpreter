@@ -1,4 +1,5 @@
 use crate::ast::Expr;
+use crate::ast_printer;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::stage::Stage;
@@ -17,7 +18,7 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
 
     let expr = parse(tokens)?;
     if let Some(Stage::Parse) = stage {
-        println!("{:?}", expr);
+        println!("{}", ast_printer::print(&expr));
         return Ok(());
     }
 
