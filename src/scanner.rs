@@ -249,7 +249,7 @@ impl<'a> Scanner<'a> {
     fn scan_numeric(&mut self) {
         let mut is_float: bool = false;
 
-        while !self.is_at_end() && self.peek().is_ascii_digit() || self.peek() == '.' {
+        while !self.is_at_end() && (self.peek().is_ascii_digit() || self.peek() == '.') {
             let c: char = self.advance();
 
             // check for float type
