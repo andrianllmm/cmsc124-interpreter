@@ -1,0 +1,5 @@
+Token(type=IDENTIFIER, lexeme=x, literal=, line=1)
+Token(type=ASSIGN, lexeme==, literal=, line=1)
+Token(type=INTEGER, lexeme=1, literal=1, line=1)
+Token(type=IDENTIFIER, lexeme=y, literal=, line=2)
+Token(type=EOF, lexeme=, literal=, line=3)
