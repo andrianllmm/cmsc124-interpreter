@@ -16,6 +16,7 @@ mod scanner;
 mod stage;
 mod token;
 
+// Exit codes follow BSD sysexits.h.
 const EX_USAGE: i32 = 64;
 const EX_DATAERR: i32 = 65;
 const EX_NOINPUT: i32 = 66;

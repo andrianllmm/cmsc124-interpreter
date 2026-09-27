@@ -10,11 +10,17 @@ pub struct ScanError {
     pub kind: ScanErrorKind,
 }
 
+/// What went wrong while scanning.
 pub enum ScanErrorKind {
+    /// A character that can't start a token, or a letter or `_` right after a number.
     UnexpectedChar(char),
+    /// An operator is incomplete, e.g. `!` without `=`.
     MissingOneOf(&'static [char]),
+    /// The line or file ended before the closing `"`.
     UnterminatedString,
+    /// Only `\n`, `\t`, `\"`, and `\\` are supported.
     InvalidEscapeSequence(char),
+    /// e.g. `1.`, `1.2.3`, or an integer too large for `i64`.
     InvalidNumber,
 }
 
@@ -34,11 +40,14 @@ impl Display for ScanError {
     }
 }
 
+/// Scans source into tokens that borrow their lexemes from it.
 pub struct Scanner<'a> {
     source: &'a str,
     tokens: Vec<Token<'a>>,
     errors: Vec<ScanError>,
+    /// Byte offset where the current lexeme starts.
     start: usize,
+    /// Byte offset of the next unread character.
     current: usize,
     line: u32,
 }
@@ -55,8 +64,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    /// Scans one lexeme per iteration until the source is exhausted.
-    /// Returns the tokens, or every lexical error collected along the way.
+    /// Scans the whole source into tokens ending with `Eof`.
+    ///
+    /// Returns every lexical error found, not just the first.
     pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'a>>, &Vec<ScanError>> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -164,6 +174,7 @@ impl<'a> Scanner<'a> {
                 }
             }
             '#' => {
+                // Line comment.
                 while self.peek() != '\n' && !self.is_at_end() {
                     self.advance();
                 }
@@ -244,6 +255,7 @@ impl<'a> Scanner<'a> {
         self.add_token(TokenType::String(s));
     }
 
+    /// Scans an integer or float. Floats need digits on both sides of the `.`.
     fn scan_numeric(&mut self) {
         let mut is_float: bool = false;
 

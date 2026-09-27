@@ -18,6 +18,7 @@ impl Display for ParseError {
     }
 }
 
+/// Parses the scanner's tokens, which must end with `Eof`.
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     expressions: Vec<Expr<'a>>,

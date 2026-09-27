@@ -8,7 +8,10 @@ use crate::stage::Stage;
 use crate::token::Token;
 
 /// Runs source through the pipeline, stopping after `stage` to print its output.
-/// Err means errors were reported; callers decide whether to exit or keep going.
+/// With no `stage`, runs everything.
+///
+/// Errors are already printed by the time `Err` returns,
+/// so callers only decide whether to exit or keep going.
 pub fn run(source: &str, stage: Option<Stage>) -> Result<(), ()> {
     let tokens = scan(source)?;
     if let Some(Stage::Tokenize) = stage {
