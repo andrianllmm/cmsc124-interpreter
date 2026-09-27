@@ -1,0 +1,7 @@
+Token(type=ADD, lexeme=+, literal=, line=1)
+Token(type=SUBTRACT, lexeme=-, literal=, line=1)
+Token(type=MULTIPLY, lexeme=*, literal=, line=1)
+Token(type=DIVIDE, lexeme=/, literal=, line=1)
+Token(type=EXPONENT, lexeme=^, literal=, line=1)
+Token(type=MODULO, lexeme=%, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)

@@ -1,0 +1,5 @@
+Token(type=IDENTIFIER, lexeme=x, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=y, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=foo, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=bar, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)

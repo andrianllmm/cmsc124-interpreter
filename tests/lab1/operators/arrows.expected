@@ -1,0 +1,4 @@
+Token(type=PIPE, lexeme=|>, literal=, line=1)
+Token(type=LAMBDA_ARROW, lexeme=->, literal=, line=1)
+Token(type=MATCH_ARROW, lexeme==>, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)

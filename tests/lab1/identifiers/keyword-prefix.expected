@@ -1,0 +1,5 @@
+Token(type=IDENTIFIER, lexeme=returning, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=ifelse, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=elsewhere, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=tables, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)
