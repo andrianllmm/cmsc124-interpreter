@@ -1,5 +1,6 @@
 use crate::token::Token;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
     Literal(Token<'a>),
