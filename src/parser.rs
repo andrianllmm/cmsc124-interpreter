@@ -47,7 +47,24 @@ impl<'a> Parser<'a> {
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.comparison()
+        self.logic_not()
+    }
+
+    // logicNot -> "not" logicNot | comparison
+    fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
+        let is_logic_not: bool = matches!(
+            self.peek().token_type(),
+            TokenType::Not
+        );
+
+        if is_logic_not {
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.logic_not()?;
+            let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
+            return Ok(expr);
+        } else {
+            return Ok(self.comparison()?);
+        }
     }
 
     // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )
