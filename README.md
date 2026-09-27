@@ -225,18 +225,23 @@ true.]
 
 ## Errors and diagnostics
 
-Message format:
+Diagnostics are printed to stderr as `Error at line N: <message>`.
 
 ```
-[one real static error]
-[one real runtime error]
+Error at line 1: Unexpected character '@'
+Error at line 1: Unterminated string
+Error at line 1: Invalid escape sequence '\q'
+Error at line 1: Invalid number
+Error at line 1: Missing '='
 ```
 
 | Failure         | Exit code |
 | --------------- | --------- |
-| [lexical error] | 65        |
-| [syntax error]  | 65        |
-| [runtime error] | 70        |
+| Bad usage       | 64        |
+| Lexical error   | 65        |
+| Syntax error    | 65        |
+| Unreadable file | 66        |
+| Runtime error   | 70        |
 
 ## Testing conventions
 
