@@ -162,12 +162,8 @@ impl<'a> Scanner<'a> {
                 }
             }
             '#' => {
-                while !self.match_expected('\n') && !self.is_at_end() {
+                while self.peek() != '\n' && !self.is_at_end() {
                     self.advance();
-                }
-
-                if !self.is_at_end() {
-                    self.line += 1;
                 }
             }
             '"' => {
