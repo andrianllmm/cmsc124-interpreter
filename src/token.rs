@@ -151,7 +151,7 @@ impl TokenType {
 
     fn literal_string(&self) -> String {
         match self {
-            TokenType::String(s) => s.clone(),
+            TokenType::String(s) => s.escape_debug().to_string(),
             TokenType::Integer(n) => n.to_string(),
             TokenType::Float(n) => n.to_string(),
             _ => String::new(),
