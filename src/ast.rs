@@ -4,4 +4,6 @@ use crate::token::Token;
 pub enum Expr<'a> {
     Literal(Token<'a>),
     Binary(Box<Expr<'a>>, Token<'a>, Box<Expr<'a>>),
+    Unary(Token<'a>, Box<Expr<'a>>),
+    Grouping(Box<Expr<'a>>),
 }
