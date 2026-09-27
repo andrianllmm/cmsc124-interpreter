@@ -1,1 +1,1 @@
-Binary(Literal(Token { token_type: Integer(2), lexeme: "2", line: 1 }), Token { token_type: Exponent, lexeme: "^", line: 1 }, Binary(Literal(Token { token_type: Integer(3), lexeme: "3", line: 1 }), Token { token_type: Exponent, lexeme: "^", line: 1 }, Literal(Token { token_type: Integer(2), lexeme: "2", line: 1 })))
+(^ 2 (^ 3 2))
