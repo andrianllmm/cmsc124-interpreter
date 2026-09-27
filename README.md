@@ -127,6 +127,8 @@ Token(type=, lexeme=, literal=, line=)
 
 Fields: token type, lexeme, literal value (or empty), line number.
 
+String literals print escaped.
+
 ## Grammar
 
 ```
