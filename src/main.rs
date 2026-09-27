@@ -13,6 +13,7 @@ mod token;
 
 const EX_USAGE: i32 = 64;
 const EX_DATAERR: i32 = 65;
+const EX_NOINPUT: i32 = 66;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -50,7 +51,7 @@ fn run_tokenize_file(path: &str) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
-            exit(EX_DATAERR);
+            exit(EX_NOINPUT);
         }
     };
 
@@ -77,7 +78,7 @@ fn run_parse_file(path: &str) {
         Ok(contents) => contents,
         Err(e) => {
             eprintln!("Error reading file '{}': {}", path, e);
-            exit(EX_DATAERR);
+            exit(EX_NOINPUT);
         }
     };
 
