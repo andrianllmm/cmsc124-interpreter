@@ -1,7 +1,5 @@
-use crate::parser::Parser;
-use crate::scanner::Scanner;
+use crate::pipeline;
 use crate::stage::Stage;
-use crate::token::Token;
 use std::io::{self, Write};
 
 pub fn run(stage: Option<Stage>) {
@@ -26,39 +24,6 @@ pub fn run(stage: Option<Stage>) {
             break;
         }
 
-        run_line(&line, stage);
-    }
-}
-
-fn run_line(line: &str, stage: Option<Stage>) {
-    let mut scanner = Scanner::new(line);
-    let tokens = match scanner.scan_tokens() {
-        Ok(tokens) => tokens.clone(),
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            return;
-        }
-    };
-    match stage {
-        Some(Stage::Tokenize) => print_tokens(&tokens),
-        Some(Stage::Parse) => print_parse(tokens),
-        // TODO: evaluate and print the result once it exists
-        None => {}
-    }
-}
-
-fn print_tokens(tokens: &[Token]) {
-    for token in tokens {
-        println!("{}", token);
-    }
-}
-
-fn print_parse(tokens: Vec<Token>) {
-    let mut parser = Parser::new(tokens);
-    match parser.parse() {
-        Ok(expr) => println!("{:?}", expr),
-        Err(error) => eprintln!("{}", error),
+        let _ = pipeline::run(&line, stage);
     }
 }

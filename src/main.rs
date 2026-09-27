@@ -1,11 +1,10 @@
-use crate::parser::Parser;
-use crate::scanner::Scanner;
 use crate::stage::Stage;
 use std::process::exit;
 
 mod ast;
 mod keyword;
 mod parser;
+mod pipeline;
 mod repl;
 mod scanner;
 mod stage;
@@ -22,11 +21,11 @@ fn main() {
 
     match flag {
         Some("--tokenize") => match args.get(2) {
-            Some(path) => run_tokenize_file(path),
+            Some(path) => run_file(path, Stage::Tokenize),
             None => repl::run(Some(Stage::Tokenize)),
         },
         Some("--parse") => match args.get(2) {
-            Some(path) => run_parse_file(path),
+            Some(path) => run_file(path, Stage::Parse),
             None => repl::run(Some(Stage::Parse)),
         },
         Some(path) if !path.starts_with("--") => run_program(path),
@@ -46,7 +45,7 @@ fn run_program(_path: &str) {
     println!("Julian Hanns T. Medalla");
 }
 
-fn run_tokenize_file(path: &str) {
+fn run_file(path: &str, stage: Stage) {
     let source = match std::fs::read_to_string(path) {
         Ok(contents) => contents,
         Err(e) => {
@@ -55,53 +54,8 @@ fn run_tokenize_file(path: &str) {
         }
     };
 
-    let mut scanner = Scanner::new(&source);
-
-    match scanner.scan_tokens() {
-        Ok(tokens) => {
-            for token in tokens {
-                println!("{}", token);
-            }
-            exit(0);
-        }
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            exit(EX_DATAERR);
-        }
-    }
-}
-
-fn run_parse_file(path: &str) {
-    let source = match std::fs::read_to_string(path) {
-        Ok(contents) => contents,
-        Err(e) => {
-            eprintln!("Error reading file '{}': {}", path, e);
-            exit(EX_NOINPUT);
-        }
-    };
-
-    let mut scanner = Scanner::new(&source);
-    let tokens = match scanner.scan_tokens() {
-        Ok(tokens) => tokens.clone(),
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            exit(EX_DATAERR);
-        }
-    };
-
-    let mut parser = Parser::new(tokens);
-    match parser.parse() {
-        Ok(expr) => {
-            println!("{:?}", expr);
-            exit(0);
-        }
-        Err(error) => {
-            eprintln!("{}", error);
-            exit(EX_DATAERR);
-        }
+    match pipeline::run(&source, Some(stage)) {
+        Ok(()) => exit(0),
+        Err(()) => exit(EX_DATAERR),
     }
 }
