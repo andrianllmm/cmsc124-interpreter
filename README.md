@@ -544,6 +544,6 @@ The language design is grounded in tabular data transformation. Each decision ex
 
 ## Changelog
 
-| Activity | What changed in the language |
-| -------- | ---------------------------- |
-| Lab 1    | [entry]                      |
+| Activity | What changed in the language                                                                                                                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lab 1    | Scanner with the full token vocabulary (keywords, operators, punctuation), `--tokenize` flag and line REPL, string escapes `\n \t \\ \" \{`, `Int` and `Float` literals (digits on both sides of `.`), `#` line comments |
