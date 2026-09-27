@@ -47,6 +47,11 @@ impl<'a> Parser<'a> {
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
+        self.assignment()
+    }
+
+    // assignment -> IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment | pipe
+    fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
         self.pipe()
     }
 
@@ -256,6 +261,19 @@ impl<'a> Parser<'a> {
         if is_literal {
             self.advance();
             return Ok(Expr::Literal(token));
+        }
+
+        if matches!(token.token_type(), TokenType::LParen) {
+            self.advance();
+            let expr: Expr<'_> = self.expression()?;
+            
+            if !matches!(self.peek().token_type(), TokenType::RParen) {
+                return Err(self.error(token, "Missing ')'"));
+            } else {
+                self.advance();
+                return Ok(Expr::Grouping(Box::new(expr)));
+            }
+
         }
 
         Err(self.error(token, "Expect expression."))
