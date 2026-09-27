@@ -2,6 +2,7 @@ use crate::stage::Stage;
 use std::process::exit;
 
 mod ast;
+mod ast_printer;
 mod keyword;
 mod parser;
 mod pipeline;
