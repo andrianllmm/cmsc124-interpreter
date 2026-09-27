@@ -83,6 +83,9 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 | List                | `[1, 2, 3]`                                                                              | `List(T)` |
 | Table               | `table [ col1 \| col2 \| col3 ... ]` (header row, then one row per line, `\|`-separated) | `Table`   |
 
+- Strings cannot span lines. A newline before the closing `"` is an unterminated string.
+- A `.` in a number needs digits on both sides, so `1.`, `.5`, `1.2.3`, and `3.foo` are errors. A stray `.` is reported as a typo.
+
 ### Identifiers
 
 - Start characters: ASCII letters (`a-z`, `A-Z`), `_`
