@@ -153,7 +153,7 @@ impl TokenType {
         match self {
             TokenType::String(s) => s.clone(),
             TokenType::Integer(n) => n.to_string(),
-            TokenType::Float(n) => n.to_string(),
+            TokenType::Float(n) => format!("{:?}", n),
             _ => String::new(),
         }
     }

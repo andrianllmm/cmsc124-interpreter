@@ -1,0 +1,4 @@
+Token(type=FLOAT, lexeme=1.0, literal=1.0, line=1)
+Token(type=FLOAT, lexeme=0.0, literal=0.0, line=1)
+Token(type=FLOAT, lexeme=100.0, literal=100.0, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)
