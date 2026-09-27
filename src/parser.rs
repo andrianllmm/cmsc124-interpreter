@@ -47,7 +47,29 @@ impl<'a> Parser<'a> {
 
     // expression -> term
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
-        self.logic_not()
+        self.logic_and()
+    }
+
+    // logicAnd -> logicNot ("and" logicNot)
+    fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.logic_not()?;
+
+        loop {
+            let is_and: bool = matches!(
+                self.peek().token_type(),
+                TokenType::And
+            );
+
+            if !is_and {
+                break;
+            }
+
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.logic_not()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        return Ok(expr);
     }
 
     // logicNot -> "not" logicNot | comparison
