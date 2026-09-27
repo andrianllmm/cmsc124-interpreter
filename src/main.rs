@@ -1,5 +1,6 @@
 use crate::parser::Parser;
 use crate::scanner::Scanner;
+use crate::stage::Stage;
 use std::process::exit;
 
 mod ast;
@@ -7,6 +8,7 @@ mod keyword;
 mod parser;
 mod repl;
 mod scanner;
+mod stage;
 mod token;
 
 const EX_USAGE: i32 = 64;
@@ -20,24 +22,19 @@ fn main() {
     match flag {
         Some("--tokenize") => match args.get(2) {
             Some(path) => run_tokenize_file(path),
-            None => usage_error("run --tokenize <file>"),
+            None => repl::run(Some(Stage::Tokenize)),
         },
         Some("--parse") => match args.get(2) {
             Some(path) => run_parse_file(path),
-            None => usage_error("run --parse <file>"),
+            None => repl::run(Some(Stage::Parse)),
         },
         Some(path) if !path.starts_with("--") => run_program(path),
-        None => repl::run(),
+        None => repl::run(None),
         _ => {
             eprintln!("Unknown usage");
             exit(EX_USAGE);
         }
     }
-}
-
-fn usage_error(usage: &str) {
-    eprintln!("usage: {}", usage);
-    exit(EX_USAGE);
 }
 
 fn run_program(_path: &str) {

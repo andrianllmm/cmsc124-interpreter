@@ -24,6 +24,8 @@ Grizzly is a small language for transforming tabular data. It's built for data a
 | `./run --parse <file>`    | Prints the parsed tree.                         |
 | `./run --eval <file>`     | Evaluates each expression and prints its value. |
 | `./run`                   | Starts the REPL.                                |
+| `./run --tokenize`        | Starts the REPL, printing only tokens.          |
+| `./run --parse`           | Starts the REPL, printing only the parsed tree. |
 
 Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name), 70 on a runtime error (type mismatch, division by zero, arity mismatch).
 
