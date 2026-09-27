@@ -83,8 +83,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 
 ### Identifiers
 
-- Start characters: letters, `_`
-- Continue characters: letters, digits, `_`
+- Start characters: ASCII letters (`a-z`, `A-Z`), `_`
+- Continue characters: ASCII letters, ASCII digits (`0-9`), `_`
 - Case-sensitive: yes
 - No length limit
 
