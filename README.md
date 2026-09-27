@@ -176,6 +176,10 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 ```
 
 - Groupings print as: `(group <expr>)`
+- Integers print as written: `2`
+- Floats always keep a decimal point: `3.0`, never `3`
+- Strings print quoted and escaped: `"hi\n"`
+- Booleans and null print as their keyword: `true`, `false`, `null`
 
 ## Semantics
 
