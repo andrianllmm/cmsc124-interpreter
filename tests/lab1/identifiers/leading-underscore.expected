@@ -1,0 +1,3 @@
+Token(type=IDENTIFIER, lexeme=_underscore, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=_leading, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)

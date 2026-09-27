@@ -1,0 +1,4 @@
+Token(type=IDENTIFIER, lexeme=snake_case, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=camelCase, literal=, line=1)
+Token(type=IDENTIFIER, lexeme=PascalCase, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)

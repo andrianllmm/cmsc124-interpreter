@@ -1,0 +1,6 @@
+Token(type=ADD_ASSIGN, lexeme=+=, literal=, line=1)
+Token(type=SUB_ASSIGN, lexeme=-=, literal=, line=1)
+Token(type=MUL_ASSIGN, lexeme=*=, literal=, line=1)
+Token(type=DIV_ASSIGN, lexeme=/=, literal=, line=1)
+Token(type=PIPE_ASSIGN, lexeme=|=, literal=, line=1)
+Token(type=EOF, lexeme=, literal=, line=2)
