@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
 
     // term -> primary ( ( "+" | "-" | "++" ) primary )*
     fn term(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr = self.primary()?;
+        let mut expr = self.factor()?;
 
         loop {
             let is_operator = matches!(
@@ -48,11 +48,70 @@ impl<'a> Parser<'a> {
             }
 
             let operator = self.advance().clone();
-            let right = self.primary()?;
+            let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
         Ok(expr)
+    }
+
+    // factor -> unary (( "*" | "/" | "%" ) unary )
+    fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.unary()?;
+
+        loop {
+            let is_operator: bool = matches!(
+                self.peek().token_type(),
+                TokenType::Multiply |
+                TokenType::Divide |
+                TokenType::Modulo
+            );
+
+            if !is_operator {
+                break;
+            }
+
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.unary()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        return Ok(expr);
+    }
+
+    // unary -> "-" unary | exponent
+    fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
+
+        let is_unary_operator: bool = matches!(
+            self.peek().token_type(),
+            TokenType::Subtract
+        );
+
+        if is_unary_operator {
+            let operator: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.unary()?;
+            let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
+            return Ok(expr);
+        } else {
+            return Ok(self.exponent()?);
+        }
+    }
+
+    // exponent -> primary ( "^" exponent )?
+    fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr: Expr<'_> = self.primary()?;
+
+        let is_exponent: bool = matches!(
+            self.peek().token_type(), TokenType::Exponent
+        );
+
+        if is_exponent {
+            let exponent: Token<'_> = self.advance().clone();
+            let right: Expr<'_> = self.exponent()?;
+            expr = Expr::Binary(Box::new(expr), exponent, Box::new(right));
+        }
+
+        return Ok(expr);
     }
 
     // primary -> INTEGER | FLOAT | STRING | "true" | "false" | "null"
