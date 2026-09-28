@@ -1,5 +1,8 @@
+//! Reserved words.
+
 use crate::token::TokenType;
 
+/// Returns the keyword's token type, or `None` if `text` isn't a keyword.
 pub fn keyword_type(text: &str) -> Option<TokenType> {
     match text {
         "return" => Some(TokenType::Return),

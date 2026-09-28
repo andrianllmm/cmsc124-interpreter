@@ -1,18 +1,26 @@
+//! Turns source text into tokens.
+
 use crate::keyword::keyword_type;
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
-// A lexical error encountered while scanning.
+/// A lexical error encountered while scanning.
 pub struct ScanError {
     pub line: u32,
     pub kind: ScanErrorKind,
 }
 
+/// What went wrong while scanning.
 pub enum ScanErrorKind {
+    /// A character that can't start a token, or a letter or `_` after a number.
     UnexpectedChar(char),
+    /// An operator is incomplete, e.g. `!` without `=`.
     MissingOneOf(&'static [char]),
+    /// The line or file ended before the closing `"`.
     UnterminatedString,
+    /// Only `\n`, `\t`, `\"`, and `\\` are supported.
     InvalidEscapeSequence(char),
+    /// A malformed number, e.g. `1.`, `1.2.3`, or an integer too large for `i64`.
     InvalidNumber,
 }
 
@@ -32,11 +40,14 @@ impl Display for ScanError {
     }
 }
 
+/// Scans source into tokens that borrow their lexemes from it.
 pub struct Scanner<'a> {
     source: &'a str,
     tokens: Vec<Token<'a>>,
     errors: Vec<ScanError>,
+    /// Byte offset where the current lexeme starts.
     start: usize,
+    /// Byte offset of the next unread character.
     current: usize,
     line: u32,
 }
@@ -53,8 +64,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Scans one lexeme per iteration until the source is exhausted.
-    // Returns the tokens, or every lexical error collected along the way.
+    /// Scans the whole source into tokens ending with `Eof`.
+    ///
+    /// Returns every lexical error found, not just the first.
     pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'a>>, &Vec<ScanError>> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -162,6 +174,7 @@ impl<'a> Scanner<'a> {
                 }
             }
             '#' => {
+                // Line comment.
                 while self.peek() != '\n' && !self.is_at_end() {
                     self.advance();
                 }
@@ -179,12 +192,11 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Scans an identifier or keyword.
+    /// Scans an identifier or keyword.
     fn scan_identifier(&mut self) {
         while !self.is_at_end() {
             let c = self.peek();
 
-            // Keep going as long as it's a letter, number, or _
             if c.is_ascii_alphanumeric() || c == '_' {
                 self.advance();
             } else {
@@ -192,35 +204,31 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        // Get the lexeme.
         let text = &self.source[self.start..self.current];
 
-        // Get the token type.
         let token_type = keyword_type(text).unwrap_or(TokenType::Identifier);
 
         self.add_token(token_type);
     }
 
-    // Scans a string literal.
+    /// Scans a string literal. Strings can't span lines.
     fn scan_string(&mut self) {
         let mut s = String::new();
 
         while !self.is_at_end() && self.peek() != '\n' && self.peek() != '"' {
             let c = self.advance();
 
-            // handle non-escape sequences
             if c != '\\' {
                 s.push(c);
                 continue;
             }
 
-            // check for unterminated string
+            // A trailing `\` leaves the string unclosed.
             if self.is_at_end() || self.peek() == '\n' {
                 self.error(ScanErrorKind::UnterminatedString);
                 return;
             }
 
-            // handle escape sequences
             match self.advance() {
                 'n' => s.push('\n'),
                 't' => s.push('\t'),
@@ -230,25 +238,24 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        // check for unterminated string
+        // Unterminated string.
         if self.is_at_end() || self.peek() == '\n' {
             self.error(ScanErrorKind::UnterminatedString);
             return;
         }
 
-        // consume quote terminator
         self.advance();
 
         self.add_token(TokenType::String(s));
     }
 
+    /// Scans an integer or float. Floats need digits on both sides of the `.`.
     fn scan_numeric(&mut self) {
         let mut is_float: bool = false;
 
         while !self.is_at_end() && (self.peek().is_ascii_digit() || self.peek() == '.') {
             let c: char = self.advance();
 
-            // check for float type
             if c == '.' {
                 is_float = true;
             }
@@ -279,20 +286,19 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // advances past and returns the next character
+    /// Consumes and returns the current character.
     fn advance(&mut self) -> char {
         let c = self.peek();
         self.current += c.len_utf8();
         c
     }
 
-    // peeks at the next character
+    /// Returns the current character without consuming it, or `'\0'` at the end.
     fn peek(&self) -> char {
-        // return sentinel if at end
         self.source[self.current..].chars().next().unwrap_or('\0')
     }
 
-    // matches the next character
+    /// Consumes the current character only if it's `expected`.
     fn match_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() || self.peek() != expected {
             false
@@ -302,15 +308,13 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Records a finished token spanning `start..current`.
+    /// Records a finished token spanning `start..current`.
     fn add_token(&mut self, token_type: TokenType) {
-        // Slice the lexeme directly out of the source.
         let lexeme = &self.source[self.start..self.current];
-        // Add the token.
         self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
-    // True once `current` has passed the end of `source`.
+    /// Returns `true` once `current` has passed the end of `source`.
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }

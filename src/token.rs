@@ -1,5 +1,8 @@
+//! Tokens produced by the scanner.
+
 use std::fmt::{Display, Error, Formatter};
 
+/// Kind of token. Literals carry their value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     Assign,
@@ -34,10 +37,6 @@ pub enum TokenType {
     LambdaArrow,
     MatchArrow,
     String(String),
-    /*
-        NOTE: separate implementation of int and float
-        specific to the language
-    */
     Integer(i64),
     Float(f64),
     Identifier,
@@ -59,6 +58,7 @@ pub enum TokenType {
     Eof,
 }
 
+/// A lexeme borrowed from the source, with its type and line.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'a> {
     token_type: TokenType,
@@ -88,8 +88,8 @@ impl<'a> Token<'a> {
     }
 }
 
-// string conversion of TokenType Enum
 impl TokenType {
+    /// Name shown in `--tokenize` output.
     fn as_str(&self) -> &'static str {
         match self {
             TokenType::Assign => "ASSIGN",
@@ -146,10 +146,12 @@ impl TokenType {
         }
     }
 
+    /// The literal's value as printed, or an empty string for non-literals.
     pub fn literal_string(&self) -> String {
         match self {
             TokenType::String(s) => s.escape_debug().to_string(),
             TokenType::Integer(n) => n.to_string(),
+            // Debug keeps the `.0` on whole floats, so `1.0` doesn't print as `1`.
             TokenType::Float(n) => format!("{:?}", n),
             _ => String::new(),
         }

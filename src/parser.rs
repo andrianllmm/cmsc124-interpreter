@@ -1,8 +1,12 @@
+//! Recursive descent parser that turns tokens into expressions.
+//!
+//! Each rule method follows its rule from the grammar in the README.
+
 use crate::ast::Expr;
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
-// A syntax error encountered while parsing.
+/// A syntax error encountered while parsing.
 pub struct ParseError {
     pub line: u32,
     pub message: String,
@@ -14,6 +18,7 @@ impl Display for ParseError {
     }
 }
 
+/// Parses the scanner's tokens, which must end with `Eof`.
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     expressions: Vec<Expr<'a>>,
@@ -29,7 +34,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Parses a single expression.
+    /// Parses each `;`-terminated expression, stopping at the first error.
     pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
         while !self.is_at_end() {
             let expr: Expr<'_> = self.expression()?;
@@ -46,17 +51,19 @@ impl<'a> Parser<'a> {
         Ok(&self.expressions)
     }
 
-    // expression -> term
+    /// `expression → assignment`
     fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
         self.assignment()
     }
 
-    // assignment -> IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment | pipe
+    /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
+    /// | pipe`
     fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
+        // TODO: Parse assignments once identifiers are supported.
         self.pipe()
     }
 
-    // pipe -> logicOr ( "|>"  logicOr )*
+    /// `pipe → logicOr ( "|>" logicOr )*`
     fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_or()?;
 
@@ -75,7 +82,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicOr -> logAnd ( "or" logicAnd)
+    /// `logicOr → logicAnd ( "or" logicAnd )*`
     fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_and()?;
 
@@ -94,7 +101,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicAnd -> logicNot ("and" logicNot )*
+    /// `logicAnd → logicNot ( "and" logicNot )*`
     fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_not()?;
 
@@ -113,7 +120,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // logicNot -> "not" logicNot | comparison
+    /// `logicNot → "not" logicNot | comparison`
     fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
         let is_logic_not: bool = matches!(self.peek().token_type(), TokenType::Not);
 
@@ -127,7 +134,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // comparison -> term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*
+    /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*`
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.term()?;
 
@@ -154,7 +161,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // term -> factor ( ( "+" | "-" | "++" ) factor )*
+    /// `term → factor ( ( "+" | "-" | "++" ) factor )*`
     fn term(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.factor()?;
 
@@ -175,7 +182,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // factor -> unary (( "*" | "/" | "%" ) unary )
+    /// `factor → unary ( ( "*" | "/" | "%" ) unary )*`
     fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.unary()?;
 
@@ -197,7 +204,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // unary -> "-" unary | exponent
+    /// `unary → "-" unary | exponent`
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
         let is_unary_operator: bool = matches!(self.peek().token_type(), TokenType::Subtract);
 
@@ -211,7 +218,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // exponent -> primary ( "^" exponent )?
+    /// `exponent → primary ( "^" exponent )?`
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.primary()?;
 
@@ -226,8 +233,10 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // primary -> INTEGER | FLOAT | STRING | "true" | "false" | "null"| IDENTIFIER | "(" expression ")"
+    /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
+    /// | IDENTIFIER | "(" expression ")"`
     fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
+        // TODO: Parse IDENTIFIER.
         let token = self.peek().clone();
 
         let is_literal = matches!(
@@ -260,12 +269,14 @@ impl<'a> Parser<'a> {
         Err(self.error(token, "Expect expression."))
     }
 
-    // peeks at the current token without consuming it
+    /// Returns the current token without consuming it.
     fn peek(&self) -> &Token<'a> {
         &self.tokens[self.current]
     }
 
-    // consumes and returns the current token
+    /// Consumes and returns the current token.
+    ///
+    /// Stays on EOF so `peek` never goes out of bounds.
     fn advance(&mut self) -> &Token<'a> {
         let token = &self.tokens[self.current];
         if !self.is_at_end() {
@@ -274,12 +285,12 @@ impl<'a> Parser<'a> {
         token
     }
 
-    // True once `current` has reached the EOF token
+    /// Returns `true` once `current` has reached the EOF token.
     fn is_at_end(&self) -> bool {
         matches!(self.peek().token_type(), TokenType::Eof)
     }
 
-    // Builds a syntax error pointing at the given token
+    /// Builds a syntax error pointing at the given token.
     fn error(&self, token: Token<'a>, message: &str) -> ParseError {
         ParseError {
             line: token.line(),
