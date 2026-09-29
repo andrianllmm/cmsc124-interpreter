@@ -165,7 +165,7 @@ impl<'a> Scanner<'a> {
                 } else if self.match_expected('=') {
                     self.add_token(TokenType::PipeAssign);
                 } else {
-                    self.error(ScanErrorKind::MissingOneOf(&['>', '=']));
+                    self.add_token(TokenType::Bar);
                 }
             }
             '#' => {
