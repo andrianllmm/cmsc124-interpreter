@@ -85,11 +85,6 @@ impl<'a> Scanner<'a> {
     fn scan_token(&mut self) {
         let c: char = self.advance();
 
-        if c.is_ascii_digit() {
-            self.scan_numeric();
-            return;
-        }
-
         match c {
             '(' => self.add_token(TokenType::LParen),
             ')' => self.add_token(TokenType::RParen),
@@ -181,6 +176,9 @@ impl<'a> Scanner<'a> {
             }
             '"' => {
                 self.scan_string();
+            }
+            '0'..='9' => {
+                self.scan_numeric();
             }
             'a'..='z' | 'A'..='Z' | '_' => {
                 self.scan_identifier();
