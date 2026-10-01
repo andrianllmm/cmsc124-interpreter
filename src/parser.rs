@@ -10,6 +10,8 @@ use std::fmt::{self, Display, Formatter};
 pub struct ParseError {
     pub line: u32,
     pub kind: ParseErrorKind,
+    /// Lexeme of the token where parsing failed, or `None` at end of file.
+    pub found: Option<String>,
 }
 
 /// What went wrong while parsing.
@@ -25,11 +27,19 @@ pub enum ParseErrorKind {
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
-            ParseErrorKind::MissingTerminator => "Missing terminator ';'",
+            ParseErrorKind::MissingTerminator => "Missing ';'",
             ParseErrorKind::UnclosedParen => "Missing ')'",
-            ParseErrorKind::UnexpectedToken => "Expect expression.",
+            ParseErrorKind::UnexpectedToken => "Missing expression",
         };
-        write!(f, "Error at line {}: {}", self.line, message)
+        let location = match &self.found {
+            Some(lexeme) => format!("'{}'", lexeme),
+            None => "end".to_string(),
+        };
+        write!(
+            f,
+            "Error at line {}: {} at {}",
+            self.line, message, location
+        )
     }
 }
 
@@ -78,7 +88,7 @@ impl<'a> Parser<'a> {
         let expr: Expr<'_> = self.expression()?;
 
         if !matches!(self.peek().token_type(), TokenType::Terminator) {
-            return Err(self.error(self.peek().clone(), ParseErrorKind::MissingTerminator));
+            return Err(self.error(ParseErrorKind::MissingTerminator));
         }
         self.advance();
 
@@ -303,14 +313,14 @@ impl<'a> Parser<'a> {
             let expr: Expr<'_> = self.expression()?;
 
             if !matches!(self.peek().token_type(), TokenType::RParen) {
-                return Err(self.error(token, ParseErrorKind::UnclosedParen));
+                return Err(self.error(ParseErrorKind::UnclosedParen));
             } else {
                 self.advance();
                 return Ok(Expr::Grouping(Box::new(expr)));
             }
         }
 
-        Err(self.error(token, ParseErrorKind::UnexpectedToken))
+        Err(self.error(ParseErrorKind::UnexpectedToken))
     }
 
     /// Returns the current token without consuming it.
@@ -334,11 +344,18 @@ impl<'a> Parser<'a> {
         matches!(self.peek().token_type(), TokenType::Eof)
     }
 
-    /// Builds a syntax error pointing at the given token.
-    fn error(&self, token: Token<'a>, kind: ParseErrorKind) -> ParseError {
+    /// Builds a syntax error pointing at the current token.
+    fn error(&self, kind: ParseErrorKind) -> ParseError {
+        let token = self.peek();
+        let found = match token.token_type() {
+            TokenType::Eof => None,
+            _ => Some(token.lexeme().to_string()),
+        };
+
         ParseError {
             line: token.line(),
             kind,
+            found,
         }
     }
 }
