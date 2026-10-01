@@ -37,6 +37,7 @@ impl Display for ParseError {
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     expressions: Vec<Expr<'a>>,
+    errors: Vec<ParseError>,
     current: usize,
 }
 
@@ -45,25 +46,53 @@ impl<'a> Parser<'a> {
         Parser {
             tokens,
             expressions: Vec::new(),
+            errors: Vec::new(),
             current: 0,
         }
     }
 
-    /// Parses each `;`-terminated expression, stopping at the first error.
-    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
+    /// Parses each `;`-terminated expression.
+    ///
+    /// On a syntax error, skips to the next `;` and keeps going,
+    /// so every error in the source is reported at once.
+    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, &Vec<ParseError>> {
         while !self.is_at_end() {
-            let expr: Expr<'_> = self.expression()?;
-            let is_terminator: bool = matches!(self.peek().token_type(), TokenType::Terminator);
-
-            if is_terminator {
-                self.expressions.push(expr);
-                self.advance();
-            } else {
-                return Err(self.error(self.peek().clone(), ParseErrorKind::MissingTerminator));
+            match self.expr_stmt() {
+                Ok(expr) => self.expressions.push(expr),
+                Err(error) => {
+                    self.errors.push(error);
+                    self.synchronize();
+                }
             }
         }
 
-        Ok(&self.expressions)
+        if self.errors.is_empty() {
+            Ok(&self.expressions)
+        } else {
+            Err(&self.errors)
+        }
+    }
+
+    /// `exprStmt → expression ";"`
+    fn expr_stmt(&mut self) -> Result<Expr<'a>, ParseError> {
+        let expr: Expr<'_> = self.expression()?;
+
+        if !matches!(self.peek().token_type(), TokenType::Terminator) {
+            return Err(self.error(self.peek().clone(), ParseErrorKind::MissingTerminator));
+        }
+        self.advance();
+
+        Ok(expr)
+    }
+
+    /// Discards tokens up to and including the next `;`,
+    /// so parsing resumes at the start of the next expression.
+    fn synchronize(&mut self) {
+        while !self.is_at_end() {
+            if matches!(self.advance().token_type(), TokenType::Terminator) {
+                return;
+            }
+        }
     }
 
     /// `expression → assignment`

@@ -50,8 +50,10 @@ fn parse(tokens: Vec<Token<'_>>) -> Result<Vec<Expr<'_>>, ()> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(exprs) => Ok(exprs.clone()),
-        Err(error) => {
-            eprintln!("{}", error);
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{}", error);
+            }
             Err(())
         }
     }
