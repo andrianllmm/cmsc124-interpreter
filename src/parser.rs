@@ -9,12 +9,27 @@ use std::fmt::{self, Display, Formatter};
 /// A syntax error encountered while parsing.
 pub struct ParseError {
     pub line: u32,
-    pub message: String,
+    pub kind: ParseErrorKind,
+}
+
+/// What went wrong while parsing.
+pub enum ParseErrorKind {
+    /// An expression isn't followed by `;`.
+    MissingTerminator,
+    /// A `(` has no matching `)`.
+    UnclosedParen,
+    /// A token that can't start an expression, e.g. `*` or `;`.
+    UnexpectedToken,
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Error at line {}: {}", self.line, self.message)
+        let message = match self.kind {
+            ParseErrorKind::MissingTerminator => "Missing terminator ';'",
+            ParseErrorKind::UnclosedParen => "Missing ')'",
+            ParseErrorKind::UnexpectedToken => "Expect expression.",
+        };
+        write!(f, "Error at line {}: {}", self.line, message)
     }
 }
 
@@ -44,7 +59,7 @@ impl<'a> Parser<'a> {
                 self.expressions.push(expr);
                 self.advance();
             } else {
-                return Err(self.error(self.peek().clone(), "Missing terminator ';'"));
+                return Err(self.error(self.peek().clone(), ParseErrorKind::MissingTerminator));
             }
         }
 
@@ -259,14 +274,14 @@ impl<'a> Parser<'a> {
             let expr: Expr<'_> = self.expression()?;
 
             if !matches!(self.peek().token_type(), TokenType::RParen) {
-                return Err(self.error(token, "Missing ')'"));
+                return Err(self.error(token, ParseErrorKind::UnclosedParen));
             } else {
                 self.advance();
                 return Ok(Expr::Grouping(Box::new(expr)));
             }
         }
 
-        Err(self.error(token, "Expect expression."))
+        Err(self.error(token, ParseErrorKind::UnexpectedToken))
     }
 
     /// Returns the current token without consuming it.
@@ -291,10 +306,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Builds a syntax error pointing at the given token.
-    fn error(&self, token: Token<'a>, message: &str) -> ParseError {
+    fn error(&self, token: Token<'a>, kind: ParseErrorKind) -> ParseError {
         ParseError {
             line: token.line(),
-            message: message.to_string(),
+            kind,
         }
     }
 }
