@@ -9,12 +9,37 @@ use std::fmt::{self, Display, Formatter};
 /// A syntax error encountered while parsing.
 pub struct ParseError {
     pub line: u32,
-    pub message: String,
+    pub kind: ParseErrorKind,
+    /// Lexeme of the token where parsing failed, or `None` at end of file.
+    pub found: Option<String>,
+}
+
+/// What went wrong while parsing.
+pub enum ParseErrorKind {
+    /// An expression isn't followed by `;`.
+    MissingTerminator,
+    /// A `(` has no matching `)`.
+    UnclosedParen,
+    /// A token that can't start an expression, e.g. `*` or `;`.
+    UnexpectedToken,
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Error at line {}: {}", self.line, self.message)
+        let message = match self.kind {
+            ParseErrorKind::MissingTerminator => "Missing ';'",
+            ParseErrorKind::UnclosedParen => "Missing ')'",
+            ParseErrorKind::UnexpectedToken => "Missing expression",
+        };
+        let location = match &self.found {
+            Some(lexeme) => format!("'{}'", lexeme),
+            None => "end".to_string(),
+        };
+        write!(
+            f,
+            "Error at line {}: {} at {}",
+            self.line, message, location
+        )
     }
 }
 
@@ -22,6 +47,7 @@ impl Display for ParseError {
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     expressions: Vec<Expr<'a>>,
+    errors: Vec<ParseError>,
     current: usize,
 }
 
@@ -30,25 +56,53 @@ impl<'a> Parser<'a> {
         Parser {
             tokens,
             expressions: Vec::new(),
+            errors: Vec::new(),
             current: 0,
         }
     }
 
-    /// Parses each `;`-terminated expression, stopping at the first error.
-    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, ParseError> {
+    /// Parses each `;`-terminated expression.
+    ///
+    /// On a syntax error, skips to the next `;` and keeps going,
+    /// so every error in the source is reported at once.
+    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, &Vec<ParseError>> {
         while !self.is_at_end() {
-            let expr: Expr<'_> = self.expression()?;
-            let is_terminator: bool = matches!(self.peek().token_type(), TokenType::Terminator);
-
-            if is_terminator {
-                self.expressions.push(expr);
-                self.advance();
-            } else {
-                return Err(self.error(self.peek().clone(), "Missing terminator ';'"));
+            match self.expr_stmt() {
+                Ok(expr) => self.expressions.push(expr),
+                Err(error) => {
+                    self.errors.push(error);
+                    self.synchronize();
+                }
             }
         }
 
-        Ok(&self.expressions)
+        if self.errors.is_empty() {
+            Ok(&self.expressions)
+        } else {
+            Err(&self.errors)
+        }
+    }
+
+    /// `exprStmt → expression ";"`
+    fn expr_stmt(&mut self) -> Result<Expr<'a>, ParseError> {
+        let expr: Expr<'_> = self.expression()?;
+
+        if !matches!(self.peek().token_type(), TokenType::Terminator) {
+            return Err(self.error(ParseErrorKind::MissingTerminator));
+        }
+        self.advance();
+
+        Ok(expr)
+    }
+
+    /// Discards tokens up to and including the next `;`,
+    /// so parsing resumes at the start of the next expression.
+    fn synchronize(&mut self) {
+        while !self.is_at_end() {
+            if matches!(self.advance().token_type(), TokenType::Terminator) {
+                return;
+            }
+        }
     }
 
     /// `expression → assignment`
@@ -259,14 +313,14 @@ impl<'a> Parser<'a> {
             let expr: Expr<'_> = self.expression()?;
 
             if !matches!(self.peek().token_type(), TokenType::RParen) {
-                return Err(self.error(token, "Missing ')'"));
+                return Err(self.error(ParseErrorKind::UnclosedParen));
             } else {
                 self.advance();
                 return Ok(Expr::Grouping(Box::new(expr)));
             }
         }
 
-        Err(self.error(token, "Expect expression."))
+        Err(self.error(ParseErrorKind::UnexpectedToken))
     }
 
     /// Returns the current token without consuming it.
@@ -290,11 +344,18 @@ impl<'a> Parser<'a> {
         matches!(self.peek().token_type(), TokenType::Eof)
     }
 
-    /// Builds a syntax error pointing at the given token.
-    fn error(&self, token: Token<'a>, message: &str) -> ParseError {
+    /// Builds a syntax error pointing at the current token.
+    fn error(&self, kind: ParseErrorKind) -> ParseError {
+        let token = self.peek();
+        let found = match token.token_type() {
+            TokenType::Eof => None,
+            _ => Some(token.lexeme().to_string()),
+        };
+
         ParseError {
             line: token.line(),
-            message: message.to_string(),
+            kind,
+            found,
         }
     }
 }

@@ -241,6 +241,14 @@ Error at line 1: Invalid number
 Error at line 1: Missing '='
 ```
 
+Syntax errors also name the token where parsing failed, or `end` at end of file.
+
+```
+Error at line 1: Missing expression at ';'
+Error at line 1: Missing ')' at ';'
+Error at line 1: Missing ';' at end
+```
+
 | Failure         | Exit code |
 | --------------- | --------- |
 | Bad usage       | 64        |
