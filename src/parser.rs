@@ -87,12 +87,7 @@ impl<'a> Parser<'a> {
     /// `exprStmt → expression ";"`
     fn expr_stmt(&mut self) -> Result<Expr<'a>, ParseError> {
         let expr: Expr<'_> = self.expression()?;
-
-        if !matches!(self.peek().token_type(), TokenType::Terminator) {
-            return Err(self.error(ParseErrorKind::MissingTerminator));
-        }
-        self.advance();
-
+        self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
         Ok(expr)
     }
 
@@ -293,18 +288,13 @@ impl<'a> Parser<'a> {
             });
         }
 
-        if matches!(token.token_type(), TokenType::LParen) {
+        if self.check(&TokenType::LParen) {
             self.advance();
             let expr: Expr<'_> = self.expression()?;
-
-            if !matches!(self.peek().token_type(), TokenType::RParen) {
-                return Err(self.error(ParseErrorKind::UnclosedParen));
-            } else {
-                self.advance();
-                return Ok(Expr::Grouping {
-                    expression: Box::new(expr),
-                });
-            }
+            self.consume(&TokenType::RParen, ParseErrorKind::UnclosedParen)?;
+            return Ok(Expr::Grouping {
+                expression: Box::new(expr),
+            });
         }
 
         Err(self.error(ParseErrorKind::UnexpectedToken))
@@ -344,6 +334,20 @@ impl<'a> Parser<'a> {
             }
         }
         None
+    }
+
+    /// Consumes and returns the current token if it's of type `token_type`,
+    /// or returns a syntax error of the given kind.
+    fn consume(
+        &mut self,
+        token_type: &TokenType,
+        kind: ParseErrorKind,
+    ) -> Result<Token<'a>, ParseError> {
+        if self.check(token_type) {
+            Ok(self.advance().clone())
+        } else {
+            Err(self.error(kind))
+        }
     }
 
     /// Returns `true` once `current` has reached the EOF token.
