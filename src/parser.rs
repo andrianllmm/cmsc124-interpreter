@@ -2,7 +2,7 @@
 //!
 //! Each rule method follows its rule from the grammar in the README.
 
-use crate::ast::Expr;
+use crate::ast::{Expr, LiteralValue};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 
@@ -327,19 +327,22 @@ impl<'a> Parser<'a> {
         // TODO: Parse IDENTIFIER.
         let token = self.peek().clone();
 
-        let is_literal = matches!(
-            token.token_type(),
-            TokenType::Integer(_)
-                | TokenType::Float(_)
-                | TokenType::String(_)
-                | TokenType::True
-                | TokenType::False
-                | TokenType::Null
-        );
+        let value = match token.token_type() {
+            TokenType::Integer(n) => Some(LiteralValue::Int(*n)),
+            TokenType::Float(n) => Some(LiteralValue::Float(*n)),
+            TokenType::String(s) => Some(LiteralValue::Str(s.clone())),
+            TokenType::True => Some(LiteralValue::Bool(true)),
+            TokenType::False => Some(LiteralValue::Bool(false)),
+            TokenType::Null => Some(LiteralValue::Null),
+            _ => None,
+        };
 
-        if is_literal {
+        if let Some(value) = value {
             self.advance();
-            return Ok(Expr::Literal { token });
+            return Ok(Expr::Literal {
+                value,
+                line: token.line(),
+            });
         }
 
         if matches!(token.token_type(), TokenType::LParen) {
