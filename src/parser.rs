@@ -5,6 +5,7 @@
 use crate::ast::{Expr, LiteralValue};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
+use std::mem::discriminant;
 
 /// A syntax error encountered while parsing.
 pub struct ParseError {
@@ -121,14 +122,7 @@ impl<'a> Parser<'a> {
     fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_or()?;
 
-        loop {
-            let is_pipe: bool = matches!(self.peek().token_type(), TokenType::Pipe,);
-
-            if !is_pipe {
-                break;
-            }
-
-            let operator: Token<'_> = self.advance().clone();
+        while let Some(operator) = self.match_token(&[TokenType::Pipe]) {
             let right: Expr<'_> = self.logic_or()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -144,14 +138,7 @@ impl<'a> Parser<'a> {
     fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_and()?;
 
-        loop {
-            let is_or: bool = matches!(self.peek().token_type(), TokenType::Or);
-
-            if !is_or {
-                break;
-            }
-
-            let operator: Token<'_> = self.advance().clone();
+        while let Some(operator) = self.match_token(&[TokenType::Or]) {
             let right: Expr<'_> = self.logic_and()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -167,14 +154,7 @@ impl<'a> Parser<'a> {
     fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.logic_not()?;
 
-        loop {
-            let is_and: bool = matches!(self.peek().token_type(), TokenType::And);
-
-            if !is_and {
-                break;
-            }
-
-            let operator: Token<'_> = self.advance().clone();
+        while let Some(operator) = self.match_token(&[TokenType::And]) {
             let right: Expr<'_> = self.logic_not()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -188,10 +168,7 @@ impl<'a> Parser<'a> {
 
     /// `logicNot → "not" logicNot | comparison`
     fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
-        let is_logic_not: bool = matches!(self.peek().token_type(), TokenType::Not);
-
-        if is_logic_not {
-            let operator: Token<'_> = self.advance().clone();
+        if let Some(operator) = self.match_token(&[TokenType::Not]) {
             let right: Expr<'_> = self.logic_not()?;
             let expr: Expr<'_> = Expr::Unary {
                 operator,
@@ -207,22 +184,14 @@ impl<'a> Parser<'a> {
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.term()?;
 
-        loop {
-            let is_operator: bool = matches!(
-                self.peek().token_type(),
-                TokenType::Equals
-                    | TokenType::NotEquals
-                    | TokenType::Less
-                    | TokenType::LessEquals
-                    | TokenType::More
-                    | TokenType::MoreEquals
-            );
-
-            if !is_operator {
-                break;
-            }
-
-            let operator: Token<'_> = self.advance().clone();
+        while let Some(operator) = self.match_token(&[
+            TokenType::Equals,
+            TokenType::NotEquals,
+            TokenType::Less,
+            TokenType::LessEquals,
+            TokenType::More,
+            TokenType::MoreEquals,
+        ]) {
             let right: Expr<'_> = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -238,16 +207,9 @@ impl<'a> Parser<'a> {
     fn term(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.factor()?;
 
-        loop {
-            let is_operator = matches!(
-                self.peek().token_type(),
-                TokenType::Add | TokenType::Subtract | TokenType::StringConcat
-            );
-            if !is_operator {
-                break;
-            }
-
-            let operator = self.advance().clone();
+        while let Some(operator) =
+            self.match_token(&[TokenType::Add, TokenType::Subtract, TokenType::StringConcat])
+        {
             let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -263,17 +225,9 @@ impl<'a> Parser<'a> {
     fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.unary()?;
 
-        loop {
-            let is_operator: bool = matches!(
-                self.peek().token_type(),
-                TokenType::Multiply | TokenType::Divide | TokenType::Modulo
-            );
-
-            if !is_operator {
-                break;
-            }
-
-            let operator: Token<'_> = self.advance().clone();
+        while let Some(operator) =
+            self.match_token(&[TokenType::Multiply, TokenType::Divide, TokenType::Modulo])
+        {
             let right: Expr<'_> = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -287,10 +241,7 @@ impl<'a> Parser<'a> {
 
     /// `unary → "-" unary | exponent`
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
-        let is_unary_operator: bool = matches!(self.peek().token_type(), TokenType::Subtract);
-
-        if is_unary_operator {
-            let operator: Token<'_> = self.advance().clone();
+        if let Some(operator) = self.match_token(&[TokenType::Subtract]) {
             let right: Expr<'_> = self.unary()?;
             let expr: Expr<'_> = Expr::Unary {
                 operator,
@@ -306,14 +257,11 @@ impl<'a> Parser<'a> {
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr: Expr<'_> = self.primary()?;
 
-        let is_exponent: bool = matches!(self.peek().token_type(), TokenType::Exponent);
-
-        if is_exponent {
-            let exponent: Token<'_> = self.advance().clone();
+        if let Some(operator) = self.match_token(&[TokenType::Exponent]) {
             let right: Expr<'_> = self.exponent()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                operator: exponent,
+                operator,
                 right: Box::new(right),
             };
         }
@@ -376,6 +324,26 @@ impl<'a> Parser<'a> {
             self.current += 1;
         }
         token
+    }
+
+    /// Returns `true` if the current token is of type `token_type`.
+    ///
+    /// Compares only the variant, so a payload like the `0` in `Integer(0)` is ignored.
+    fn check(&self, token_type: &TokenType) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        discriminant(self.peek().token_type()) == discriminant(token_type)
+    }
+
+    /// Consumes and returns the current token if it's one of `token_types`.
+    fn match_token(&mut self, token_types: &[TokenType]) -> Option<Token<'a>> {
+        for token_type in token_types {
+            if self.check(token_type) {
+                return Some(self.advance().clone());
+            }
+        }
+        None
     }
 
     /// Returns `true` once `current` has reached the EOF token.
