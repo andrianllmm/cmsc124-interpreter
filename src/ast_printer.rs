@@ -1,7 +1,6 @@
 //! Prints the syntax tree for `--parse`.
 
-use crate::ast::Expr;
-use crate::token::TokenType;
+use crate::ast::{Expr, LiteralValue};
 
 /// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
 pub fn print(expr: &Expr) -> String {
@@ -19,17 +18,14 @@ pub fn print(expr: &Expr) -> String {
         Expr::Grouping { expression } => {
             format!("(group {})", print(expression))
         }
-        Expr::Literal { token } => match token.token_type() {
-            // These carry no literal value, so their lexeme is the value.
-            TokenType::True | TokenType::False | TokenType::Null => token.lexeme().to_string(),
-
+        Expr::Literal { value, .. } => match value {
             // Quoted so strings can't be mistaken for identifiers.
-            TokenType::String(s) => format!("\"{}\"", s.escape_debug()),
-
-            TokenType::Integer(_) | TokenType::Float(_) => token.token_type().literal_string(),
-
-            // The parser only builds literals from the token types above.
-            _ => unreachable!("non-literal token in Literal: {}", token.lexeme()),
+            LiteralValue::Str(s) => format!("\"{}\"", s.escape_debug()),
+            // Debug keeps the `.0` on whole floats, so `1.0` doesn't print as `1`.
+            LiteralValue::Float(n) => format!("{:?}", n),
+            LiteralValue::Int(n) => n.to_string(),
+            LiteralValue::Bool(b) => b.to_string(),
+            LiteralValue::Null => "null".to_string(),
         },
     }
 }

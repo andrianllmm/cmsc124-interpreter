@@ -6,7 +6,7 @@ use crate::token::Token;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
     /// A number, string, boolean, or `null`.
-    Literal { token: Token<'a> },
+    Literal { value: LiteralValue, line: u32 },
     /// A binary operation: `left operator right`.
     Binary {
         left: Box<Expr<'a>>,
@@ -20,4 +20,14 @@ pub enum Expr<'a> {
     },
     /// A parenthesized expression.
     Grouping { expression: Box<Expr<'a>> },
+}
+
+/// The value of a literal expression.
+#[derive(Debug, Clone, PartialEq)]
+pub enum LiteralValue {
+    Int(i64),
+    Float(f64),
+    Str(String),
+    Bool(bool),
+    Null,
 }
