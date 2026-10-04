@@ -160,7 +160,7 @@ factor      → unary ( ( "*" | "/" | "%" ) unary )*
 unary       → "-" unary
             | exponent
 
-exponent    → primary ( "^" exponent )?
+exponent    → primary ( "^" unary )?
 
 primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | IDENTIFIER

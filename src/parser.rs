@@ -248,12 +248,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `exponent → primary ( "^" exponent )?`
+    /// `exponent → primary ( "^" unary )?`
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.primary()?;
 
         if let Some(operator) = self.match_token(&[TokenType::Exponent]) {
-            let right = self.exponent()?;
+            // `unary` rather than `exponent`, so the right operand can be negative, e.g. `2 ^ -1`.
+            let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
