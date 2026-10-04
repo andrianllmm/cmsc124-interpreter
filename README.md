@@ -141,6 +141,8 @@ program     → exprStmt* EOF
 
 exprStmt    → expression ";"
 
+expression  → assignment
+
 assignment  → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
             | pipe
 
