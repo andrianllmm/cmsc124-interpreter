@@ -339,7 +339,7 @@ impl<'a> Parser<'a> {
 
         if is_literal {
             self.advance();
-            return Ok(Expr::Literal(token));
+            return Ok(Expr::Literal { token });
         }
 
         if matches!(token.token_type(), TokenType::LParen) {

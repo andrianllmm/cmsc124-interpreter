@@ -6,7 +6,7 @@ use crate::token::Token;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
     /// A number, string, boolean, or `null`.
-    Literal(Token<'a>),
+    Literal { token: Token<'a> },
     /// A binary operation: `left operator right`.
     Binary {
         left: Box<Expr<'a>>,
