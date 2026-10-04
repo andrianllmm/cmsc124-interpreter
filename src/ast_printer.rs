@@ -16,8 +16,8 @@ pub fn print(expr: &Expr) -> String {
         Expr::Unary { operator, right } => {
             format!("({} {})", operator.lexeme(), print(right))
         }
-        Expr::Grouping(inner) => {
-            format!("(group {})", print(inner))
+        Expr::Grouping { expression } => {
+            format!("(group {})", print(expression))
         }
         Expr::Literal(token) => match token.token_type() {
             // These carry no literal value, so their lexeme is the value.

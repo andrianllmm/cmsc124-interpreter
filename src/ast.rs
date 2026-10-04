@@ -19,5 +19,5 @@ pub enum Expr<'a> {
         right: Box<Expr<'a>>,
     },
     /// A parenthesized expression.
-    Grouping(Box<Expr<'a>>),
+    Grouping { expression: Box<Expr<'a>> },
 }

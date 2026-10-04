@@ -350,7 +350,9 @@ impl<'a> Parser<'a> {
                 return Err(self.error(ParseErrorKind::UnclosedParen));
             } else {
                 self.advance();
-                return Ok(Expr::Grouping(Box::new(expr)));
+                return Ok(Expr::Grouping {
+                    expression: Box::new(expr),
+                });
             }
         }
 
