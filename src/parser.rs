@@ -130,7 +130,11 @@ impl<'a> Parser<'a> {
 
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.logic_or()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -149,7 +153,11 @@ impl<'a> Parser<'a> {
 
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.logic_and()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -168,7 +176,11 @@ impl<'a> Parser<'a> {
 
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.logic_not()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -209,7 +221,11 @@ impl<'a> Parser<'a> {
 
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.term()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -230,7 +246,11 @@ impl<'a> Parser<'a> {
 
             let operator = self.advance().clone();
             let right = self.factor()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -252,7 +272,11 @@ impl<'a> Parser<'a> {
 
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.unary()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)
@@ -281,7 +305,11 @@ impl<'a> Parser<'a> {
         if is_exponent {
             let exponent: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.exponent()?;
-            expr = Expr::Binary(Box::new(expr), exponent, Box::new(right));
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator: exponent,
+                right: Box::new(right),
+            };
         }
 
         Ok(expr)

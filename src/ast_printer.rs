@@ -6,7 +6,11 @@ use crate::token::TokenType;
 /// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
 pub fn print(expr: &Expr) -> String {
     match expr {
-        Expr::Binary(left, operator, right) => {
+        Expr::Binary {
+            left,
+            operator,
+            right,
+        } => {
             format!("({} {} {})", operator.lexeme(), print(left), print(right))
         }
         Expr::Unary(operator, right) => {
