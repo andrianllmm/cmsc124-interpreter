@@ -60,8 +60,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 | `or`                | logical    | binary   | left          | 1 (loosest)  |                                                         |
 | `and`               | logical    | binary   | left          | 2            |                                                         |
 | `not`               | logical    | unary    | right         | 3            |                                                         |
-| `==` `!=`           | comparison | binary   | left          | 4            |                                                         |
-| `<` `<=` `>` `>=`   | comparison | binary   | left          | 4            |                                                         |
+| `==` `!=`           | comparison | binary   | none          | 4            |                                                         |
+| `<` `<=` `>` `>=`   | comparison | binary   | none          | 4            |                                                         |
 | `+` `-`             | arithmetic | binary   | left          | 5            |                                                         |
 | `++`                | string     | binary   | left          | 5            | concatenation                                           |
 | `*` `/` `%`         | arithmetic | binary   | left          | 6            |                                                         |
@@ -69,6 +69,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name)
 | `^`                 | arithmetic | binary   | right         | 8 (tightest) | exponent                                                |
 | `->`                | other      | n/a      | n/a           | n/a          | lambda arrow, introduces a lambda's body                |
 | `=>`                | other      | n/a      | n/a           | n/a          | match arrow, introduces a `case`/`else` clause's result |
+
+- Comparisons don't chain, so `1 < 2 < 3` and `a == b == c` are syntax errors. Write `1 < 2 and 2 < 3`, or group explicitly, e.g. `(a == b) == c`.
 
 ### Literals
 
@@ -151,7 +153,7 @@ logicAnd    → logicNot ( "and" logicNot )*
 logicNot    → "not" logicNot
             | comparison
 
-comparison  → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*
+comparison  → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )?
 
 term        → factor ( ( "+" | "-" | "++" ) factor )*
 
