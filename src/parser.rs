@@ -175,11 +175,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*`
+    /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )?`
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.term()?;
 
-        while let Some(operator) = self.match_token(&[
+        // `if`, not `while`: comparisons don't chain, so `1 < 2 < 3` is a syntax error.
+        if let Some(operator) = self.match_token(&[
             TokenType::Equals,
             TokenType::NotEquals,
             TokenType::Less,
