@@ -83,7 +83,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn scan_token(&mut self) {
-        let c: char = self.advance();
+        let c = self.advance();
 
         match c {
             '(' => self.add_token(TokenType::LParen),
@@ -249,10 +249,10 @@ impl<'a> Scanner<'a> {
 
     /// Scans an integer or float. Floats need digits on both sides of the `.`.
     fn scan_numeric(&mut self) {
-        let mut is_float: bool = false;
+        let mut is_float = false;
 
         while !self.is_at_end() && (self.peek().is_ascii_digit() || self.peek() == '.') {
-            let c: char = self.advance();
+            let c = self.advance();
 
             if c == '.' {
                 is_float = true;
