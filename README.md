@@ -171,6 +171,8 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | "(" expression ")"
 ```
 
+NOTE: Identifiers and assignment are in the grammar but not parsed yet.
+
 ## Parse output format
 
 ```
@@ -184,6 +186,17 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - Floats always keep a decimal point: `3.0`, never `3`
 - Strings print quoted and escaped: `"hi\n"`
 - Booleans and null print as their keyword: `true`, `false`, `null`
+
+## Parser quirks
+
+- `;` ends each expression. Newlines don't, so `1 +\n2;` is one expression.
+- An empty or comment-only file is valid and prints nothing.
+- `-1` is a unary minus on `1`, not a negative literal: `(- 1)`.
+- `^` is right-associative and binds tighter than unary `-`: `-2 ^ 2` is `(- (^ 2 2))`.
+- `not` binds looser than comparisons: `not 1 < 2` is `(not (< 1 2))`.
+- `|>` binds looser than `or`: `a or b |> f` is `(|> (or a b) f)`.
+- After a syntax error, parsing resumes after the next `;`, so every error gets reported.
+- A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
 ## Semantics
 
