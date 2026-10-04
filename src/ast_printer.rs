@@ -13,7 +13,7 @@ pub fn print(expr: &Expr) -> String {
         } => {
             format!("({} {} {})", operator.lexeme(), print(left), print(right))
         }
-        Expr::Unary(operator, right) => {
+        Expr::Unary { operator, right } => {
             format!("({} {})", operator.lexeme(), print(right))
         }
         Expr::Grouping(inner) => {

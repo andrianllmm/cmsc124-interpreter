@@ -14,7 +14,10 @@ pub enum Expr<'a> {
         right: Box<Expr<'a>>,
     },
     /// A unary operation: `operator right`.
-    Unary(Token<'a>, Box<Expr<'a>>),
+    Unary {
+        operator: Token<'a>,
+        right: Box<Expr<'a>>,
+    },
     /// A parenthesized expression.
     Grouping(Box<Expr<'a>>),
 }

@@ -193,7 +193,10 @@ impl<'a> Parser<'a> {
         if is_logic_not {
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.logic_not()?;
-            let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
+            let expr: Expr<'_> = Expr::Unary {
+                operator,
+                right: Box::new(right),
+            };
             Ok(expr)
         } else {
             self.comparison()
@@ -289,7 +292,10 @@ impl<'a> Parser<'a> {
         if is_unary_operator {
             let operator: Token<'_> = self.advance().clone();
             let right: Expr<'_> = self.unary()?;
-            let expr: Expr<'_> = Expr::Unary(operator, Box::new(right));
+            let expr: Expr<'_> = Expr::Unary {
+                operator,
+                right: Box::new(right),
+            };
             Ok(expr)
         } else {
             self.exponent()
