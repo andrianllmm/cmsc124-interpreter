@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
 
     /// `exprStmt → expression ";"`
     fn expr_stmt(&mut self) -> Result<Expr<'a>, ParseError> {
-        let expr: Expr<'_> = self.expression()?;
+        let expr = self.expression()?;
         self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
         Ok(expr)
     }
@@ -115,10 +115,10 @@ impl<'a> Parser<'a> {
 
     /// `pipe → logicOr ( "|>" logicOr )*`
     fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.logic_or()?;
+        let mut expr = self.logic_or()?;
 
         while let Some(operator) = self.match_token(&[TokenType::Pipe]) {
-            let right: Expr<'_> = self.logic_or()?;
+            let right = self.logic_or()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -131,10 +131,10 @@ impl<'a> Parser<'a> {
 
     /// `logicOr → logicAnd ( "or" logicAnd )*`
     fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.logic_and()?;
+        let mut expr = self.logic_and()?;
 
         while let Some(operator) = self.match_token(&[TokenType::Or]) {
-            let right: Expr<'_> = self.logic_and()?;
+            let right = self.logic_and()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -147,10 +147,10 @@ impl<'a> Parser<'a> {
 
     /// `logicAnd → logicNot ( "and" logicNot )*`
     fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.logic_not()?;
+        let mut expr = self.logic_not()?;
 
         while let Some(operator) = self.match_token(&[TokenType::And]) {
-            let right: Expr<'_> = self.logic_not()?;
+            let right = self.logic_not()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -164,8 +164,8 @@ impl<'a> Parser<'a> {
     /// `logicNot → "not" logicNot | comparison`
     fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
         if let Some(operator) = self.match_token(&[TokenType::Not]) {
-            let right: Expr<'_> = self.logic_not()?;
-            let expr: Expr<'_> = Expr::Unary {
+            let right = self.logic_not()?;
+            let expr = Expr::Unary {
                 operator,
                 right: Box::new(right),
             };
@@ -177,7 +177,7 @@ impl<'a> Parser<'a> {
 
     /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )*`
     fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.term()?;
+        let mut expr = self.term()?;
 
         while let Some(operator) = self.match_token(&[
             TokenType::Equals,
@@ -187,7 +187,7 @@ impl<'a> Parser<'a> {
             TokenType::More,
             TokenType::MoreEquals,
         ]) {
-            let right: Expr<'_> = self.term()?;
+            let right = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -218,12 +218,12 @@ impl<'a> Parser<'a> {
 
     /// `factor → unary ( ( "*" | "/" | "%" ) unary )*`
     fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.unary()?;
+        let mut expr = self.unary()?;
 
         while let Some(operator) =
             self.match_token(&[TokenType::Multiply, TokenType::Divide, TokenType::Modulo])
         {
-            let right: Expr<'_> = self.unary()?;
+            let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -237,8 +237,8 @@ impl<'a> Parser<'a> {
     /// `unary → "-" unary | exponent`
     fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
         if let Some(operator) = self.match_token(&[TokenType::Subtract]) {
-            let right: Expr<'_> = self.unary()?;
-            let expr: Expr<'_> = Expr::Unary {
+            let right = self.unary()?;
+            let expr = Expr::Unary {
                 operator,
                 right: Box::new(right),
             };
@@ -250,10 +250,10 @@ impl<'a> Parser<'a> {
 
     /// `exponent → primary ( "^" exponent )?`
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr: Expr<'_> = self.primary()?;
+        let mut expr = self.primary()?;
 
         if let Some(operator) = self.match_token(&[TokenType::Exponent]) {
-            let right: Expr<'_> = self.exponent()?;
+            let right = self.exponent()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -290,7 +290,7 @@ impl<'a> Parser<'a> {
 
         if self.check(&TokenType::LParen) {
             self.advance();
-            let expr: Expr<'_> = self.expression()?;
+            let expr = self.expression()?;
             self.consume(&TokenType::RParen, ParseErrorKind::UnclosedParen)?;
             return Ok(Expr::Grouping {
                 expression: Box::new(expr),
