@@ -15,6 +15,8 @@ mod repl;
 mod scanner;
 mod stage;
 mod token;
+#[allow(dead_code)] // Used once the evaluator lands (#164).
+mod value;
 
 // Exit codes follow BSD `sysexits.h`.
 const EX_USAGE: i32 = 64;
