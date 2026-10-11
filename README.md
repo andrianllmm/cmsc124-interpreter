@@ -202,14 +202,23 @@ NOTE: Identifiers and assignment are in the grammar but not parsed yet.
 
 ### Values and types
 
-[What runtime values exist, and how they are represented in the host
-language.]
+| Type    | Host representation  |
+| ------- | -------------------- |
+| `Int`   | `Value::Int(i64)`    |
+| `Float` | `Value::Float(f64)`  |
+| `Str`   | `Value::Str(String)` |
+| `Bool`  | `Value::Bool(bool)`  |
+| `Null`  | `Value::Null`        |
+
+Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, matching on the variant tells the evaluator what it has, and the compiler flags a `match` that forgets a type.
 
 ### Value printing
 
-- Numbers: [e.g. 5 rather than 5.0]
-- Nil: [spelling]
-- Strings: [with or without quotes]
+- Integers: as written, `5`
+- Floats: always with a decimal point, `5.0`, never `5`
+- Null: `null`
+- Booleans: `true`, `false`
+- Strings: without quotes, `"hi"` prints `hi`
 
 ### Truthiness
 
