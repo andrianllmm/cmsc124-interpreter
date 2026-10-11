@@ -1,7 +1,6 @@
 //! Tree-walking evaluator that turns expressions into values.
 
 use crate::ast::Expr;
-use crate::pipeline::Failure::Runtime;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 use std::fmt::{self, Display, Formatter};
