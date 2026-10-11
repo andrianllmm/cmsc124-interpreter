@@ -8,6 +8,8 @@ use std::process::exit;
 
 mod ast;
 mod ast_printer;
+#[allow(dead_code)] // Used once `--eval` lands (#165).
+mod evaluator;
 mod keyword;
 mod parser;
 mod pipeline;
@@ -15,7 +17,7 @@ mod repl;
 mod scanner;
 mod stage;
 mod token;
-#[allow(dead_code)] // Used once the evaluator lands (#164).
+#[allow(dead_code)] // Used once `--eval` lands (#165).
 mod value;
 
 // Exit codes follow BSD `sysexits.h`.
