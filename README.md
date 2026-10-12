@@ -229,7 +229,7 @@ true.]
 
 - Arithmetic: [accepted operand types]
 - `+` on strings: [concatenation, error, or coercion]
-- Mixed types: [what happens]
+- Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
 - Comparison: [accepted operand types]
 - Equality across types: [false, or an error]
 - Division by zero: [value produced, or runtime error]

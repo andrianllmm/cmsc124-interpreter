@@ -40,7 +40,15 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
             let right = evaluate(right)?;
             unary(operator, right)
         }
-        Expr::Binary { .. } => todo!("binary operators (#168)"),
+        Expr::Binary {
+            left,
+            operator,
+            right,
+        } => {
+            let left = evaluate(left)?;
+            let right = evaluate(right)?;
+            binary(left, operator, right)
+        }
     }
 }
 
@@ -62,4 +70,137 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
         TokenType::Not => todo!("`not` needs a truthiness rule"),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
+}
+
+fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
+    match operator.token_type() {
+        TokenType::Add => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n + m)),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 + m)),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n + m as f64)),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n + m)),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        TokenType::Subtract => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n - m)),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 - m)),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n - m as f64)),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n - m)),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        TokenType::Multiply => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n * m)),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 * m)),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n * m as f64)),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n * m)),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        TokenType::Divide => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n / m)),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 / m)),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n / m as f64)),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n / m)),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        TokenType::Modulo => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n % m)),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 % m)),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n % m as f64)),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n % m)),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        TokenType::Exponent => {
+            if !number_check(&left, &right) {
+                return Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                });
+            }
+
+            // TODO: Implement overflow checks
+            match (left, right) {
+                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n.pow(m.try_into().unwrap()))),
+                (Value::Int(n), Value::Float(m)) => Ok(Value::Float((n as f64).powf(m))),
+                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n.powf(m as f64))),
+                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n.powf(m))),
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
+            }
+        }
+        _ => unreachable!("token type unrecognized"),
+    }
+}
+
+fn number_check(left: &Value, right: &Value) -> bool {
+    let left_flag = matches!(left, Value::Int(_) | Value::Float(_));
+    let right_flag = matches!(right, Value::Int(_) | Value::Float(_));
+
+    left_flag && right_flag
 }
