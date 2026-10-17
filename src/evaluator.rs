@@ -73,134 +73,44 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
 }
 
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
-    match operator.token_type() {
-        TokenType::Add => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
+    let error = |kind| RuntimeError {
+        operator: operator.clone(),
+        kind,
+    };
 
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n + m)),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 + m)),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n + m as f64)),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n + m)),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
-        TokenType::Subtract => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
-
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n - m)),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 - m)),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n - m as f64)),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n - m)),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
-        TokenType::Multiply => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
-
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n * m)),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 * m)),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n * m as f64)),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n * m)),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
-        TokenType::Divide => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
-
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n / m)),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 / m)),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n / m as f64)),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n / m)),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
-        TokenType::Modulo => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
-
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n % m)),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float(n as f64 % m)),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n % m as f64)),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n % m)),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
-        TokenType::Exponent => {
-            if !number_check(&left, &right) {
-                return Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                });
-            }
-
-            // TODO: Implement overflow checks
-            match (left, right) {
-                (Value::Int(n), Value::Int(m)) => Ok(Value::Int(n.pow(m.try_into().unwrap()))),
-                (Value::Int(n), Value::Float(m)) => Ok(Value::Float((n as f64).powf(m))),
-                (Value::Float(n), Value::Int(m)) => Ok(Value::Float(n.powf(m as f64))),
-                (Value::Float(n), Value::Float(m)) => Ok(Value::Float(n.powf(m))),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
-                }),
-            }
-        }
+    let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
+    // TODO: Implement overflow checks
+    match (operator.token_type(), numbers) {
+        (TokenType::Add, Numbers::Ints(n, m)) => Ok(Value::Int(n + m)),
+        (TokenType::Add, Numbers::Floats(n, m)) => Ok(Value::Float(n + m)),
+        (TokenType::Subtract, Numbers::Ints(n, m)) => Ok(Value::Int(n - m)),
+        (TokenType::Subtract, Numbers::Floats(n, m)) => Ok(Value::Float(n - m)),
+        (TokenType::Multiply, Numbers::Ints(n, m)) => Ok(Value::Int(n * m)),
+        (TokenType::Multiply, Numbers::Floats(n, m)) => Ok(Value::Float(n * m)),
+        (TokenType::Divide, Numbers::Ints(n, m)) => Ok(Value::Int(n / m)),
+        (TokenType::Divide, Numbers::Floats(n, m)) => Ok(Value::Float(n / m)),
+        (TokenType::Modulo, Numbers::Ints(n, m)) => Ok(Value::Int(n % m)),
+        (TokenType::Modulo, Numbers::Floats(n, m)) => Ok(Value::Float(n % m)),
+        (TokenType::Exponent, Numbers::Ints(n, m)) => Ok(Value::Int(n.pow(m.try_into().unwrap()))),
+        (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
         _ => unreachable!("token type unrecognized"),
     }
 }
 
-fn number_check(left: &Value, right: &Value) -> bool {
-    let left_flag = matches!(left, Value::Int(_) | Value::Float(_));
-    let right_flag = matches!(right, Value::Int(_) | Value::Float(_));
+/// Both operands of an arithmetic operator, promoted to a common type.
+enum Numbers {
+    Ints(i64, i64),
+    /// At least one operand was a `Float`, so the `Int` one (if any) is promoted.
+    Floats(f64, f64),
+}
 
-    left_flag && right_flag
+/// Pairs up two numbers, or `None` if either isn't one.
+fn numbers(left: Value, right: Value) -> Option<Numbers> {
+    match (left, right) {
+        (Value::Int(n), Value::Int(m)) => Some(Numbers::Ints(n, m)),
+        (Value::Int(n), Value::Float(m)) => Some(Numbers::Floats(n as f64, m)),
+        (Value::Float(n), Value::Int(m)) => Some(Numbers::Floats(n, m as f64)),
+        (Value::Float(n), Value::Float(m)) => Some(Numbers::Floats(n, m)),
+        _ => None,
+    }
 }
