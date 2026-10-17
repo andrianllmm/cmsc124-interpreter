@@ -2,6 +2,12 @@
 
 use crate::token::Token;
 
+/// The root of the tree: every statement in source order.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Program<'a> {
+    pub statements: Vec<Expr<'a>>,
+}
+
 /// An expression node. Borrows from the source through its tokens.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
