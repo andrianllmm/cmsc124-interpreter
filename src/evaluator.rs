@@ -22,6 +22,8 @@ pub enum RuntimeErrorKind {
     DivisionByZero,
     /// An `Int` raised to a negative `Int`, e.g. `2 ^ -1`.
     NegativeExponent,
+    /// `|>` needs functions, which don't exist yet.
+    PipeUnsupported,
 }
 
 impl Display for RuntimeError<'_> {
@@ -31,6 +33,7 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::IntegerOverflow => "Integer overflow",
             RuntimeErrorKind::DivisionByZero => "Division by zero",
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
+            RuntimeErrorKind::PipeUnsupported => "Pipe needs a function, which isn't supported yet",
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
@@ -83,6 +86,11 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         operator: operator.clone(),
         kind,
     };
+
+    // Both operands are already evaluated, so `|>` can only fail here.
+    if let TokenType::Pipe = operator.token_type() {
+        return Err(error(RuntimeErrorKind::PipeUnsupported));
+    }
 
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
     match (operator.token_type(), numbers) {
