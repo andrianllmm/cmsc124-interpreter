@@ -20,6 +20,8 @@ pub enum RuntimeErrorKind {
     IntegerOverflow,
     /// An `Int` divided by zero, with `/` or `%`.
     DivisionByZero,
+    /// An `Int` raised to a negative `Int`, e.g. `2 ^ -1`.
+    NegativeExponent,
 }
 
 impl Display for RuntimeError<'_> {
@@ -28,6 +30,7 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number",
             RuntimeErrorKind::IntegerOverflow => "Integer overflow",
             RuntimeErrorKind::DivisionByZero => "Division by zero",
+            RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
@@ -98,6 +101,10 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         (TokenType::Modulo, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
         (TokenType::Modulo, Numbers::Ints(n, m)) => Ok(Value::Int(n % m)),
         (TokenType::Modulo, Numbers::Floats(n, m)) => Ok(Value::Float(n % m)),
+        // A negative exponent would need a fraction, which `Int` can't hold.
+        (TokenType::Exponent, Numbers::Ints(_, m)) if m < 0 => {
+            Err(error(RuntimeErrorKind::NegativeExponent))
+        }
         (TokenType::Exponent, Numbers::Ints(n, m)) => Ok(Value::Int(n.pow(m.try_into().unwrap()))),
         (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
         _ => unreachable!("token type unrecognized"),
