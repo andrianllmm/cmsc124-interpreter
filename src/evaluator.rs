@@ -18,6 +18,8 @@ pub enum RuntimeErrorKind {
     OperandNotNumber,
     /// The result doesn't fit in an `Int`, e.g. negating its minimum.
     IntegerOverflow,
+    /// An `Int` divided by zero, with `/` or `%`.
+    DivisionByZero,
 }
 
 impl Display for RuntimeError<'_> {
@@ -25,6 +27,7 @@ impl Display for RuntimeError<'_> {
         let message = match self.kind {
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number",
             RuntimeErrorKind::IntegerOverflow => "Integer overflow",
+            RuntimeErrorKind::DivisionByZero => "Division by zero",
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
@@ -87,8 +90,12 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         (TokenType::Subtract, Numbers::Floats(n, m)) => Ok(Value::Float(n - m)),
         (TokenType::Multiply, Numbers::Ints(n, m)) => Ok(Value::Int(n * m)),
         (TokenType::Multiply, Numbers::Floats(n, m)) => Ok(Value::Float(n * m)),
+        // `Int` has no infinity, so dividing by zero is an error. `Float`
+        // follows IEEE 754 instead, e.g. `1.0 / 0` is `inf`.
+        (TokenType::Divide, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
         (TokenType::Divide, Numbers::Ints(n, m)) => Ok(Value::Int(n / m)),
         (TokenType::Divide, Numbers::Floats(n, m)) => Ok(Value::Float(n / m)),
+        (TokenType::Modulo, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
         (TokenType::Modulo, Numbers::Ints(n, m)) => Ok(Value::Int(n % m)),
         (TokenType::Modulo, Numbers::Floats(n, m)) => Ok(Value::Float(n % m)),
         (TokenType::Exponent, Numbers::Ints(n, m)) => Ok(Value::Int(n.pow(m.try_into().unwrap()))),
