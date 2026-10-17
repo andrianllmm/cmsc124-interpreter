@@ -1,6 +1,6 @@
 //! Runs source through each stage. Shared by file mode and the REPL.
 
-use crate::ast::Expr;
+use crate::ast::Program;
 use crate::ast_printer;
 use crate::evaluator;
 use crate::parser::Parser;
@@ -30,16 +30,16 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), Failure> {
         return Ok(());
     }
 
-    let exprs = parse(tokens)?;
+    let program = parse(tokens)?;
     if let Some(Stage::Parse) = stage {
-        for expr in &exprs {
+        for expr in &program.statements {
             println!("{}", ast_printer::print(expr));
         }
         return Ok(());
     }
 
     if let Some(Stage::Eval) = stage {
-        return evaluate(&exprs);
+        return evaluate(&program);
     }
 
     // TODO: Execute statements once the interpreter exists (Lab 4).
@@ -59,10 +59,10 @@ fn scan(source: &str) -> Result<Vec<Token<'_>>, Failure> {
     }
 }
 
-fn parse(tokens: Vec<Token<'_>>) -> Result<Vec<Expr<'_>>, Failure> {
+fn parse(tokens: Vec<Token<'_>>) -> Result<Program<'_>, Failure> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
-        Ok(exprs) => Ok(exprs.clone()),
+        Ok(program) => Ok(program.clone()),
         Err(errors) => {
             for error in errors {
                 eprintln!("{}", error);
@@ -73,8 +73,8 @@ fn parse(tokens: Vec<Token<'_>>) -> Result<Vec<Expr<'_>>, Failure> {
 }
 
 /// Prints each expression's value, stopping at the first runtime error.
-fn evaluate(exprs: &[Expr<'_>]) -> Result<(), Failure> {
-    for expr in exprs {
+fn evaluate(program: &Program<'_>) -> Result<(), Failure> {
+    for expr in &program.statements {
         match evaluator::evaluate(expr) {
             Ok(value) => println!("{}", value),
             Err(error) => {
