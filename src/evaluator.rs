@@ -115,6 +115,15 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         }
         (TokenType::Exponent, Numbers::Ints(n, m)) => int(int_pow(n, m), error),
         (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
+        // Mixed operands compare as floats; a NaN makes every comparison false.
+        (TokenType::Less, Numbers::Ints(n, m)) => Ok(Value::Bool(n < m)),
+        (TokenType::Less, Numbers::Floats(n, m)) => Ok(Value::Bool(n < m)),
+        (TokenType::LessEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n <= m)),
+        (TokenType::LessEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n <= m)),
+        (TokenType::More, Numbers::Ints(n, m)) => Ok(Value::Bool(n > m)),
+        (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
+        (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
+        (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
         _ => unreachable!("token type unrecognized"),
     }
 }
