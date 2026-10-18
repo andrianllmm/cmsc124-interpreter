@@ -234,7 +234,8 @@ The rest of the values evaluate to true.
 ### Operator semantics
 
 - Arithmetic: [accepted operand types]
-- `+` on strings: [concatenation, error, or coercion]
+- `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
+- `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
 - Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
 - Comparison: `<`, `<=`, `>`, `>=` accept `integer` and `float` (mixed included) and return a `boolean`. Strings do not compare; `"a" < "b"` is a runtime error
 - Equality across types: [false, or an error]

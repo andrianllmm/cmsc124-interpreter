@@ -16,6 +16,8 @@ pub struct RuntimeError<'a> {
 pub enum RuntimeErrorKind {
     /// A numeric operator got a non-number, e.g. `-"a"`.
     OperandNotNumber,
+    /// `++` got a non-string, e.g. `"a" ++ 1`.
+    OperandNotString,
     /// The result doesn't fit in an `Int`, e.g. negating its minimum.
     IntegerOverflow,
     /// An `Int` divided by zero, with `/` or `%`.
@@ -30,6 +32,7 @@ impl Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number",
+            RuntimeErrorKind::OperandNotString => "Operand must be a string",
             RuntimeErrorKind::IntegerOverflow => "Integer overflow",
             RuntimeErrorKind::DivisionByZero => "Division by zero",
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
@@ -99,6 +102,14 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
     // Both operands are already evaluated, so `|>` can only fail here.
     if let TokenType::Pipe = operator.token_type() {
         return Err(error(RuntimeErrorKind::PipeUnsupported));
+    }
+
+    // `++` only joins strings; anything else must be converted first.
+    if let TokenType::StringConcat = operator.token_type() {
+        return match (left, right) {
+            (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
+            _ => Err(error(RuntimeErrorKind::OperandNotString)),
+        };
     }
 
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
