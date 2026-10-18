@@ -80,13 +80,12 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
             let flag = is_truthy(right);
             match flag {
                 Ok(b) => Ok(Value::Bool(!b)),
-                Err(_) => {Err(RuntimeError {
-                        operator: operator.clone(),
-                        kind: RuntimeErrorKind::OperandNotNumber,
-                    })
-                }
+                Err(_) => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::OperandNotNumber,
+                }),
             }
-        },
+        }
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
@@ -173,18 +172,27 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
 fn is_truthy<'a>(val: Value) -> Result<bool, RuntimeError<'a>> {
     match val {
         Value::Int(n) => {
-            if n == 0 {Ok(false)}
-            else {Ok(true)}
-        },
+            if n == 0 {
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        }
         Value::Float(f) => {
-            if f == 0.0 {Ok(false)}
-            else {Ok(true)}
-        },
+            if f == 0.0 {
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        }
         Value::Null => Ok(false),
         Value::Bool(b) => Ok(b),
         Value::Str(str) => {
-            if str == "" {Ok(false)}
-            else {Ok(true)}
-        },
+            if str.is_empty() {
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        }
     }
 }
