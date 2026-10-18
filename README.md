@@ -222,8 +222,14 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Truthiness
 
-[The complete rule. Which values are false in a condition; everything else is
-true.]
+The following values evaluate as false under the truthiness:
+- 0
+- 0.0
+- null
+- false
+- ""
+
+The rest of the values evaluate to true.
 
 ### Operator semantics
 
