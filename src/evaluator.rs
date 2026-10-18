@@ -76,7 +76,17 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
                 kind: RuntimeErrorKind::OperandNotNumber,
             }),
         },
-        TokenType::Not => todo!("`not` needs a truthiness rule"),
+        TokenType::Not => {
+            let flag = is_truthy(right);
+            match flag {
+                Ok(b) => Ok(Value::Bool(!b)),
+                Err(_) => {Err(RuntimeError {
+                        operator: operator.clone(),
+                        kind: RuntimeErrorKind::OperandNotNumber,
+                    })
+                }
+            }
+        },
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
