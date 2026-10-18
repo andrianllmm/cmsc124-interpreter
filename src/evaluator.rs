@@ -42,7 +42,9 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
             RuntimeErrorKind::PipeUnsupported => "Pipe needs a function, which isn't supported yet",
             RuntimeErrorKind::UnknownTruthiness => "Truthiness of operand cannot be extacted",
-            RuntimeErrorKind::UnsupportedLogical => "Error performing logical operation due to invalid operand"
+            RuntimeErrorKind::UnsupportedLogical => {
+                "Error performing logical operation due to invalid operand"
+            }
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
@@ -116,6 +118,15 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
             _ => Err(error(RuntimeErrorKind::OperandNotString)),
         };
+    }
+
+    // logical evaluation have a separate implementation here.
+    if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
+        let eval_result = logical_compare(left, operator, right);
+        match eval_result {
+            Ok(b) => return Ok(Value::Bool(b)),
+            Err(e) => return Err(e),
+        }
     }
 
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
@@ -223,7 +234,11 @@ fn is_truthy<'a>(val: Value) -> Result<bool, RuntimeError<'a>> {
     }
 }
 
-fn logical_compare<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<bool, RuntimeError<'a>> {
+fn logical_compare<'a>(
+    left: Value,
+    operator: &Token<'a>,
+    right: Value,
+) -> Result<bool, RuntimeError<'a>> {
     match operator.token_type() {
         TokenType::And => {
             let left_eval = is_truthy(left)?;
@@ -232,9 +247,12 @@ fn logical_compare<'a>(left: Value, operator: &Token<'a>, right: Value) -> Resul
                 (true, true) => Ok(true),
                 (false, _) => Ok(false),
                 (_, false) => Ok(false),
-                _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::UnsupportedLogical,
+                }),
             }
-        },
+        }
         TokenType::Or => {
             let left_eval = is_truthy(left)?;
             let right_eval = is_truthy(right)?;
@@ -242,10 +260,15 @@ fn logical_compare<'a>(left: Value, operator: &Token<'a>, right: Value) -> Resul
                 (true, _) => Ok(true),
                 (_, true) => Ok(true),
                 (false, false) => Ok(false),
-                _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
+                _ => Err(RuntimeError {
+                    operator: operator.clone(),
+                    kind: RuntimeErrorKind::UnsupportedLogical,
+                }),
             }
-        },
-        _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
-
+        }
+        _ => Err(RuntimeError {
+            operator: operator.clone(),
+            kind: RuntimeErrorKind::UnsupportedLogical,
+        }),
     }
 }
