@@ -230,7 +230,7 @@ true.]
 - Arithmetic: [accepted operand types]
 - `+` on strings: [concatenation, error, or coercion]
 - Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
-- Comparison: [accepted operand types]
+- Comparison: `<`, `<=`, `>`, `>=` accept `integer` and `float` (mixed included) and return a `boolean`. Strings do not compare; `"a" < "b"` is a runtime error
 - Equality across types: [false, or an error]
 - Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
 - Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
