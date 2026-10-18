@@ -125,7 +125,7 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         let eval_result = logical_compare(left, operator, right);
         {
             let b = eval_result?;
-            return Ok(Value::Bool(b))
+            return Ok(Value::Bool(b));
         }
     }
 
