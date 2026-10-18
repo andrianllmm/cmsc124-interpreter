@@ -123,9 +123,9 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
     // logical evaluation have a separate implementation here.
     if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
         let eval_result = logical_compare(left, operator, right);
-        match eval_result {
-            Ok(b) => return Ok(Value::Bool(b)),
-            Err(e) => return Err(e),
+        {
+            let b = eval_result?;
+            return Ok(Value::Bool(b))
         }
     }
 
@@ -247,10 +247,6 @@ fn logical_compare<'a>(
                 (true, true) => Ok(true),
                 (false, _) => Ok(false),
                 (_, false) => Ok(false),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::UnsupportedLogical,
-                }),
             }
         }
         TokenType::Or => {
@@ -260,10 +256,6 @@ fn logical_compare<'a>(
                 (true, _) => Ok(true),
                 (_, true) => Ok(true),
                 (false, false) => Ok(false),
-                _ => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::UnsupportedLogical,
-                }),
             }
         }
         _ => Err(RuntimeError {
