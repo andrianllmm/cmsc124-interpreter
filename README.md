@@ -252,7 +252,7 @@ The rest of the values evaluate to true.
 
 ### Control flow and functions
 
-- Logical operators return: [booleans, or the operand]
+- Logical operators return: Logical operators evaluate left to right and return boolean values. Non-boolean operands check for truthiness when evaluating.
 - Dangling else binds to: [which if]
 - Closure capture of a loop variable: [per iteration, or shared]
 - Function with no return statement produces: [value]
