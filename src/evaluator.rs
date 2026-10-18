@@ -26,6 +26,10 @@ pub enum RuntimeErrorKind {
     NegativeExponent,
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
+    // Error raised when truthiness of a value cannot be extracted
+    UnknownTruthiness,
+    // Error raised when unsupported logical operation is performed
+    UnsupportedLogical,
 }
 
 impl Display for RuntimeError<'_> {
@@ -37,6 +41,8 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::DivisionByZero => "Division by zero",
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
             RuntimeErrorKind::PipeUnsupported => "Pipe needs a function, which isn't supported yet",
+            RuntimeErrorKind::UnknownTruthiness => "Truthiness of operand cannot be extacted",
+            RuntimeErrorKind::UnsupportedLogical => "Error performing logical operation due to invalid operand"
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
@@ -85,7 +91,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
                 Ok(b) => Ok(Value::Bool(!b)),
                 Err(_) => Err(RuntimeError {
                     operator: operator.clone(),
-                    kind: RuntimeErrorKind::OperandNotNumber,
+                    kind: RuntimeErrorKind::UnknownTruthiness,
                 }),
             }
         }
@@ -214,5 +220,32 @@ fn is_truthy<'a>(val: Value) -> Result<bool, RuntimeError<'a>> {
                 Ok(true)
             }
         }
+    }
+}
+
+fn logical_compare<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<bool, RuntimeError<'a>> {
+    match operator.token_type() {
+        TokenType::And => {
+            let left_eval = is_truthy(left)?;
+            let right_eval = is_truthy(right)?;
+            match (left_eval, right_eval) {
+                (true, true) => Ok(true),
+                (false, _) => Ok(false),
+                (_, false) => Ok(false),
+                _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
+            }
+        },
+        TokenType::Or => {
+            let left_eval = is_truthy(left)?;
+            let right_eval = is_truthy(right)?;
+            match (left_eval, right_eval) {
+                (true, _) => Ok(true),
+                (_, true) => Ok(true),
+                (false, false) => Ok(false),
+                _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
+            }
+        },
+        _ => Err(RuntimeError { operator: operator.clone(), kind: RuntimeErrorKind::UnsupportedLogical })
+
     }
 }
