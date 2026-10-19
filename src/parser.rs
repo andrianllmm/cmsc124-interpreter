@@ -1,8 +1,8 @@
-//! Recursive descent parser that turns tokens into expressions.
+//! Recursive descent parser that turns tokens into a syntax tree.
 //!
 //! Each rule method follows its rule from the grammar in the README.
 
-use crate::ast::{Expr, LiteralValue};
+use crate::ast::{Expr, LiteralValue, Program};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 use std::mem::discriminant;
@@ -47,7 +47,7 @@ impl Display for ParseError {
 /// Parses the scanner's tokens, which must end with `Eof`.
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
-    expressions: Vec<Expr<'a>>,
+    program: Program<'a>,
     errors: Vec<ParseError>,
     current: usize,
 }
@@ -56,20 +56,24 @@ impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token<'a>>) -> Parser<'a> {
         Parser {
             tokens,
-            expressions: Vec::new(),
+            program: Program {
+                statements: Vec::new(),
+            },
             errors: Vec::new(),
             current: 0,
         }
     }
 
-    /// Parses each `;`-terminated expression.
+    /// `program → exprStmt* EOF`
+    ///
+    /// Parses each `;`-terminated expression into one `Program` root.
     ///
     /// On a syntax error, skips to the next `;` and keeps going,
     /// so every error in the source is reported at once.
-    pub fn parse(&mut self) -> Result<&Vec<Expr<'a>>, &Vec<ParseError>> {
+    pub fn parse(&mut self) -> Result<&Program<'a>, &Vec<ParseError>> {
         while !self.is_at_end() {
             match self.expr_stmt() {
-                Ok(expr) => self.expressions.push(expr),
+                Ok(expr) => self.program.statements.push(expr),
                 Err(error) => {
                     self.errors.push(error);
                     self.synchronize();
@@ -78,7 +82,7 @@ impl<'a> Parser<'a> {
         }
 
         if self.errors.is_empty() {
-            Ok(&self.expressions)
+            Ok(&self.program)
         } else {
             Err(&self.errors)
         }
