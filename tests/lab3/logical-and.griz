@@ -1,0 +1,8 @@
+true and true;
+true and false;
+1.0 and 0.0;
+5.6 and 3.1;
+6 and 0;
+6 and 7;
+"hello" and "world";
+"hello" and "";
