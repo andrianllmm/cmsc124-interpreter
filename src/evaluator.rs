@@ -129,6 +129,16 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         }
     }
 
+    if (TokenType::Equals == *operator.token_type())
+        || (TokenType::NotEquals == *operator.token_type())
+    {
+        match (&left, operator.token_type(), &right) {
+            (Value::Str(l), TokenType::Equals, Value::Str(r)) => return Ok(Value::Bool(l == r)),
+            (Value::Str(l), TokenType::NotEquals, Value::Str(r)) => return Ok(Value::Bool(l != r)),
+            _ => {}
+        }
+    }
+
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
     match (operator.token_type(), numbers) {
         (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
@@ -161,6 +171,10 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
         (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
         (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
+        (TokenType::Equals, Numbers::Ints(n, m)) => Ok(Value::Bool(n == m)),
+        (TokenType::Equals, Numbers::Floats(n, m)) => Ok(Value::Bool(n == m)),
+        (TokenType::NotEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n != m)),
+        (TokenType::NotEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n != m)),
         _ => unreachable!("token type unrecognized"),
     }
 }
