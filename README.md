@@ -233,7 +233,7 @@ The rest of the values evaluate to true.
 
 ### Operator semantics
 
-- Arithmetic: [accepted operand types]
+- Arithmetic: `+ - * / % ^` and unary `-` accept `Int` and `Float` only. Any other operand is a runtime error
 - `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
 - `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
 - Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
