@@ -242,6 +242,7 @@ The rest of the values evaluate to true.
 - Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
 - Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
 - Negative `Int` exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
+- Evaluation order: operands are evaluated left to right, and both are evaluated before the operator applies. `and` and `or` do not short-circuit
 
 ### Scope and bindings
 
