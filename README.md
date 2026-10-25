@@ -303,9 +303,7 @@ Error at line 1: Missing ';' at end
 | tests/lab4 | Context   | inline  | none         |
 | tests/lab5 | Functions | inline  | none         |
 
-```
-[specific tests]...
-```
+Each folder has a `manifest.json` and one `.griz` file per test case, grouped into subfolders by feature (e.g. `tests/lab2/groupings`). Runtime error cases live in `tests/lab3/errors`, one error per file.
 
 Run locally with:
 
