@@ -267,9 +267,11 @@ The rest of the values evaluate to true.
 
 ## Native functions
 
-| Name   | Arguments         | Returns | Notes     |
-| ------ | ----------------- | ------- | --------- |
-| [name] | [count and types] | [type]  | [caveats] |
+| Name    | Arguments | Returns | Notes                                                |
+| ------- | --------- | ------- | ---------------------------------------------------- |
+| `print` | 1, any    | `Null`  | Writes the value and a newline to stdout             |
+
+Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression.
 
 ## Errors and diagnostics
 
