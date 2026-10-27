@@ -246,10 +246,16 @@ The rest of the values evaluate to true.
 
 ### Scope and bindings
 
-- Redeclaration in the same scope: [allowed or an error]
-- Uninitialized variable holds: [value]
-- Shadowing: [behavior]
-- Undefined name: [static error with exit 65, or runtime error with exit 70]
+- Declaration: there's no keyword. `x = value` updates the nearest binding named `x`, searching outward from the current block. If none exists, it creates `x` in the current block
+- Scope rule: lexical. Lookup starts in the block where the name appears and walks out through the blocks that enclose it in the source. The innermost binding wins
+- Shadowing: not possible. Assigning an outer name inside a block updates the outer binding. A name first assigned inside a block is local to that block and is gone once the block ends
+- Redeclaration in the same scope: not applicable, since assigning again updates the existing binding
+- Uninitialized variable holds: nothing, since every binding is created with a value
+- Mutability: every binding is mutable, and both its value and its type can change, e.g. `x = 1; x = "a";`
+- Binding time: a name is bound to storage and a value when its first assignment runs. Types are bound at runtime
+- Storage lifetime: top-level bindings are static and last the whole program, or the whole REPL session. Block bindings are stack-dynamic: their storage begins at the first assignment in the block and ends when the block exits
+- Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
+- A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
 
 ### Control flow and functions
 
