@@ -233,7 +233,7 @@ The rest of the values evaluate to true.
 
 ### Operator semantics
 
-- Arithmetic: [accepted operand types]
+- Arithmetic: `+ - * / % ^` and unary `-` accept `Int` and `Float` only. Any other operand is a runtime error
 - `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
 - `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
 - Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
@@ -242,6 +242,7 @@ The rest of the values evaluate to true.
 - Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
 - Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
 - Negative `Int` exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
+- Evaluation order: operands are evaluated left to right, and both are evaluated before the operator applies. `and` and `or` do not short-circuit
 
 ### Scope and bindings
 
@@ -302,9 +303,7 @@ Error at line 1: Missing ';' at end
 | tests/lab4 | Context   | inline  | none         |
 | tests/lab5 | Functions | inline  | none         |
 
-```
-[specific tests]...
-```
+Each folder has a `manifest.json` and one `.griz` file per test case, grouped into subfolders by feature (e.g. `tests/lab2/groupings`). Runtime error cases live in `tests/lab3/errors`, one error per file.
 
 Run locally with:
 
