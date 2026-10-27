@@ -26,6 +26,8 @@ pub enum Expr<'a> {
     },
     /// A parenthesized expression.
     Grouping { expression: Box<Expr<'a>> },
+    /// A name, read from the environment.
+    Variable { name: Token<'a> },
 }
 
 /// The value of a literal expression.

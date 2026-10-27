@@ -18,6 +18,7 @@ pub fn print(expr: &Expr) -> String {
         Expr::Grouping { expression } => {
             format!("(group {})", print(expression))
         }
+        Expr::Variable { name } => name.lexeme().to_string(),
         Expr::Literal { value, .. } => match value {
             // Quoted so strings can't be mistaken for identifiers.
             LiteralValue::Str(s) => format!("\"{}\"", s.escape_debug()),
