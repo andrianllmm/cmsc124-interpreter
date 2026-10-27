@@ -169,14 +169,18 @@ factor      → unary ( ( "*" | "/" | "%" ) unary )*
 unary       → "-" unary
             | exponent
 
-exponent    → primary ( "^" unary )?
+exponent    → call ( "^" unary )?
+
+call        → primary ( "(" arguments? ")" )*
+
+arguments   → expression ( "," expression )*
 
 primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | IDENTIFIER
             | "(" expression ")"
 ```
 
-NOTE: Identifiers and assignment are in the grammar but not parsed yet.
+NOTE: Assignment and blocks are in the grammar but not parsed yet.
 
 ## Parse output format
 
