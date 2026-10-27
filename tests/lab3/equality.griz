@@ -1,10 +1,10 @@
-1 == 1;
-1 != 1;
-1 == 2;
-1 == 1.0;
-1 != 1.0;
-5 != 5;
-"hello" == "hello";
-"hello" == "world";
-"hello" != "world";
-"ab" == "ab";
+1 == 1;             # expect: true
+1 != 1;             # expect: false
+1 == 2;             # expect: false
+1 == 1.0;           # expect: true
+1 != 1.0;           # expect: false
+5 != 5;             # expect: false
+"hello" == "hello"; # expect: true
+"hello" == "world"; # expect: false
+"hello" != "world"; # expect: true
+"ab" == "ab";       # expect: true

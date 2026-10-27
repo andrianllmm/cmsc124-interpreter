@@ -1,6 +1,6 @@
-1;
-1.0;
-"hello world";
-true;
-false;
-null;
+1;             # expect: 1
+1.0;           # expect: 1.0
+"hello world"; # expect: hello world
+true;          # expect: true
+false;         # expect: false
+null;          # expect: null

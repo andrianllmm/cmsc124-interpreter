@@ -1,1 +1,1 @@
-null ++ "a";
+null ++ "a"; # expect runtime error: Operand must be a string

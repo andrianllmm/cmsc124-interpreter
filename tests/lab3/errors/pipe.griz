@@ -1,1 +1,1 @@
-1 |> 2;
+1 |> 2; # expect runtime error: Pipe needs a function, which isn't supported yet

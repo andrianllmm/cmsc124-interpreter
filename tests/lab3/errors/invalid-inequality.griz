@@ -1,1 +1,1 @@
-"hello" != false;
+"hello" != false; # expect runtime error: Operand must be a number
