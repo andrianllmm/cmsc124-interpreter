@@ -27,6 +27,8 @@ pub enum RuntimeErrorKind {
     NegativeExponent,
     /// A name with no binding, e.g. `x` before `x = 1`.
     UndefinedVariable,
+    /// A call on a value that isn't a function, e.g. `1()`.
+    NotCallable,
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
     // Error raised when truthiness of a value cannot be extracted
@@ -41,6 +43,7 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::UndefinedVariable => {
                 format!("Undefined variable '{}'", self.operator.lexeme())
             }
+            RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number".to_string(),
             RuntimeErrorKind::OperandNotString => "Operand must be a string".to_string(),
             RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
@@ -71,6 +74,21 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
             operator: name.clone(),
             kind: RuntimeErrorKind::UndefinedVariable,
         }),
+        // No functions exist yet, so every callee is an error.
+        Expr::Call {
+            callee,
+            paren,
+            arguments,
+        } => {
+            evaluate(callee)?;
+            for argument in arguments {
+                evaluate(argument)?;
+            }
+            Err(RuntimeError {
+                operator: paren.clone(),
+                kind: RuntimeErrorKind::NotCallable,
+            })
+        }
         Expr::Unary { operator, right } => {
             let right = evaluate(right)?;
             unary(operator, right)

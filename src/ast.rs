@@ -28,6 +28,13 @@ pub enum Expr<'a> {
     Grouping { expression: Box<Expr<'a>> },
     /// A name, read from the environment.
     Variable { name: Token<'a> },
+    /// A call: `callee(arguments)`.
+    Call {
+        callee: Box<Expr<'a>>,
+        /// The closing `)`, so errors can point at the call's line.
+        paren: Token<'a>,
+        arguments: Vec<Expr<'a>>,
+    },
 }
 
 /// The value of a literal expression.

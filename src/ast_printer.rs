@@ -19,6 +19,13 @@ pub fn print(expr: &Expr) -> String {
             format!("(group {})", print(expression))
         }
         Expr::Variable { name } => name.lexeme().to_string(),
+        Expr::Call {
+            callee, arguments, ..
+        } => {
+            let mut parts = vec![print(callee)];
+            parts.extend(arguments.iter().map(print));
+            format!("(call {})", parts.join(" "))
+        }
         Expr::Literal { value, .. } => match value {
             // Quoted so strings can't be mistaken for identifiers.
             LiteralValue::Str(s) => format!("\"{}\"", s.escape_debug()),
