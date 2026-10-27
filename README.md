@@ -180,6 +180,10 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | "(" expression ")"
 ```
 
+- Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
+- A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
+- Blocks nest to any depth and can appear anywhere a statement can
+
 NOTE: Assignment and blocks are in the grammar but not parsed yet.
 
 ## Parse output format
