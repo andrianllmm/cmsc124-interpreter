@@ -11,6 +11,7 @@ mod ast;
 mod ast_printer;
 mod evaluator;
 mod keyword;
+mod native;
 mod parser;
 mod pipeline;
 mod repl;
