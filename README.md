@@ -137,9 +137,14 @@ String literals print escaped.
 ## Grammar
 
 ```
-program     → exprStmt* EOF
+program     → statement* EOF
+
+statement   → exprStmt
+            | block
 
 exprStmt    → expression ";"
+
+block       → "{" statement* "}"
 
 expression  → assignment
 
