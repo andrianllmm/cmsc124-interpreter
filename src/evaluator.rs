@@ -281,3 +281,13 @@ fn logical_compare<'a>(
         }),
     }
 }
+
+/// check for equality for non-number and non-string operands 
+fn is_equal(left: Value, right: Value) -> Option<bool> {
+    match (left, right) {
+        (Value::Null, Value::Null) => Some(true),
+        (Value::Bool(l), Value::Bool(r)) => {Some(l == r)},
+        (Value::Str(l), Value::Str(r)) => {Some(l == r)},
+        _ => None,
+    }
+}
