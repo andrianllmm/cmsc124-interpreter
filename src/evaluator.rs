@@ -132,16 +132,21 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         }
     }
 
-    if (TokenType::Equals == *operator.token_type())
-        || (TokenType::NotEquals == *operator.token_type())
-    {
-        match (&left, operator.token_type(), &right) {
-            (Value::Str(l), TokenType::Equals, Value::Str(r)) => return Ok(Value::Bool(l == r)),
-            (Value::Str(l), TokenType::NotEquals, Value::Str(r)) => return Ok(Value::Bool(l != r)),
-            _ => {}
+    let equality_result = is_equal(&left, &right);
+    if TokenType::Equals == *operator.token_type() {
+        match equality_result {
+            Ok(Some(b)) => {return Ok(Value::Bool(b))},
+            Ok(None) => {},
+            Err(kind) => {return Err(error(kind))}
+        }
+    } else if TokenType::NotEquals == *operator.token_type() {
+        match equality_result {
+            Ok(Some(b)) => {return Ok(Value::Bool(!b))},
+            Ok(None) => {},
+            Err(kind) => {return Err(error(kind))}
         }
     }
-
+        
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
     match (operator.token_type(), numbers) {
         (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
