@@ -1,1 +1,1 @@
-"hello" != false; # expect runtime error: Operand must be a number
+"hello" != false; # expect runtime error: Incompatible types being compared
