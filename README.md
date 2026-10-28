@@ -137,9 +137,14 @@ String literals print escaped.
 ## Grammar
 
 ```
-program     → exprStmt* EOF
+program     → statement* EOF
+
+statement   → exprStmt
+            | block
 
 exprStmt    → expression ";"
+
+block       → "{" statement* "}"
 
 expression  → assignment
 
@@ -164,14 +169,22 @@ factor      → unary ( ( "*" | "/" | "%" ) unary )*
 unary       → "-" unary
             | exponent
 
-exponent    → primary ( "^" unary )?
+exponent    → call ( "^" unary )?
+
+call        → primary ( "(" arguments? ")" )*
+
+arguments   → expression ( "," expression )*
 
 primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | IDENTIFIER
             | "(" expression ")"
 ```
 
-NOTE: Identifiers and assignment are in the grammar but not parsed yet.
+- Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
+- A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
+- Blocks nest to any depth and can appear anywhere a statement can
+
+NOTE: Assignment and blocks are in the grammar but not parsed yet.
 
 ## Parse output format
 
