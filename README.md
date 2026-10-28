@@ -27,7 +27,7 @@ Grizzly is a small language for transforming tabular data. It's built for data a
 | `./run --tokenize`        | Starts the REPL, printing only tokens.          |
 | `./run --parse`           | Starts the REPL, printing only the parsed tree. |
 
-Exit codes: 0 on success, 65 on a static error (lexical, syntax, undefined name), 70 on a runtime error (type mismatch, division by zero, arity mismatch).
+Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtime error (type mismatch, division by zero, undefined name, arity mismatch).
 
 ## File extension
 
@@ -246,10 +246,16 @@ The rest of the values evaluate to true.
 
 ### Scope and bindings
 
-- Redeclaration in the same scope: [allowed or an error]
-- Uninitialized variable holds: [value]
-- Shadowing: [behavior]
-- Undefined name: [static error with exit 65, or runtime error with exit 70]
+- Declaration: there's no keyword. `x = value` updates the nearest binding named `x`, searching outward from the current block. If none exists, it creates `x` in the current block
+- Scope rule: lexical. Lookup starts in the block where the name appears and walks out through the blocks that enclose it in the source. The innermost binding wins
+- Shadowing: not possible. Assigning an outer name inside a block updates the outer binding. A name first assigned inside a block is local to that block and is gone once the block ends
+- Redeclaration in the same scope: not applicable, since assigning again updates the existing binding
+- Uninitialized variable holds: nothing, since every binding is created with a value
+- Mutability: every binding is mutable, and both its value and its type can change, e.g. `x = 1; x = "a";`
+- Binding time: a name is bound to storage and a value when its first assignment runs. Types are bound at runtime
+- Storage lifetime: top-level bindings are static and last the whole program, or the whole REPL session. Block bindings are stack-dynamic: their storage begins at the first assignment in the block and ends when the block exits
+- Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
+- A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
 
 ### Control flow and functions
 
@@ -261,9 +267,11 @@ The rest of the values evaluate to true.
 
 ## Native functions
 
-| Name   | Arguments         | Returns | Notes     |
-| ------ | ----------------- | ------- | --------- |
-| [name] | [count and types] | [type]  | [caveats] |
+| Name    | Arguments | Returns | Notes                                                |
+| ------- | --------- | ------- | ---------------------------------------------------- |
+| `print` | 1, any    | `Null`  | Writes the value and a newline to stdout             |
+
+Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression.
 
 ## Errors and diagnostics
 
