@@ -1,1 +1,1 @@
--9223372036854775807 - 2;
+-9223372036854775807 - 2; # expect runtime error: Integer overflow

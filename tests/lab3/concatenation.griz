@@ -1,7 +1,7 @@
-"hi" ++ " there";
-"" ++ "";
-"a" ++ "";
-"" ++ "b";
-"a" ++ "b" ++ "c";
-"x" ++ ("y" ++ "z");
-"1" ++ "2";
+"hi" ++ " there";    # expect: hi there
+"" ++ "";            # expect:
+"a" ++ "";           # expect: a
+"" ++ "b";           # expect: b
+"a" ++ "b" ++ "c";   # expect: abc
+"x" ++ ("y" ++ "z"); # expect: xyz
+"1" ++ "2";          # expect: 12

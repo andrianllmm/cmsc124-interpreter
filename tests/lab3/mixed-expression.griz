@@ -1,2 +1,2 @@
-((6 + 9) == 15 and "hello" == "world") or ((not true or not false) and (0 == 0.0));
-not (7 > 2) or (15 + 23) >= 38.0 and ("hello" ++ "world") == "helloworld";
+((6 + 9) == 15 and "hello" == "world") or ((not true or not false) and (0 == 0.0)); # expect: true
+not (7 > 2) or (15 + 23) >= 38.0 and ("hello" ++ "world") == "helloworld";          # expect: true

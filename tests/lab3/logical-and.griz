@@ -1,8 +1,8 @@
-true and true;
-true and false;
-1.0 and 0.0;
-5.6 and 3.1;
-6 and 0;
-6 and 7;
-"hello" and "world";
-"hello" and "";
+true and true;       # expect: true
+true and false;      # expect: false
+1.0 and 0.0;         # expect: false
+5.6 and 3.1;         # expect: true
+6 and 0;             # expect: false
+6 and 7;             # expect: true
+"hello" and "world"; # expect: true
+"hello" and "";      # expect: false
