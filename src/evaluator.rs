@@ -30,6 +30,8 @@ pub enum RuntimeErrorKind {
     UnknownTruthiness,
     // Error raised when unsupported logical operation is performed
     UnsupportedLogical,
+    // Incompatible types are being compared
+    IncompatibleComparison
 }
 
 impl Display for RuntimeError<'_> {
@@ -44,7 +46,8 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::UnknownTruthiness => "Truthiness of operand cannot be extacted",
             RuntimeErrorKind::UnsupportedLogical => {
                 "Error performing logical operation due to invalid operand"
-            }
+            },
+            RuntimeErrorKind::IncompatibleComparison => "Incompatible types being compared",
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
