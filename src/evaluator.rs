@@ -283,11 +283,14 @@ fn logical_compare<'a>(
 }
 
 /// check for equality for non-number and non-string operands 
-fn is_equal(left: Value, right: Value) -> Option<bool> {
+fn is_equal<'a>(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKind> {
     match (left, right) {
-        (Value::Null, Value::Null) => Some(true),
-        (Value::Bool(l), Value::Bool(r)) => {Some(l == r)},
-        (Value::Str(l), Value::Str(r)) => {Some(l == r)},
-        _ => None,
+        (Value::Null, Value::Null) => Ok(Some(true)),
+        (Value::Bool(l), Value::Bool(r)) => {Ok(Some(*l == *r))},
+        (Value::Str(l), Value::Str(r)) => {Ok(Some(*l == *r))},
+        (Value::Null, _) => Err(RuntimeErrorKind::IncompatibleComparison),
+        (Value::Bool(_), _) => Err(RuntimeErrorKind::IncompatibleComparison),
+        (Value::Str(_), _) => Err(RuntimeErrorKind::IncompatibleComparison),
+        _ => Ok(None)
     }
 }
