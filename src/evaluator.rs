@@ -69,7 +69,9 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::UnsupportedLogical => {
                 "Error performing logical operation due to invalid operand".to_string()
             }
-            RuntimeErrorKind::IncompatibleComparison => "Incompatible types being compared".to_string(),
+            RuntimeErrorKind::IncompatibleComparison => {
+                "Incompatible types being compared".to_string()
+            }
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
     }
