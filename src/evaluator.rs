@@ -34,8 +34,6 @@ pub enum RuntimeErrorKind {
     ArityMismatch { expected: usize, found: usize },
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
-    /// Incompatible types are being compared
-    IncompatibleComparison,
 }
 
 impl Display for RuntimeError<'_> {
@@ -55,9 +53,6 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
             RuntimeErrorKind::PipeUnsupported => {
                 "Pipe needs a function, which isn't supported yet".to_string()
-            }
-            RuntimeErrorKind::IncompatibleComparison => {
-                "Incompatible types being compared".to_string()
             }
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
@@ -174,17 +169,9 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
 
     // checks for equality among left and right operands
     if TokenType::Equals == *operator.token_type() {
-        let equality_result = is_equal(&left, &right);
-        match equality_result {
-            Ok(b) => return Ok(Value::Bool(b)),
-            Err(kind) => return Err(error(kind)),
-        }
+        return Ok(Value::Bool(is_equal(&left, &right)));
     } else if TokenType::NotEquals == *operator.token_type() {
-        let equality_result = is_equal(&left, &right);
-        match equality_result {
-            Ok(b) => return Ok(Value::Bool(!b)),
-            Err(kind) => return Err(error(kind)),
-        }
+        return Ok(Value::Bool(!is_equal(&left, &right)));
     }
 
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
@@ -285,21 +272,21 @@ fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
 }
 
 // check for equality for non-number and non-string operands
-fn is_equal(left: &Value, right: &Value) -> Result<bool, RuntimeErrorKind> {
+fn is_equal(left: &Value, right: &Value) -> bool {
     match (left, right) {
-        (Value::Null, Value::Null) => return Ok(true),
-        (Value::Bool(l), Value::Bool(r)) => return Ok(*l == *r),
-        (Value::Str(l), Value::Str(r)) => return Ok(*l == *r),
-        (Value::Null, _) => return Err(RuntimeErrorKind::IncompatibleComparison),
-        (Value::Bool(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
-        (Value::Str(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
+        (Value::Null, Value::Null) => return true,
+        (Value::Bool(l), Value::Bool(r)) => return *l == *r,
+        (Value::Str(l), Value::Str(r)) => return *l == *r,
+        (Value::Null, _) => return false,
+        (Value::Bool(_), _) => return false,
+        (Value::Str(_), _) => return false,
         _ => {}
     }
 
-    let numbers =
-        numbers(left.clone(), right.clone()).ok_or(RuntimeErrorKind::IncompatibleComparison)?;
+    let numbers = numbers(left.clone(), right.clone());
     match numbers {
-        Numbers::Ints(l, r) => Ok(l == r),
-        Numbers::Floats(l, r) => Ok(l == r),
+        Some(Numbers::Ints(l, r)) => l == r,
+        Some(Numbers::Floats(l, r)) => l == r,
+        None => false,
     }
 }
