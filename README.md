@@ -251,7 +251,7 @@ The rest of the values evaluate to true.
 - `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
 - Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
 - Comparison: `<`, `<=`, `>`, `>=` accept `integer` and `float` (mixed included) and return a `boolean`. Strings do not compare; `"a" < "b"` is a runtime error
-- Equality across types: Equality checks are valid between `integer` and `float`. Strings can only be compared with other strings for equality. `integer` or `float` cannot be compared with a string and is a runtime error. `boolean` and `null` can only be compared with another `boolean` and `null` respectively.
+- Equality across types: Equality checks are valid between `integer` and `float`. For other literals, equality checks depends on the logic to be implemented. Mixed types always resolve to `false`.
 - Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
 - Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
 - Negative `Int` exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
