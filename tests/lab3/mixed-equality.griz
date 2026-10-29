@@ -1,0 +1,3 @@
+"a" == 1;       # expect: false
+1 == "1";       # expect: false
+null == false;  # expect: false

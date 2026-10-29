@@ -8,3 +8,6 @@
 "hello" == "world"; # expect: false
 "hello" != "world"; # expect: true
 "ab" == "ab";       # expect: true
+true == true;       # expect: true
+null == null;       # expect: true
+true != false;      # expect: true

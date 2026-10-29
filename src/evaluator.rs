@@ -167,14 +167,11 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         return Ok(Value::Bool(logical_compare(left, operator, right)));
     }
 
-    if (TokenType::Equals == *operator.token_type())
-        || (TokenType::NotEquals == *operator.token_type())
-    {
-        match (&left, operator.token_type(), &right) {
-            (Value::Str(l), TokenType::Equals, Value::Str(r)) => return Ok(Value::Bool(l == r)),
-            (Value::Str(l), TokenType::NotEquals, Value::Str(r)) => return Ok(Value::Bool(l != r)),
-            _ => {}
-        }
+    // checks for equality among left and right operands
+    if TokenType::Equals == *operator.token_type() {
+        return Ok(Value::Bool(is_equal(&left, &right)));
+    } else if TokenType::NotEquals == *operator.token_type() {
+        return Ok(Value::Bool(!is_equal(&left, &right)));
     }
 
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
@@ -209,10 +206,6 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
         (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
         (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
-        (TokenType::Equals, Numbers::Ints(n, m)) => Ok(Value::Bool(n == m)),
-        (TokenType::Equals, Numbers::Floats(n, m)) => Ok(Value::Bool(n == m)),
-        (TokenType::NotEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n != m)),
-        (TokenType::NotEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n != m)),
         _ => unreachable!("token type unrecognized"),
     }
 }
@@ -275,5 +268,25 @@ fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
         TokenType::And => is_truthy(left) && is_truthy(right),
         TokenType::Or => is_truthy(left) || is_truthy(right),
         _ => unreachable!("only called for `and` and `or`"),
+    }
+}
+
+// check for equality for non-number and non-string operands
+fn is_equal(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Null, Value::Null) => return true,
+        (Value::Bool(l), Value::Bool(r)) => return *l == *r,
+        (Value::Str(l), Value::Str(r)) => return *l == *r,
+        (Value::Null, _) => return false,
+        (Value::Bool(_), _) => return false,
+        (Value::Str(_), _) => return false,
+        _ => {}
+    }
+
+    let numbers = numbers(left.clone(), right.clone());
+    match numbers {
+        Some(Numbers::Ints(l, r)) => l == r,
+        Some(Numbers::Floats(l, r)) => l == r,
+        None => false,
     }
 }
