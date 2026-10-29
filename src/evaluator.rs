@@ -14,6 +14,15 @@ pub struct RuntimeError<'a> {
     pub kind: RuntimeErrorKind,
 }
 
+impl<'a> RuntimeError<'a> {
+    fn new(token: &Token<'a>, kind: RuntimeErrorKind) -> Self {
+        RuntimeError {
+            token: token.clone(),
+            kind,
+        }
+    }
+}
+
 /// What went wrong while evaluating.
 pub enum RuntimeErrorKind {
     /// A numeric operator got a non-number, e.g. `-"a"`.
@@ -68,10 +77,7 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
         // Only built-ins are bound until assignment exists.
         Expr::Variable { name } => match Native::lookup(name.lexeme()) {
             Some(native) => Ok(Value::Native(native)),
-            None => Err(RuntimeError {
-                token: name.clone(),
-                kind: RuntimeErrorKind::UndefinedVariable,
-            }),
+            None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
         },
         Expr::Call {
             callee,
@@ -106,10 +112,7 @@ fn call<'a>(
     paren: &Token<'a>,
     arguments: Vec<Value>,
 ) -> Result<Value, RuntimeError<'a>> {
-    let error = |kind| RuntimeError {
-        token: paren.clone(),
-        kind,
-    };
+    let error = |kind| RuntimeError::new(paren, kind);
 
     let Value::Native(native) = callee else {
         return Err(error(RuntimeErrorKind::NotCallable));
@@ -127,27 +130,22 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
     match operator.token_type() {
         TokenType::Subtract => match right {
             // `i64::MIN` has no positive counterpart, so negating it overflows.
-            Value::Int(n) => n.checked_neg().map(Value::Int).ok_or_else(|| RuntimeError {
-                token: operator.clone(),
-                kind: RuntimeErrorKind::IntegerOverflow,
-            }),
+            Value::Int(n) => n
+                .checked_neg()
+                .map(Value::Int)
+                .ok_or(RuntimeErrorKind::IntegerOverflow),
             // Negating a float only flips its sign bit, so it can't overflow.
             Value::Float(n) => Ok(Value::Float(-n)),
-            _ => Err(RuntimeError {
-                token: operator.clone(),
-                kind: RuntimeErrorKind::OperandNotNumber,
-            }),
-        },
+            _ => Err(RuntimeErrorKind::OperandNotNumber),
+        }
+        .map_err(|kind| RuntimeError::new(operator, kind)),
         TokenType::Not => Ok(Value::Bool(!is_truthy(right))),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
 
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
-    let error = |kind| RuntimeError {
-        token: operator.clone(),
-        kind,
-    };
+    let error = |kind| RuntimeError::new(operator, kind);
 
     // Both operands are already evaluated, so `|>` can only fail here.
     if let TokenType::Pipe = operator.token_type() {
