@@ -15,6 +15,7 @@ pub struct RuntimeError<'a> {
 }
 
 impl<'a> RuntimeError<'a> {
+    /// Builds an error pointing at `token`.
     fn new(token: &Token<'a>, kind: RuntimeErrorKind) -> Self {
         RuntimeError {
             token: token.clone(),
@@ -107,6 +108,7 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
     }
 }
 
+/// Calls a native function after checking its arity.
 fn call<'a>(
     callee: Value,
     paren: &Token<'a>,
@@ -126,6 +128,7 @@ fn call<'a>(
     Ok(native.call(arguments))
 }
 
+/// Applies a unary operator to an evaluated operand.
 fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
     match operator.token_type() {
         TokenType::Subtract => match right {
@@ -144,6 +147,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
     }
 }
 
+/// Applies a binary operator to two evaluated operands.
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
     let error = |kind| RuntimeError::new(operator, kind);
 
@@ -181,6 +185,7 @@ fn arithmetic(operator: &Token, numbers: Numbers) -> Result<Value, RuntimeErrorK
     }
 }
 
+/// Applies an arithmetic operator to `Int`s, erroring instead of overflowing.
 fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorKind> {
     let result = match operator.token_type() {
         TokenType::Add => n.checked_add(m),
@@ -201,6 +206,7 @@ fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorK
     result.ok_or(RuntimeErrorKind::IntegerOverflow)
 }
 
+/// Applies an arithmetic operator to `Float`s.
 /// Can't fail: dividing by zero gives `inf` or `NaN`, e.g. `1.0 / 0` is `inf`.
 fn float_arithmetic(operator: &Token, n: f64, m: f64) -> f64 {
     match operator.token_type() {
