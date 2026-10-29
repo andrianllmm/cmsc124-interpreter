@@ -147,33 +147,31 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
     let error = |kind| RuntimeError::new(operator, kind);
 
-    // Both operands are already evaluated, so `|>` can only fail here.
-    if let TokenType::Pipe = operator.token_type() {
-        return Err(error(RuntimeErrorKind::PipeUnsupported));
-    }
-
-    // `++` only joins strings; anything else must be converted first.
-    if let TokenType::StringConcat = operator.token_type() {
-        return match (left, right) {
+    match operator.token_type() {
+        // Both operands are already evaluated, so `|>` can only fail here.
+        TokenType::Pipe => Err(error(RuntimeErrorKind::PipeUnsupported)),
+        // `++` only joins strings; anything else must be converted first.
+        TokenType::StringConcat => match (left, right) {
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
             _ => Err(error(RuntimeErrorKind::OperandNotString)),
-        };
+        },
+        TokenType::And => Ok(Value::Bool(is_truthy(&left) && is_truthy(&right))),
+        TokenType::Or => Ok(Value::Bool(is_truthy(&left) || is_truthy(&right))),
+        TokenType::Equals => Ok(Value::Bool(is_equal(&left, &right))),
+        TokenType::NotEquals => Ok(Value::Bool(!is_equal(&left, &right))),
+        _ => {
+            let numbers =
+                numbers(&left, &right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
+            numeric(operator, numbers, error)
+        }
     }
+}
 
-    // logical evaluation have a separate implementation here.
-    if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
-        return Ok(Value::Bool(logical_compare(left, operator, right)));
-    }
-
-    // checks for equality among left and right operands
-    if TokenType::Equals == *operator.token_type() {
-        return Ok(Value::Bool(is_equal(&left, &right)));
-    } else if TokenType::NotEquals == *operator.token_type() {
-        return Ok(Value::Bool(!is_equal(&left, &right)));
-    }
-
-    let numbers =
-        numbers(&left, &right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
+fn numeric<'a>(
+    operator: &Token<'a>,
+    numbers: Numbers,
+    error: impl Fn(RuntimeErrorKind) -> RuntimeError<'a>,
+) -> Result<Value, RuntimeError<'a>> {
     match (operator.token_type(), numbers) {
         (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
         (TokenType::Add, Numbers::Floats(n, m)) => Ok(Value::Float(n + m)),
@@ -259,14 +257,6 @@ fn is_truthy(val: &Value) -> bool {
         Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
         Value::Native(_) => true,
-    }
-}
-
-fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
-    match operator.token_type() {
-        TokenType::And => is_truthy(&left) && is_truthy(&right),
-        TokenType::Or => is_truthy(&left) || is_truthy(&right),
-        _ => unreachable!("only called for `and` and `or`"),
     }
 }
 
