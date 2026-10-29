@@ -1,2 +1,2 @@
-1 + 1;              # expect:
-"hello" ++ "world"; # expect:
+1 + 1;              # expect nothing
+"hello" ++ "world"; # expect nothing
