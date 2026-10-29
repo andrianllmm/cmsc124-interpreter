@@ -287,15 +287,21 @@ fn logical_compare<'a>(
     }
 }
 
-/// check for equality for non-number and non-string operands 
+// check for equality for non-number and non-string operands 
 fn is_equal<'a>(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKind> {
     match (left, right) {
-        (Value::Null, Value::Null) => Ok(Some(true)),
-        (Value::Bool(l), Value::Bool(r)) => {Ok(Some(*l == *r))},
-        (Value::Str(l), Value::Str(r)) => {Ok(Some(*l == *r))},
-        (Value::Null, _) => Err(RuntimeErrorKind::IncompatibleComparison),
-        (Value::Bool(_), _) => Err(RuntimeErrorKind::IncompatibleComparison),
-        (Value::Str(_), _) => Err(RuntimeErrorKind::IncompatibleComparison),
-        _ => Ok(None)
+        (Value::Null, Value::Null) => {return Ok(Some(true))},
+        (Value::Bool(l), Value::Bool(r)) => {return Ok(Some(*l == *r))},
+        (Value::Str(l), Value::Str(r)) => {return Ok(Some(*l == *r))},
+        (Value::Null, _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
+        (Value::Bool(_), _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
+        (Value::Str(_), _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
+        _ => {}
+    }
+
+    let numbers = numbers(left.clone(), right.clone()).ok_or_else(|| RuntimeErrorKind::IncompatibleComparison)?;
+    match numbers {
+        Numbers::Ints(l,r ) => {Ok(Some(l == r))},
+        Numbers::Floats(l,r ) => {Ok(Some(l == r))},
     }
 }
