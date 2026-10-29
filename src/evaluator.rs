@@ -31,14 +31,9 @@ pub enum RuntimeErrorKind {
     /// A call on a value that isn't a function, e.g. `1()`.
     NotCallable,
     /// A call passed the wrong number of arguments, e.g. `print()`.
-    ArityMismatch {
-        expected: usize,
-        found: usize,
-    },
+    ArityMismatch { expected: usize, found: usize },
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
-    // Error raised when unsupported logical operation is performed
-    UnsupportedLogical,
 }
 
 impl Display for RuntimeError<'_> {
@@ -58,9 +53,6 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
             RuntimeErrorKind::PipeUnsupported => {
                 "Pipe needs a function, which isn't supported yet".to_string()
-            }
-            RuntimeErrorKind::UnsupportedLogical => {
-                "Error performing logical operation due to invalid operand".to_string()
             }
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
@@ -172,11 +164,7 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
 
     // logical evaluation have a separate implementation here.
     if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
-        let eval_result = logical_compare(left, operator, right);
-        {
-            let b = eval_result?;
-            return Ok(Value::Bool(b));
-        }
+        return Ok(Value::Bool(logical_compare(left, operator, right)));
     }
 
     if (TokenType::Equals == *operator.token_type())
@@ -282,33 +270,10 @@ fn is_truthy(val: Value) -> bool {
     }
 }
 
-fn logical_compare<'a>(
-    left: Value,
-    operator: &Token<'a>,
-    right: Value,
-) -> Result<bool, RuntimeError<'a>> {
+fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
     match operator.token_type() {
-        TokenType::And => {
-            let left_eval = is_truthy(left);
-            let right_eval = is_truthy(right);
-            match (left_eval, right_eval) {
-                (true, true) => Ok(true),
-                (false, _) => Ok(false),
-                (_, false) => Ok(false),
-            }
-        }
-        TokenType::Or => {
-            let left_eval = is_truthy(left);
-            let right_eval = is_truthy(right);
-            match (left_eval, right_eval) {
-                (true, _) => Ok(true),
-                (_, true) => Ok(true),
-                (false, false) => Ok(false),
-            }
-        }
-        _ => Err(RuntimeError {
-            operator: operator.clone(),
-            kind: RuntimeErrorKind::UnsupportedLogical,
-        }),
+        TokenType::And => is_truthy(left) && is_truthy(right),
+        TokenType::Or => is_truthy(left) || is_truthy(right),
+        _ => unreachable!("only called for `and` and `or`"),
     }
 }
