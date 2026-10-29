@@ -167,40 +167,50 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
                 | TokenType::LessEquals
                 | TokenType::More
                 | TokenType::MoreEquals => Ok(Value::Bool(compare(operator, numbers))),
-                _ => numeric(operator, numbers, error),
+                _ => arithmetic(operator, numbers).map_err(error),
             }
         }
     }
 }
 
-fn numeric<'a>(
-    operator: &Token<'a>,
-    numbers: Numbers,
-    error: impl Fn(RuntimeErrorKind) -> RuntimeError<'a>,
-) -> Result<Value, RuntimeError<'a>> {
-    match (operator.token_type(), numbers) {
-        (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
-        (TokenType::Add, Numbers::Floats(n, m)) => Ok(Value::Float(n + m)),
-        (TokenType::Subtract, Numbers::Ints(n, m)) => int(n.checked_sub(m), error),
-        (TokenType::Subtract, Numbers::Floats(n, m)) => Ok(Value::Float(n - m)),
-        (TokenType::Multiply, Numbers::Ints(n, m)) => int(n.checked_mul(m), error),
-        (TokenType::Multiply, Numbers::Floats(n, m)) => Ok(Value::Float(n * m)),
-        // `Int` has no infinity, so dividing by zero is an error. `Float`
-        // follows IEEE 754 instead, e.g. `1.0 / 0` is `inf`.
-        (TokenType::Divide, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
-        // Only `Int::MIN / -1` is left to overflow.
-        (TokenType::Divide, Numbers::Ints(n, m)) => int(n.checked_div(m), error),
-        (TokenType::Divide, Numbers::Floats(n, m)) => Ok(Value::Float(n / m)),
-        (TokenType::Modulo, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
-        (TokenType::Modulo, Numbers::Ints(n, m)) => int(n.checked_rem(m), error),
-        (TokenType::Modulo, Numbers::Floats(n, m)) => Ok(Value::Float(n % m)),
-        // A negative exponent would need a fraction, which `Int` can't hold.
-        (TokenType::Exponent, Numbers::Ints(_, m)) if m < 0 => {
-            Err(error(RuntimeErrorKind::NegativeExponent))
+/// Applies an arithmetic operator, keeping `Int`s exact and letting `Float`s follow IEEE 754.
+fn arithmetic(operator: &Token, numbers: Numbers) -> Result<Value, RuntimeErrorKind> {
+    match numbers {
+        Numbers::Ints(n, m) => int_arithmetic(operator, n, m).map(Value::Int),
+        Numbers::Floats(n, m) => Ok(Value::Float(float_arithmetic(operator, n, m))),
+    }
+}
+
+fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorKind> {
+    let result = match operator.token_type() {
+        TokenType::Add => n.checked_add(m),
+        TokenType::Subtract => n.checked_sub(m),
+        TokenType::Multiply => n.checked_mul(m),
+        // `Int` has no infinity, so dividing by zero is an error.
+        TokenType::Divide | TokenType::Modulo if m == 0 => {
+            return Err(RuntimeErrorKind::DivisionByZero);
         }
-        (TokenType::Exponent, Numbers::Ints(n, m)) => int(int_pow(n, m), error),
-        (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
-        _ => unreachable!("token type unrecognized"),
+        // Only `Int::MIN / -1` is left to overflow.
+        TokenType::Divide => n.checked_div(m),
+        TokenType::Modulo => n.checked_rem(m),
+        // A negative exponent would need a fraction, which `Int` can't hold.
+        TokenType::Exponent if m < 0 => return Err(RuntimeErrorKind::NegativeExponent),
+        TokenType::Exponent => int_pow(n, m),
+        _ => unreachable!("only called for arithmetic operators"),
+    };
+    result.ok_or(RuntimeErrorKind::IntegerOverflow)
+}
+
+/// Can't fail: dividing by zero gives `inf` or `NaN`, e.g. `1.0 / 0` is `inf`.
+fn float_arithmetic(operator: &Token, n: f64, m: f64) -> f64 {
+    match operator.token_type() {
+        TokenType::Add => n + m,
+        TokenType::Subtract => n - m,
+        TokenType::Multiply => n * m,
+        TokenType::Divide => n / m,
+        TokenType::Modulo => n % m,
+        TokenType::Exponent => n.powf(m),
+        _ => unreachable!("only called for arithmetic operators"),
     }
 }
 
@@ -236,16 +246,6 @@ fn numbers(left: &Value, right: &Value) -> Option<Numbers> {
         (&Value::Float(n), &Value::Float(m)) => Some(Numbers::Floats(n, m)),
         _ => None,
     }
-}
-
-/// Wraps a checked `Int` result, treating `None` as overflow.
-fn int<'a>(
-    result: Option<i64>,
-    error: impl Fn(RuntimeErrorKind) -> RuntimeError<'a>,
-) -> Result<Value, RuntimeError<'a>> {
-    result
-        .map(Value::Int)
-        .ok_or_else(|| error(RuntimeErrorKind::IntegerOverflow))
 }
 
 /// `n ^ m` for a non-negative `m`, or `None` on overflow.
