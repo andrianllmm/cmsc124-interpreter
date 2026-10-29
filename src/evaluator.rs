@@ -299,8 +299,8 @@ fn is_equal(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKin
         _ => {}
     }
 
-    let numbers = numbers(left.clone(), right.clone())
-        .ok_or(RuntimeErrorKind::IncompatibleComparison)?;
+    let numbers =
+        numbers(left.clone(), right.clone()).ok_or(RuntimeErrorKind::IncompatibleComparison)?;
     match numbers {
         Numbers::Ints(l, r) => Ok(Some(l == r)),
         Numbers::Floats(l, r) => Ok(Some(l == r)),
