@@ -1,0 +1,5 @@
+print(1);               # expect: 1
+print(19.6);            # expect: 19.6
+print(true);            # expect: true
+print("hello world");   # expect: hello world
+print(null);            # expect: null
