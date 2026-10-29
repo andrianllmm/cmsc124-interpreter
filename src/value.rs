@@ -1,6 +1,7 @@
 //! Runtime values produced by the evaluator.
 
 use crate::ast::LiteralValue;
+use crate::native::Native;
 use std::fmt;
 
 /// A Grizzly value. Grizzly is dynamically typed, so the evaluator matches on
@@ -12,6 +13,8 @@ pub enum Value {
     Str(String),
     Bool(bool),
     Null,
+    /// A built-in function, e.g. `print`.
+    Native(Native),
 }
 
 impl From<LiteralValue> for Value {
@@ -37,6 +40,7 @@ impl fmt::Display for Value {
             Value::Str(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Null => write!(f, "null"),
+            Value::Native(native) => write!(f, "<native fn {}>", native.name()),
         }
     }
 }
