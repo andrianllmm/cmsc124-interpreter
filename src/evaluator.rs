@@ -220,14 +220,17 @@ fn compare(operator: &Token, numbers: Numbers) -> bool {
         Numbers::Ints(n, m) => n.partial_cmp(&m),
         Numbers::Floats(n, m) => n.partial_cmp(&m),
     };
-    // A NaN has no ordering, so every comparison with it is false.
-    ordering.is_some_and(|ordering| match operator.token_type() {
+    let Some(ordering) = ordering else {
+        // A NaN has no ordering, so every comparison with it is false.
+        return false;
+    };
+    match operator.token_type() {
         TokenType::Less => ordering.is_lt(),
         TokenType::LessEquals => ordering.is_le(),
         TokenType::More => ordering.is_gt(),
         TokenType::MoreEquals => ordering.is_ge(),
         _ => unreachable!("only called for `<`, `<=`, `>`, and `>=`"),
-    })
+    }
 }
 
 /// Both operands of an arithmetic operator, promoted to a common type.
