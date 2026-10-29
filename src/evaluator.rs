@@ -139,7 +139,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
             _ => Err(RuntimeErrorKind::OperandNotNumber),
         }
         .map_err(|kind| RuntimeError::new(operator, kind)),
-        TokenType::Not => Ok(Value::Bool(!is_truthy(right))),
+        TokenType::Not => Ok(Value::Bool(!is_truthy(&right))),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
@@ -172,7 +172,8 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         return Ok(Value::Bool(!is_equal(&left, &right)));
     }
 
-    let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
+    let numbers =
+        numbers(&left, &right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
     match (operator.token_type(), numbers) {
         (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
         (TokenType::Add, Numbers::Floats(n, m)) => Ok(Value::Float(n + m)),
@@ -216,12 +217,12 @@ enum Numbers {
 }
 
 /// Pairs up two numbers, or `None` if either isn't one.
-fn numbers(left: Value, right: Value) -> Option<Numbers> {
+fn numbers(left: &Value, right: &Value) -> Option<Numbers> {
     match (left, right) {
-        (Value::Int(n), Value::Int(m)) => Some(Numbers::Ints(n, m)),
-        (Value::Int(n), Value::Float(m)) => Some(Numbers::Floats(n as f64, m)),
-        (Value::Float(n), Value::Int(m)) => Some(Numbers::Floats(n, m as f64)),
-        (Value::Float(n), Value::Float(m)) => Some(Numbers::Floats(n, m)),
+        (&Value::Int(n), &Value::Int(m)) => Some(Numbers::Ints(n, m)),
+        (&Value::Int(n), &Value::Float(m)) => Some(Numbers::Floats(n as f64, m)),
+        (&Value::Float(n), &Value::Int(m)) => Some(Numbers::Floats(n, m as f64)),
+        (&Value::Float(n), &Value::Float(m)) => Some(Numbers::Floats(n, m)),
         _ => None,
     }
 }
@@ -250,12 +251,12 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
 }
 
 /// Whether a value counts as true: zero, `null`, `false`, and `""` don't.
-fn is_truthy(val: Value) -> bool {
+fn is_truthy(val: &Value) -> bool {
     match val {
-        Value::Int(n) => n != 0,
-        Value::Float(f) => f != 0.0,
+        Value::Int(n) => *n != 0,
+        Value::Float(f) => *f != 0.0,
         Value::Null => false,
-        Value::Bool(b) => b,
+        Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
         Value::Native(_) => true,
     }
@@ -263,8 +264,8 @@ fn is_truthy(val: Value) -> bool {
 
 fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
     match operator.token_type() {
-        TokenType::And => is_truthy(left) && is_truthy(right),
-        TokenType::Or => is_truthy(left) || is_truthy(right),
+        TokenType::And => is_truthy(&left) && is_truthy(&right),
+        TokenType::Or => is_truthy(&left) || is_truthy(&right),
         _ => unreachable!("only called for `and` and `or`"),
     }
 }
@@ -281,7 +282,7 @@ fn is_equal(left: &Value, right: &Value) -> bool {
         _ => {}
     }
 
-    let numbers = numbers(left.clone(), right.clone());
+    let numbers = numbers(left, right);
     match numbers {
         Some(Numbers::Ints(l, r)) => l == r,
         Some(Numbers::Floats(l, r)) => l == r,
