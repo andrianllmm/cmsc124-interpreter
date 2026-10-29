@@ -10,7 +10,7 @@ use std::fmt::{self, Display, Formatter};
 pub struct RuntimeError<'a> {
     /// Token where evaluation failed, e.g. an operator or a name,
     /// so the message can point at its line.
-    pub operator: Token<'a>,
+    pub token: Token<'a>,
     pub kind: RuntimeErrorKind,
 }
 
@@ -40,7 +40,7 @@ impl Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
             RuntimeErrorKind::UndefinedVariable => {
-                format!("Undefined variable '{}'", self.operator.lexeme())
+                format!("Undefined variable '{}'", self.token.lexeme())
             }
             RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
             RuntimeErrorKind::ArityMismatch { expected, found } => {
@@ -55,7 +55,7 @@ impl Display for RuntimeError<'_> {
                 "Pipe needs a function, which isn't supported yet".to_string()
             }
         };
-        write!(f, "Error at line {}: {}", self.operator.line(), message)
+        write!(f, "Error at line {}: {}", self.token.line(), message)
     }
 }
 
@@ -69,7 +69,7 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
         Expr::Variable { name } => match Native::lookup(name.lexeme()) {
             Some(native) => Ok(Value::Native(native)),
             None => Err(RuntimeError {
-                operator: name.clone(),
+                token: name.clone(),
                 kind: RuntimeErrorKind::UndefinedVariable,
             }),
         },
@@ -107,7 +107,7 @@ fn call<'a>(
     arguments: Vec<Value>,
 ) -> Result<Value, RuntimeError<'a>> {
     let error = |kind| RuntimeError {
-        operator: paren.clone(),
+        token: paren.clone(),
         kind,
     };
 
@@ -128,13 +128,13 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
         TokenType::Subtract => match right {
             // `i64::MIN` has no positive counterpart, so negating it overflows.
             Value::Int(n) => n.checked_neg().map(Value::Int).ok_or_else(|| RuntimeError {
-                operator: operator.clone(),
+                token: operator.clone(),
                 kind: RuntimeErrorKind::IntegerOverflow,
             }),
             // Negating a float only flips its sign bit, so it can't overflow.
             Value::Float(n) => Ok(Value::Float(-n)),
             _ => Err(RuntimeError {
-                operator: operator.clone(),
+                token: operator.clone(),
                 kind: RuntimeErrorKind::OperandNotNumber,
             }),
         },
@@ -145,7 +145,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
 
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
     let error = |kind| RuntimeError {
-        operator: operator.clone(),
+        token: operator.clone(),
         kind,
     };
 
