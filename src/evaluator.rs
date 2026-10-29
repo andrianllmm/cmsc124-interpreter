@@ -95,6 +95,10 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
             right,
         } => {
             let left = evaluate(left)?;
+            // `and` and `or` skip the right side once the left decides.
+            if let Some(result) = short_circuit(operator, &left) {
+                return Ok(Value::Bool(result));
+            }
             let right = evaluate(right)?;
             binary(left, operator, right)
         }
@@ -138,7 +142,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
                 kind: RuntimeErrorKind::OperandNotNumber,
             }),
         },
-        TokenType::Not => Ok(Value::Bool(!is_truthy(right))),
+        TokenType::Not => Ok(Value::Bool(!is_truthy(&right))),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
@@ -162,9 +166,9 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         };
     }
 
-    // logical evaluation have a separate implementation here.
-    if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
-        return Ok(Value::Bool(logical_compare(left, operator, right)));
+    // Reached only when the left side didn't decide, so the right one does.
+    if let TokenType::And | TokenType::Or = operator.token_type() {
+        return Ok(Value::Bool(is_truthy(&right)));
     }
 
     if (TokenType::Equals == *operator.token_type())
@@ -259,21 +263,22 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
 }
 
 /// Whether a value counts as true: zero, `null`, `false`, and `""` don't.
-fn is_truthy(val: Value) -> bool {
+fn is_truthy(val: &Value) -> bool {
     match val {
-        Value::Int(n) => n != 0,
-        Value::Float(f) => f != 0.0,
+        Value::Int(n) => *n != 0,
+        Value::Float(f) => *f != 0.0,
         Value::Null => false,
-        Value::Bool(b) => b,
+        Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
         Value::Native(_) => true,
     }
 }
 
-fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
+/// The result of `and`/`or` if `left` alone decides it, e.g. `false and _`.
+fn short_circuit(operator: &Token, left: &Value) -> Option<bool> {
     match operator.token_type() {
-        TokenType::And => is_truthy(left) && is_truthy(right),
-        TokenType::Or => is_truthy(left) || is_truthy(right),
-        _ => unreachable!("only called for `and` and `or`"),
+        TokenType::And if !is_truthy(left) => Some(false),
+        TokenType::Or if is_truthy(left) => Some(true),
+        _ => None,
     }
 }
