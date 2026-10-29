@@ -253,9 +253,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `exponent → primary ( "^" unary )?`
+    /// `exponent → call ( "^" unary )?`
     fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
-        let mut expr = self.primary()?;
+        let mut expr = self.call()?;
 
         if let Some(operator) = self.match_token(&[TokenType::Exponent]) {
             // `unary` rather than `exponent`, so the right operand can be negative, e.g. `2 ^ -1`.
@@ -270,10 +270,40 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
+    /// `call → primary ( "(" arguments? ")" )*`
+    fn call(&mut self) -> Result<Expr<'a>, ParseError> {
+        let mut expr = self.primary()?;
+
+        while self.match_token(&[TokenType::LParen]).is_some() {
+            expr = self.finish_call(expr)?;
+        }
+
+        Ok(expr)
+    }
+
+    /// `arguments → expression ( "," expression )*`, then the closing `)`.
+    fn finish_call(&mut self, callee: Expr<'a>) -> Result<Expr<'a>, ParseError> {
+        let mut arguments = Vec::new();
+        if !self.check(&TokenType::RParen) {
+            loop {
+                arguments.push(self.expression()?);
+                if self.match_token(&[TokenType::Comma]).is_none() {
+                    break;
+                }
+            }
+        }
+
+        let paren = self.consume(&TokenType::RParen, ParseErrorKind::UnclosedParen)?;
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            paren,
+            arguments,
+        })
+    }
+
     /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
     /// | IDENTIFIER | "(" expression ")"`
     fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
-        // TODO: Parse IDENTIFIER.
         let token = self.peek().clone();
 
         let value = match token.token_type() {
@@ -292,6 +322,11 @@ impl<'a> Parser<'a> {
                 value,
                 line: token.line(),
             });
+        }
+
+        if self.check(&TokenType::Identifier) {
+            self.advance();
+            return Ok(Expr::Variable { name: token });
         }
 
         if self.check(&TokenType::LParen) {

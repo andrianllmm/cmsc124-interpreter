@@ -11,6 +11,7 @@ mod ast;
 mod ast_printer;
 mod evaluator;
 mod keyword;
+mod native;
 mod parser;
 mod pipeline;
 mod repl;
@@ -32,18 +33,18 @@ fn main() {
 
     match flag {
         Some("--tokenize") => match args.get(2) {
-            Some(path) => run_file(path, Stage::Tokenize),
+            Some(path) => run_file(path, Some(Stage::Tokenize)),
             None => repl::run(Some(Stage::Tokenize)),
         },
         Some("--parse") => match args.get(2) {
-            Some(path) => run_file(path, Stage::Parse),
+            Some(path) => run_file(path, Some(Stage::Parse)),
             None => repl::run(Some(Stage::Parse)),
         },
         Some("--eval") => match args.get(2) {
-            Some(path) => run_file(path, Stage::Eval),
+            Some(path) => run_file(path, Some(Stage::Eval)),
             None => repl::run(Some(Stage::Eval)),
         },
-        Some(path) if !path.starts_with("--") => run_program(path),
+        Some(path) if !path.starts_with("--") => run_file(path, None),
         // Until statements exist (Lab 4), the REPL prints each expression's value.
         None => repl::run(Some(Stage::Eval)),
         _ => {
@@ -53,15 +54,8 @@ fn main() {
     }
 }
 
-fn run_program(_path: &str) {
-    // TODO: Replace with real execution once the interpreter exists (Lab 4).
-    println!("cmsc124-interpreter");
-    println!("Members:");
-    println!("Andrian Lloyd M. Maagma");
-    println!("Julian Hanns T. Medalla");
-}
-
-fn run_file(path: &str, stage: Stage) {
+/// Runs a file, stopping after `stage`, or executing it with no `stage`.
+fn run_file(path: &str, stage: Option<Stage>) {
     let source = match std::fs::read_to_string(path) {
         Ok(contents) => contents,
         Err(e) => {
@@ -70,7 +64,7 @@ fn run_file(path: &str, stage: Stage) {
         }
     };
 
-    match pipeline::run(&source, Some(stage)) {
+    match pipeline::run(&source, stage) {
         Ok(()) => exit(0),
         Err(Failure::Static) => exit(EX_DATAERR),
         Err(Failure::Runtime) => exit(EX_SOFTWARE),

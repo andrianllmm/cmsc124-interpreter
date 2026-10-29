@@ -38,12 +38,8 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), Failure> {
         return Ok(());
     }
 
-    if let Some(Stage::Eval) = stage {
-        return evaluate(&program);
-    }
-
-    // TODO: Execute statements once the interpreter exists (Lab 4).
-    Ok(())
+    // `--eval` prints every value; a program only prints through `print`.
+    evaluate(&program, matches!(stage, Some(Stage::Eval)))
 }
 
 fn scan(source: &str) -> Result<Vec<Token<'_>>, Failure> {
@@ -72,11 +68,13 @@ fn parse(tokens: Vec<Token<'_>>) -> Result<Program<'_>, Failure> {
     }
 }
 
-/// Prints each expression's value, stopping at the first runtime error.
-fn evaluate(program: &Program<'_>) -> Result<(), Failure> {
+/// Evaluates each expression, stopping at the first runtime error.
+/// With `print_values`, also prints each expression's value.
+fn evaluate(program: &Program<'_>, print_values: bool) -> Result<(), Failure> {
     for expr in &program.statements {
         match evaluator::evaluate(expr) {
-            Ok(value) => println!("{}", value),
+            Ok(value) if print_values => println!("{}", value),
+            Ok(_) => {}
             Err(error) => {
                 eprintln!("{}", error);
                 return Err(Failure::Runtime);

@@ -1,13 +1,15 @@
 //! Tree-walking evaluator that turns expressions into values.
 
 use crate::ast::Expr;
+use crate::native::Native;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 use std::fmt::{self, Display, Formatter};
 
 /// An error raised while evaluating.
 pub struct RuntimeError<'a> {
-    /// Operator that failed, so the message can point at its line.
+    /// Token where evaluation failed, e.g. an operator or a name,
+    /// so the message can point at its line.
     pub operator: Token<'a>,
     pub kind: RuntimeErrorKind,
 }
@@ -24,6 +26,15 @@ pub enum RuntimeErrorKind {
     DivisionByZero,
     /// An `Int` raised to a negative `Int`, e.g. `2 ^ -1`.
     NegativeExponent,
+    /// A name with no binding, e.g. `x` before `x = 1`.
+    UndefinedVariable,
+    /// A call on a value that isn't a function, e.g. `1()`.
+    NotCallable,
+    /// A call passed the wrong number of arguments, e.g. `print()`.
+    ArityMismatch {
+        expected: usize,
+        found: usize,
+    },
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
     // Error raised when truthiness of a value cannot be extracted
@@ -37,15 +48,26 @@ pub enum RuntimeErrorKind {
 impl Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
-            RuntimeErrorKind::OperandNotNumber => "Operand must be a number",
-            RuntimeErrorKind::OperandNotString => "Operand must be a string",
-            RuntimeErrorKind::IntegerOverflow => "Integer overflow",
-            RuntimeErrorKind::DivisionByZero => "Division by zero",
-            RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative",
-            RuntimeErrorKind::PipeUnsupported => "Pipe needs a function, which isn't supported yet",
-            RuntimeErrorKind::UnknownTruthiness => "Truthiness of operand cannot be extacted",
+            RuntimeErrorKind::UndefinedVariable => {
+                format!("Undefined variable '{}'", self.operator.lexeme())
+            }
+            RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
+            RuntimeErrorKind::ArityMismatch { expected, found } => {
+                format!("Expected {} arguments but got {}", expected, found)
+            }
+            RuntimeErrorKind::OperandNotNumber => "Operand must be a number".to_string(),
+            RuntimeErrorKind::OperandNotString => "Operand must be a string".to_string(),
+            RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
+            RuntimeErrorKind::DivisionByZero => "Division by zero".to_string(),
+            RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
+            RuntimeErrorKind::PipeUnsupported => {
+                "Pipe needs a function, which isn't supported yet".to_string()
+            }
+            RuntimeErrorKind::UnknownTruthiness => {
+                "Truthiness of operand cannot be extacted".to_string()
+            }
             RuntimeErrorKind::UnsupportedLogical => {
-                "Error performing logical operation due to invalid operand"
+                "Error performing logical operation due to invalid operand".to_string()
             }
             RuntimeErrorKind::IncompatibleComparison => "Incompatible types being compared",
         };
@@ -59,6 +81,26 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
     match expr {
         Expr::Literal { value, .. } => Ok(value.clone().into()),
         Expr::Grouping { expression } => evaluate(expression),
+        // Only built-ins are bound until assignment exists.
+        Expr::Variable { name } => match Native::lookup(name.lexeme()) {
+            Some(native) => Ok(Value::Native(native)),
+            None => Err(RuntimeError {
+                operator: name.clone(),
+                kind: RuntimeErrorKind::UndefinedVariable,
+            }),
+        },
+        Expr::Call {
+            callee,
+            paren,
+            arguments,
+        } => {
+            let callee = evaluate(callee)?;
+            let arguments = arguments
+                .iter()
+                .map(evaluate)
+                .collect::<Result<Vec<_>, _>>()?;
+            call(callee, paren, arguments)
+        }
         Expr::Unary { operator, right } => {
             let right = evaluate(right)?;
             unary(operator, right)
@@ -73,6 +115,28 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
             binary(left, operator, right)
         }
     }
+}
+
+fn call<'a>(
+    callee: Value,
+    paren: &Token<'a>,
+    arguments: Vec<Value>,
+) -> Result<Value, RuntimeError<'a>> {
+    let error = |kind| RuntimeError {
+        operator: paren.clone(),
+        kind,
+    };
+
+    let Value::Native(native) = callee else {
+        return Err(error(RuntimeErrorKind::NotCallable));
+    };
+    if arguments.len() != native.arity() {
+        return Err(error(RuntimeErrorKind::ArityMismatch {
+            expected: native.arity(),
+            found: arguments.len(),
+        }));
+    }
+    Ok(native.call(arguments))
 }
 
 fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
@@ -253,6 +317,7 @@ fn is_truthy<'a>(val: Value) -> Result<bool, RuntimeError<'a>> {
                 Ok(true)
             }
         }
+        Value::Native(_) => Ok(true),
     }
 }
 
