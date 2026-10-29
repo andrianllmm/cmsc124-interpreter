@@ -11,3 +11,4 @@
 true == true;       # expect: true
 null == null;       # expect: true
 true != false;      # expect: true
+print == print;     # expect: true

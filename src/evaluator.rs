@@ -10,8 +10,18 @@ use std::fmt::{self, Display, Formatter};
 pub struct RuntimeError<'a> {
     /// Token where evaluation failed, e.g. an operator or a name,
     /// so the message can point at its line.
-    pub operator: Token<'a>,
+    pub token: Token<'a>,
     pub kind: RuntimeErrorKind,
+}
+
+impl<'a> RuntimeError<'a> {
+    /// Builds an error pointing at `token`.
+    fn new(token: &Token<'a>, kind: RuntimeErrorKind) -> Self {
+        RuntimeError {
+            token: token.clone(),
+            kind,
+        }
+    }
 }
 
 /// What went wrong while evaluating.
@@ -40,7 +50,7 @@ impl Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
             RuntimeErrorKind::UndefinedVariable => {
-                format!("Undefined variable '{}'", self.operator.lexeme())
+                format!("Undefined variable '{}'", self.token.lexeme())
             }
             RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
             RuntimeErrorKind::ArityMismatch { expected, found } => {
@@ -55,7 +65,7 @@ impl Display for RuntimeError<'_> {
                 "Pipe needs a function, which isn't supported yet".to_string()
             }
         };
-        write!(f, "Error at line {}: {}", self.operator.line(), message)
+        write!(f, "Error at line {}: {}", self.token.line(), message)
     }
 }
 
@@ -68,10 +78,7 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
         // Only built-ins are bound until assignment exists.
         Expr::Variable { name } => match Native::lookup(name.lexeme()) {
             Some(native) => Ok(Value::Native(native)),
-            None => Err(RuntimeError {
-                operator: name.clone(),
-                kind: RuntimeErrorKind::UndefinedVariable,
-            }),
+            None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
         },
         Expr::Call {
             callee,
@@ -101,15 +108,13 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
     }
 }
 
+/// Calls a native function after checking its arity.
 fn call<'a>(
     callee: Value,
     paren: &Token<'a>,
     arguments: Vec<Value>,
 ) -> Result<Value, RuntimeError<'a>> {
-    let error = |kind| RuntimeError {
-        operator: paren.clone(),
-        kind,
-    };
+    let error = |kind| RuntimeError::new(paren, kind);
 
     let Value::Native(native) = callee else {
         return Err(error(RuntimeErrorKind::NotCallable));
@@ -123,90 +128,114 @@ fn call<'a>(
     Ok(native.call(arguments))
 }
 
+/// Applies a unary operator to an evaluated operand.
 fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
     match operator.token_type() {
         TokenType::Subtract => match right {
             // `i64::MIN` has no positive counterpart, so negating it overflows.
-            Value::Int(n) => n.checked_neg().map(Value::Int).ok_or_else(|| RuntimeError {
-                operator: operator.clone(),
-                kind: RuntimeErrorKind::IntegerOverflow,
-            }),
+            Value::Int(n) => n
+                .checked_neg()
+                .map(Value::Int)
+                .ok_or(RuntimeErrorKind::IntegerOverflow),
             // Negating a float only flips its sign bit, so it can't overflow.
             Value::Float(n) => Ok(Value::Float(-n)),
-            _ => Err(RuntimeError {
-                operator: operator.clone(),
-                kind: RuntimeErrorKind::OperandNotNumber,
-            }),
-        },
-        TokenType::Not => Ok(Value::Bool(!is_truthy(right))),
+            _ => Err(RuntimeErrorKind::OperandNotNumber),
+        }
+        .map_err(|kind| RuntimeError::new(operator, kind)),
+        TokenType::Not => Ok(Value::Bool(!is_truthy(&right))),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
 
+/// Applies a binary operator to two evaluated operands.
 fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
-    let error = |kind| RuntimeError {
-        operator: operator.clone(),
-        kind,
-    };
+    let error = |kind| RuntimeError::new(operator, kind);
 
-    // Both operands are already evaluated, so `|>` can only fail here.
-    if let TokenType::Pipe = operator.token_type() {
-        return Err(error(RuntimeErrorKind::PipeUnsupported));
-    }
-
-    // `++` only joins strings; anything else must be converted first.
-    if let TokenType::StringConcat = operator.token_type() {
-        return match (left, right) {
+    match operator.token_type() {
+        // Both operands are already evaluated, so `|>` can only fail here.
+        TokenType::Pipe => Err(error(RuntimeErrorKind::PipeUnsupported)),
+        // `++` only joins strings; anything else must be converted first.
+        TokenType::StringConcat => match (left, right) {
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
             _ => Err(error(RuntimeErrorKind::OperandNotString)),
-        };
-    }
-
-    // logical evaluation have a separate implementation here.
-    if (TokenType::And == *operator.token_type()) || (TokenType::Or == *operator.token_type()) {
-        return Ok(Value::Bool(logical_compare(left, operator, right)));
-    }
-
-    // checks for equality among left and right operands
-    if TokenType::Equals == *operator.token_type() {
-        return Ok(Value::Bool(is_equal(&left, &right)));
-    } else if TokenType::NotEquals == *operator.token_type() {
-        return Ok(Value::Bool(!is_equal(&left, &right)));
-    }
-
-    let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
-    match (operator.token_type(), numbers) {
-        (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
-        (TokenType::Add, Numbers::Floats(n, m)) => Ok(Value::Float(n + m)),
-        (TokenType::Subtract, Numbers::Ints(n, m)) => int(n.checked_sub(m), error),
-        (TokenType::Subtract, Numbers::Floats(n, m)) => Ok(Value::Float(n - m)),
-        (TokenType::Multiply, Numbers::Ints(n, m)) => int(n.checked_mul(m), error),
-        (TokenType::Multiply, Numbers::Floats(n, m)) => Ok(Value::Float(n * m)),
-        // `Int` has no infinity, so dividing by zero is an error. `Float`
-        // follows IEEE 754 instead, e.g. `1.0 / 0` is `inf`.
-        (TokenType::Divide, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
-        // Only `Int::MIN / -1` is left to overflow.
-        (TokenType::Divide, Numbers::Ints(n, m)) => int(n.checked_div(m), error),
-        (TokenType::Divide, Numbers::Floats(n, m)) => Ok(Value::Float(n / m)),
-        (TokenType::Modulo, Numbers::Ints(_, 0)) => Err(error(RuntimeErrorKind::DivisionByZero)),
-        (TokenType::Modulo, Numbers::Ints(n, m)) => int(n.checked_rem(m), error),
-        (TokenType::Modulo, Numbers::Floats(n, m)) => Ok(Value::Float(n % m)),
-        // A negative exponent would need a fraction, which `Int` can't hold.
-        (TokenType::Exponent, Numbers::Ints(_, m)) if m < 0 => {
-            Err(error(RuntimeErrorKind::NegativeExponent))
+        },
+        TokenType::And => Ok(Value::Bool(is_truthy(&left) && is_truthy(&right))),
+        TokenType::Or => Ok(Value::Bool(is_truthy(&left) || is_truthy(&right))),
+        TokenType::Equals => Ok(Value::Bool(is_equal(&left, &right))),
+        TokenType::NotEquals => Ok(Value::Bool(!is_equal(&left, &right))),
+        _ => {
+            let numbers =
+                numbers(&left, &right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
+            match operator.token_type() {
+                TokenType::Less
+                | TokenType::LessEquals
+                | TokenType::More
+                | TokenType::MoreEquals => Ok(Value::Bool(compare(operator, numbers))),
+                _ => arithmetic(operator, numbers).map_err(error),
+            }
         }
-        (TokenType::Exponent, Numbers::Ints(n, m)) => int(int_pow(n, m), error),
-        (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
-        // Mixed operands compare as floats; a NaN makes every comparison false.
-        (TokenType::Less, Numbers::Ints(n, m)) => Ok(Value::Bool(n < m)),
-        (TokenType::Less, Numbers::Floats(n, m)) => Ok(Value::Bool(n < m)),
-        (TokenType::LessEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n <= m)),
-        (TokenType::LessEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n <= m)),
-        (TokenType::More, Numbers::Ints(n, m)) => Ok(Value::Bool(n > m)),
-        (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
-        (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
-        (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
-        _ => unreachable!("token type unrecognized"),
+    }
+}
+
+/// Applies an arithmetic operator, keeping `Int`s exact and letting `Float`s follow IEEE 754.
+fn arithmetic(operator: &Token, numbers: Numbers) -> Result<Value, RuntimeErrorKind> {
+    match numbers {
+        Numbers::Ints(n, m) => int_arithmetic(operator, n, m).map(Value::Int),
+        Numbers::Floats(n, m) => Ok(Value::Float(float_arithmetic(operator, n, m))),
+    }
+}
+
+/// Applies an arithmetic operator to `Int`s, erroring instead of overflowing.
+fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorKind> {
+    let result = match operator.token_type() {
+        TokenType::Add => n.checked_add(m),
+        TokenType::Subtract => n.checked_sub(m),
+        TokenType::Multiply => n.checked_mul(m),
+        // `Int` has no infinity, so dividing by zero is an error.
+        TokenType::Divide | TokenType::Modulo if m == 0 => {
+            return Err(RuntimeErrorKind::DivisionByZero);
+        }
+        // Only `Int::MIN / -1` is left to overflow.
+        TokenType::Divide => n.checked_div(m),
+        TokenType::Modulo => n.checked_rem(m),
+        // A negative exponent would need a fraction, which `Int` can't hold.
+        TokenType::Exponent if m < 0 => return Err(RuntimeErrorKind::NegativeExponent),
+        TokenType::Exponent => int_pow(n, m),
+        _ => unreachable!("only called for arithmetic operators"),
+    };
+    result.ok_or(RuntimeErrorKind::IntegerOverflow)
+}
+
+/// Applies an arithmetic operator to `Float`s.
+/// Can't fail: dividing by zero gives `inf` or `NaN`, e.g. `1.0 / 0` is `inf`.
+fn float_arithmetic(operator: &Token, n: f64, m: f64) -> f64 {
+    match operator.token_type() {
+        TokenType::Add => n + m,
+        TokenType::Subtract => n - m,
+        TokenType::Multiply => n * m,
+        TokenType::Divide => n / m,
+        TokenType::Modulo => n % m,
+        TokenType::Exponent => n.powf(m),
+        _ => unreachable!("only called for arithmetic operators"),
+    }
+}
+
+/// Orders two numbers. Mixed operands compare as floats.
+fn compare(operator: &Token, numbers: Numbers) -> bool {
+    let ordering = match numbers {
+        Numbers::Ints(n, m) => n.partial_cmp(&m),
+        Numbers::Floats(n, m) => n.partial_cmp(&m),
+    };
+    let Some(ordering) = ordering else {
+        // A NaN has no ordering, so every comparison with it is false.
+        return false;
+    };
+    match operator.token_type() {
+        TokenType::Less => ordering.is_lt(),
+        TokenType::LessEquals => ordering.is_le(),
+        TokenType::More => ordering.is_gt(),
+        TokenType::MoreEquals => ordering.is_ge(),
+        _ => unreachable!("only called for `<`, `<=`, `>`, and `>=`"),
     }
 }
 
@@ -218,24 +247,14 @@ enum Numbers {
 }
 
 /// Pairs up two numbers, or `None` if either isn't one.
-fn numbers(left: Value, right: Value) -> Option<Numbers> {
+fn numbers(left: &Value, right: &Value) -> Option<Numbers> {
     match (left, right) {
-        (Value::Int(n), Value::Int(m)) => Some(Numbers::Ints(n, m)),
-        (Value::Int(n), Value::Float(m)) => Some(Numbers::Floats(n as f64, m)),
-        (Value::Float(n), Value::Int(m)) => Some(Numbers::Floats(n, m as f64)),
-        (Value::Float(n), Value::Float(m)) => Some(Numbers::Floats(n, m)),
+        (&Value::Int(n), &Value::Int(m)) => Some(Numbers::Ints(n, m)),
+        (&Value::Int(n), &Value::Float(m)) => Some(Numbers::Floats(n as f64, m)),
+        (&Value::Float(n), &Value::Int(m)) => Some(Numbers::Floats(n, m as f64)),
+        (&Value::Float(n), &Value::Float(m)) => Some(Numbers::Floats(n, m)),
         _ => None,
     }
-}
-
-/// Wraps a checked `Int` result, treating `None` as overflow.
-fn int<'a>(
-    result: Option<i64>,
-    error: impl Fn(RuntimeErrorKind) -> RuntimeError<'a>,
-) -> Result<Value, RuntimeError<'a>> {
-    result
-        .map(Value::Int)
-        .ok_or_else(|| error(RuntimeErrorKind::IntegerOverflow))
 }
 
 /// `n ^ m` for a non-negative `m`, or `None` on overflow.
@@ -252,41 +271,23 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
 }
 
 /// Whether a value counts as true: zero, `null`, `false`, and `""` don't.
-fn is_truthy(val: Value) -> bool {
+fn is_truthy(val: &Value) -> bool {
     match val {
-        Value::Int(n) => n != 0,
-        Value::Float(f) => f != 0.0,
+        Value::Int(n) => *n != 0,
+        Value::Float(f) => *f != 0.0,
         Value::Null => false,
-        Value::Bool(b) => b,
+        Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
         Value::Native(_) => true,
     }
 }
 
-fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
-    match operator.token_type() {
-        TokenType::And => is_truthy(left) && is_truthy(right),
-        TokenType::Or => is_truthy(left) || is_truthy(right),
-        _ => unreachable!("only called for `and` and `or`"),
-    }
-}
-
-// check for equality for non-number and non-string operands
+/// Whether two values are equal. Numbers compare by value across `Int` and
+/// `Float`, so `1 == 1.0`; any other mix of types is unequal.
 fn is_equal(left: &Value, right: &Value) -> bool {
-    match (left, right) {
-        (Value::Null, Value::Null) => return true,
-        (Value::Bool(l), Value::Bool(r)) => return *l == *r,
-        (Value::Str(l), Value::Str(r)) => return *l == *r,
-        (Value::Null, _) => return false,
-        (Value::Bool(_), _) => return false,
-        (Value::Str(_), _) => return false,
-        _ => {}
-    }
-
-    let numbers = numbers(left.clone(), right.clone());
-    match numbers {
-        Some(Numbers::Ints(l, r)) => l == r,
-        Some(Numbers::Floats(l, r)) => l == r,
-        None => false,
+    match numbers(left, right) {
+        Some(Numbers::Ints(n, m)) => n == m,
+        Some(Numbers::Floats(n, m)) => n == m,
+        None => left == right,
     }
 }
