@@ -162,7 +162,13 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         _ => {
             let numbers =
                 numbers(&left, &right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
-            numeric(operator, numbers, error)
+            match operator.token_type() {
+                TokenType::Less
+                | TokenType::LessEquals
+                | TokenType::More
+                | TokenType::MoreEquals => Ok(Value::Bool(compare(operator, numbers))),
+                _ => numeric(operator, numbers, error),
+            }
         }
     }
 }
@@ -194,17 +200,24 @@ fn numeric<'a>(
         }
         (TokenType::Exponent, Numbers::Ints(n, m)) => int(int_pow(n, m), error),
         (TokenType::Exponent, Numbers::Floats(n, m)) => Ok(Value::Float(n.powf(m))),
-        // Mixed operands compare as floats; a NaN makes every comparison false.
-        (TokenType::Less, Numbers::Ints(n, m)) => Ok(Value::Bool(n < m)),
-        (TokenType::Less, Numbers::Floats(n, m)) => Ok(Value::Bool(n < m)),
-        (TokenType::LessEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n <= m)),
-        (TokenType::LessEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n <= m)),
-        (TokenType::More, Numbers::Ints(n, m)) => Ok(Value::Bool(n > m)),
-        (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
-        (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
-        (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
         _ => unreachable!("token type unrecognized"),
     }
+}
+
+/// Orders two numbers. Mixed operands compare as floats.
+fn compare(operator: &Token, numbers: Numbers) -> bool {
+    let ordering = match numbers {
+        Numbers::Ints(n, m) => n.partial_cmp(&m),
+        Numbers::Floats(n, m) => n.partial_cmp(&m),
+    };
+    // A NaN has no ordering, so every comparison with it is false.
+    ordering.is_some_and(|ordering| match operator.token_type() {
+        TokenType::Less => ordering.is_lt(),
+        TokenType::LessEquals => ordering.is_le(),
+        TokenType::More => ordering.is_gt(),
+        TokenType::MoreEquals => ordering.is_ge(),
+        _ => unreachable!("only called for `<`, `<=`, `>`, and `>=`"),
+    })
 }
 
 /// Both operands of an arithmetic operator, promoted to a common type.
