@@ -31,7 +31,7 @@ pub enum RuntimeErrorKind {
     // Error raised when unsupported logical operation is performed
     UnsupportedLogical,
     // Incompatible types are being compared
-    IncompatibleComparison
+    IncompatibleComparison,
 }
 
 impl Display for RuntimeError<'_> {
@@ -46,7 +46,7 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::UnknownTruthiness => "Truthiness of operand cannot be extacted",
             RuntimeErrorKind::UnsupportedLogical => {
                 "Error performing logical operation due to invalid operand"
-            },
+            }
             RuntimeErrorKind::IncompatibleComparison => "Incompatible types being compared",
         };
         write!(f, "Error at line {}: {}", self.operator.line(), message)
@@ -135,18 +135,18 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
     let equality_result = is_equal(&left, &right);
     if TokenType::Equals == *operator.token_type() {
         match equality_result {
-            Ok(Some(b)) => {return Ok(Value::Bool(b))},
-            Ok(None) => {},
-            Err(kind) => {return Err(error(kind))}
+            Ok(Some(b)) => return Ok(Value::Bool(b)),
+            Ok(None) => {}
+            Err(kind) => return Err(error(kind)),
         }
     } else if TokenType::NotEquals == *operator.token_type() {
         match equality_result {
-            Ok(Some(b)) => {return Ok(Value::Bool(!b))},
-            Ok(None) => {},
-            Err(kind) => {return Err(error(kind))}
+            Ok(Some(b)) => return Ok(Value::Bool(!b)),
+            Ok(None) => {}
+            Err(kind) => return Err(error(kind)),
         }
     }
-        
+
     let numbers = numbers(left, right).ok_or_else(|| error(RuntimeErrorKind::OperandNotNumber))?;
     match (operator.token_type(), numbers) {
         (TokenType::Add, Numbers::Ints(n, m)) => int(n.checked_add(m), error),
@@ -287,21 +287,22 @@ fn logical_compare<'a>(
     }
 }
 
-// check for equality for non-number and non-string operands 
-fn is_equal<'a>(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKind> {
+// check for equality for non-number and non-string operands
+fn is_equal(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKind> {
     match (left, right) {
-        (Value::Null, Value::Null) => {return Ok(Some(true))},
-        (Value::Bool(l), Value::Bool(r)) => {return Ok(Some(*l == *r))},
-        (Value::Str(l), Value::Str(r)) => {return Ok(Some(*l == *r))},
-        (Value::Null, _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
-        (Value::Bool(_), _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
-        (Value::Str(_), _) => {return Err(RuntimeErrorKind::IncompatibleComparison)},
+        (Value::Null, Value::Null) => return Ok(Some(true)),
+        (Value::Bool(l), Value::Bool(r)) => return Ok(Some(*l == *r)),
+        (Value::Str(l), Value::Str(r)) => return Ok(Some(*l == *r)),
+        (Value::Null, _) => return Err(RuntimeErrorKind::IncompatibleComparison),
+        (Value::Bool(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
+        (Value::Str(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
         _ => {}
     }
 
-    let numbers = numbers(left.clone(), right.clone()).ok_or_else(|| RuntimeErrorKind::IncompatibleComparison)?;
+    let numbers = numbers(left.clone(), right.clone())
+        .ok_or(RuntimeErrorKind::IncompatibleComparison)?;
     match numbers {
-        Numbers::Ints(l,r ) => {Ok(Some(l == r))},
-        Numbers::Floats(l,r ) => {Ok(Some(l == r))},
+        Numbers::Ints(l, r) => Ok(Some(l == r)),
+        Numbers::Floats(l, r) => Ok(Some(l == r)),
     }
 }
