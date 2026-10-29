@@ -37,8 +37,6 @@ pub enum RuntimeErrorKind {
     },
     /// `|>` needs functions, which don't exist yet.
     PipeUnsupported,
-    // Error raised when truthiness of a value cannot be extracted
-    UnknownTruthiness,
     // Error raised when unsupported logical operation is performed
     UnsupportedLogical,
 }
@@ -60,9 +58,6 @@ impl Display for RuntimeError<'_> {
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
             RuntimeErrorKind::PipeUnsupported => {
                 "Pipe needs a function, which isn't supported yet".to_string()
-            }
-            RuntimeErrorKind::UnknownTruthiness => {
-                "Truthiness of operand cannot be extacted".to_string()
             }
             RuntimeErrorKind::UnsupportedLogical => {
                 "Error performing logical operation due to invalid operand".to_string()
@@ -151,16 +146,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
                 kind: RuntimeErrorKind::OperandNotNumber,
             }),
         },
-        TokenType::Not => {
-            let flag = is_truthy(right);
-            match flag {
-                Ok(b) => Ok(Value::Bool(!b)),
-                Err(_) => Err(RuntimeError {
-                    operator: operator.clone(),
-                    kind: RuntimeErrorKind::UnknownTruthiness,
-                }),
-            }
-        }
+        TokenType::Not => Ok(Value::Bool(!is_truthy(right))),
         _ => unreachable!("parser only builds unary `-` and `not`"),
     }
 }
@@ -284,32 +270,15 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
     }
 }
 
-fn is_truthy<'a>(val: Value) -> Result<bool, RuntimeError<'a>> {
+/// Whether a value counts as true: zero, `null`, `false`, and `""` don't.
+fn is_truthy(val: Value) -> bool {
     match val {
-        Value::Int(n) => {
-            if n == 0 {
-                Ok(false)
-            } else {
-                Ok(true)
-            }
-        }
-        Value::Float(f) => {
-            if f == 0.0 {
-                Ok(false)
-            } else {
-                Ok(true)
-            }
-        }
-        Value::Null => Ok(false),
-        Value::Bool(b) => Ok(b),
-        Value::Str(str) => {
-            if str.is_empty() {
-                Ok(false)
-            } else {
-                Ok(true)
-            }
-        }
-        Value::Native(_) => Ok(true),
+        Value::Int(n) => n != 0,
+        Value::Float(f) => f != 0.0,
+        Value::Null => false,
+        Value::Bool(b) => b,
+        Value::Str(s) => !s.is_empty(),
+        Value::Native(_) => true,
     }
 }
 
@@ -320,8 +289,8 @@ fn logical_compare<'a>(
 ) -> Result<bool, RuntimeError<'a>> {
     match operator.token_type() {
         TokenType::And => {
-            let left_eval = is_truthy(left)?;
-            let right_eval = is_truthy(right)?;
+            let left_eval = is_truthy(left);
+            let right_eval = is_truthy(right);
             match (left_eval, right_eval) {
                 (true, true) => Ok(true),
                 (false, _) => Ok(false),
@@ -329,8 +298,8 @@ fn logical_compare<'a>(
             }
         }
         TokenType::Or => {
-            let left_eval = is_truthy(left)?;
-            let right_eval = is_truthy(right)?;
+            let left_eval = is_truthy(left);
+            let right_eval = is_truthy(right);
             match (left_eval, right_eval) {
                 (true, _) => Ok(true),
                 (_, true) => Ok(true),
