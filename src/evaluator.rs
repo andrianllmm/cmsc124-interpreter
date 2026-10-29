@@ -172,17 +172,17 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         return Ok(Value::Bool(logical_compare(left, operator, right)));
     }
 
-    let equality_result = is_equal(&left, &right);
+    // checks for equality among left and right operands
     if TokenType::Equals == *operator.token_type() {
+        let equality_result = is_equal(&left, &right);
         match equality_result {
-            Ok(Some(b)) => return Ok(Value::Bool(b)),
-            Ok(None) => {}
+            Ok(b) => return Ok(Value::Bool(b)),
             Err(kind) => return Err(error(kind)),
         }
     } else if TokenType::NotEquals == *operator.token_type() {
+        let equality_result = is_equal(&left, &right);
         match equality_result {
-            Ok(Some(b)) => return Ok(Value::Bool(!b)),
-            Ok(None) => {}
+            Ok(b) => return Ok(Value::Bool(!b)),
             Err(kind) => return Err(error(kind)),
         }
     }
@@ -219,10 +219,6 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
         (TokenType::More, Numbers::Floats(n, m)) => Ok(Value::Bool(n > m)),
         (TokenType::MoreEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n >= m)),
         (TokenType::MoreEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n >= m)),
-        (TokenType::Equals, Numbers::Ints(n, m)) => Ok(Value::Bool(n == m)),
-        (TokenType::Equals, Numbers::Floats(n, m)) => Ok(Value::Bool(n == m)),
-        (TokenType::NotEquals, Numbers::Ints(n, m)) => Ok(Value::Bool(n != m)),
-        (TokenType::NotEquals, Numbers::Floats(n, m)) => Ok(Value::Bool(n != m)),
         _ => unreachable!("token type unrecognized"),
     }
 }
@@ -289,11 +285,11 @@ fn logical_compare(left: Value, operator: &Token, right: Value) -> bool {
 }
 
 // check for equality for non-number and non-string operands
-fn is_equal(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKind> {
+fn is_equal(left: &Value, right: &Value) -> Result<bool, RuntimeErrorKind> {
     match (left, right) {
-        (Value::Null, Value::Null) => return Ok(Some(true)),
-        (Value::Bool(l), Value::Bool(r)) => return Ok(Some(*l == *r)),
-        (Value::Str(l), Value::Str(r)) => return Ok(Some(*l == *r)),
+        (Value::Null, Value::Null) => return Ok(true),
+        (Value::Bool(l), Value::Bool(r)) => return Ok(*l == *r),
+        (Value::Str(l), Value::Str(r)) => return Ok(*l == *r),
         (Value::Null, _) => return Err(RuntimeErrorKind::IncompatibleComparison),
         (Value::Bool(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
         (Value::Str(_), _) => return Err(RuntimeErrorKind::IncompatibleComparison),
@@ -303,7 +299,7 @@ fn is_equal(left: &Value, right: &Value) -> Result<Option<bool>, RuntimeErrorKin
     let numbers =
         numbers(left.clone(), right.clone()).ok_or(RuntimeErrorKind::IncompatibleComparison)?;
     match numbers {
-        Numbers::Ints(l, r) => Ok(Some(l == r)),
-        Numbers::Floats(l, r) => Ok(Some(l == r)),
+        Numbers::Ints(l, r) => Ok(l == r),
+        Numbers::Floats(l, r) => Ok(l == r),
     }
 }
