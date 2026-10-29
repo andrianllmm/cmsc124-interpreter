@@ -273,22 +273,12 @@ fn is_truthy(val: &Value) -> bool {
     }
 }
 
-// check for equality for non-number and non-string operands
+/// Whether two values are equal. Numbers compare by value across `Int` and
+/// `Float`, so `1 == 1.0`; any other mix of types is unequal.
 fn is_equal(left: &Value, right: &Value) -> bool {
-    match (left, right) {
-        (Value::Null, Value::Null) => return true,
-        (Value::Bool(l), Value::Bool(r)) => return *l == *r,
-        (Value::Str(l), Value::Str(r)) => return *l == *r,
-        (Value::Null, _) => return false,
-        (Value::Bool(_), _) => return false,
-        (Value::Str(_), _) => return false,
-        _ => {}
-    }
-
-    let numbers = numbers(left, right);
-    match numbers {
-        Some(Numbers::Ints(l, r)) => l == r,
-        Some(Numbers::Floats(l, r)) => l == r,
-        None => false,
+    match numbers(left, right) {
+        Some(Numbers::Ints(n, m)) => n == m,
+        Some(Numbers::Floats(n, m)) => n == m,
+        None => left == right,
     }
 }
