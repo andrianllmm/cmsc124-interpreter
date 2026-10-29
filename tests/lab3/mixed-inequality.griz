@@ -1,0 +1,3 @@
+"hello" != false;   # expect: true
+1 != "1";           # expect: true
+null != false;      # expect: true
