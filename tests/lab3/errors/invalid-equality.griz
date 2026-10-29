@@ -1,1 +1,3 @@
-"a" == 1; # expect runtime error: Incompatible types being compared
+"a" == 1;       # expect runtime error: Incompatible types being compared
+null == false;  # expect runtime error: Incompatible types being compared
+1 == "1";       # expect runtime error: Incompatible types being compared
