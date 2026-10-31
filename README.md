@@ -239,14 +239,13 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Truthiness
 
-The following values evaluate as false under the truthiness:
-- 0
-- 0.0
-- null
-- false
-- ""
-
-The rest of the values evaluate to true.
+| Type    | Falsey        | Truthy                        |
+| ------- | ------------- | ----------------------------- |
+| `Int`   | `0`           | any other `Int`               |
+| `Float` | `0.0`, `-0.0` | any other `Float`, even `NaN` |
+| `Str`   | `""`          | any non-empty `Str`           |
+| `Bool`  | `false`       | `true`                        |
+| `Null`  | `null`        | never                         |
 
 ### Operator semantics
 
