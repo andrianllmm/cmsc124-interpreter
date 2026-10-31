@@ -249,16 +249,40 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Operator semantics
 
-- Arithmetic: `+ - * / % ^` and unary `-` accept `Int` and `Float` only. Any other operand is a runtime error
-- `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
-- `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
-- Mixed types: an `Int` mixed with a `Float` is promoted, so the result is a `Float`, e.g. `1 + 2.0` is `3.0`
-- Comparison: `<`, `<=`, `>`, `>=` accept `Int` and `Float` (mixed included) and return a `Bool`. Strings do not compare; `"a" < "b"` is a runtime error
-- Equality across types: `Int` and `Float` compare by value, so `1 == 1.0` is `true`. Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`. Mixed types are always `false`, e.g. `1 == "1"`.
-- Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
-- Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
-- Negative `Int` exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
-- Evaluation order: operands are evaluated left to right, and both are evaluated before the operator applies. `and` and `or` do not short-circuit
+Operands are evaluated left to right, and both are evaluated before the operator applies.
+
+#### Arithmetic: `+ - * / % ^`, unary `-`
+
+- Operands: `Int` and `Float` only. Anything else is a runtime error
+- Mixed types: an `Int` mixed with a `Float` is promoted, so `1 + 2.0` is `3.0`
+- `Int` division: `/` truncates toward zero, so `1 / 2` is `0` and `-7 / 2` is `-3`. Write `1.0 / 2` for `0.5`
+- `%`: takes the sign of the left operand, so `-7 % 2` is `-1` and `7 % -2` is `1`
+- Division by zero: `Int` `/` or `%` by zero is a runtime error, since `Int` has no infinity to return. `Float` follows IEEE 754 and never errors: `1.0 / 0` is `inf`, `-1.0 / 0` is `-inf`, `0.0 / 0` is `NaN`
+- Overflow: `Int` arithmetic is checked, and overflow is a runtime error
+- Negative exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
+
+#### Concatenation: `++`
+
+- Operands: `Str` only, so `"a" ++ 1` is a runtime error. Convert first with `to_string`
+- `+` doesn't concatenate: `"a" + "b"` is a runtime error
+
+#### Comparison: `< <= > >=`
+
+- Operands: `Int` and `Float`, mixed included. Strings don't compare, so `"a" < "b"` is a runtime error
+- Returns a `Bool`. Any comparison with `NaN` is `false`
+
+#### Equality: `== !=`
+
+- Operands: any types, never an error
+- `Int` and `Float` compare by value, so `1 == 1.0` is `true`
+- Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
+- Mixed types are unequal, so `1 == "1"` is `false`
+
+#### Logical: `and or not`
+
+- Operands: any types, tested with the truthiness rule
+- Returns a `Bool`, so `1 and "a"` is `true`
+- `and` and `or` don't short-circuit
 
 ### Scope and bindings
 
@@ -275,7 +299,6 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Control flow and functions
 
-- Logical operators return: Logical operators evaluate left to right and return boolean values. Non-boolean operands check for truthiness when evaluating.
 - Dangling else binds to: [which if]
 - Closure capture of a loop variable: [per iteration, or shared]
 - Function with no return statement produces: [value]
