@@ -78,8 +78,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtim
 | ------------------- | ---------------------------------------------------------------------------------------- | --------- |
 | Integer             | `42`                                                                                     | `Int`     |
 | Float               | `3.14`                                                                                   | `Float`   |
-| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                     | `String`  |
-| Interpolated string | `"Hi {name}, you earn {salary}"`                                                         | `String`  |
+| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                     | `Str`     |
+| Interpolated string | `"Hi {name}, you earn {salary}"`                                                         | `Str`     |
 | Boolean             | `true`, `false`                                                                          | `Bool`    |
 | Null                | `null`                                                                                   | `Null`    |
 | List                | `[1, 2, 3]`                                                                              | `List(T)` |
@@ -249,8 +249,8 @@ The rest of the values evaluate to true.
 - Arithmetic: `+ - * / % ^` and unary `-` accept `Int` and `Float` only. Any other operand is a runtime error
 - `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
 - `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
-- Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
-- Comparison: `<`, `<=`, `>`, `>=` accept `integer` and `float` (mixed included) and return a `boolean`. Strings do not compare; `"a" < "b"` is a runtime error
+- Mixed types: an `Int` mixed with a `Float` is promoted, so the result is a `Float`, e.g. `1 + 2.0` is `3.0`
+- Comparison: `<`, `<=`, `>`, `>=` accept `Int` and `Float` (mixed included) and return a `Bool`. Strings do not compare; `"a" < "b"` is a runtime error
 - Equality across types: `Int` and `Float` compare by value, so `1 == 1.0` is `true`. Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`. Mixed types are always `false`, e.g. `1 == "1"`.
 - Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
 - Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
