@@ -227,11 +227,15 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Value printing
 
-- Integers: as written, `5`
-- Floats: always with a decimal point, `5.0`, never `5`
-- Null: `null`
-- Booleans: `true`, `false`
-- Strings: without quotes, `"hi"` prints `hi`
+| Type    | Prints as                              | Example              |
+| ------- | -------------------------------------- | -------------------- |
+| `Int`   | as written                             | `5`                  |
+| `Float` | always with a decimal point            | `5.0`, never `5`     |
+|         | exponent form when very large or small | `1e20`, `1e-7`       |
+|         | non-finite values by name              | `inf`, `-inf`, `NaN` |
+| `Str`   | without quotes                         | `"hi"` prints `hi`   |
+| `Bool`  | its keyword                            | `true`, `false`      |
+| `Null`  | its keyword                            | `null`               |
 
 ### Truthiness
 
