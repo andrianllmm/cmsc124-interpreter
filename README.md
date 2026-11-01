@@ -78,8 +78,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtim
 | ------------------- | ---------------------------------------------------------------------------------------- | --------- |
 | Integer             | `42`                                                                                     | `Int`     |
 | Float               | `3.14`                                                                                   | `Float`   |
-| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                     | `String`  |
-| Interpolated string | `"Hi {name}, you earn {salary}"`                                                         | `String`  |
+| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                     | `Str`     |
+| Interpolated string | `"Hi {name}, you earn {salary}"`                                                         | `Str`     |
 | Boolean             | `true`, `false`                                                                          | `Bool`    |
 | Null                | `null`                                                                                   | `Null`    |
 | List                | `[1, 2, 3]`                                                                              | `List(T)` |
@@ -227,35 +227,62 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Value printing
 
-- Integers: as written, `5`
-- Floats: always with a decimal point, `5.0`, never `5`
-- Null: `null`
-- Booleans: `true`, `false`
-- Strings: without quotes, `"hi"` prints `hi`
+| Type    | Prints as                              | Example              |
+| ------- | -------------------------------------- | -------------------- |
+| `Int`   | as written                             | `5`                  |
+| `Float` | always with a decimal point            | `5.0`, never `5`     |
+|         | exponent form when very large or small | `1e20`, `1e-7`       |
+|         | non-finite values by name              | `inf`, `-inf`, `NaN` |
+| `Str`   | without quotes                         | `"hi"` prints `hi`   |
+| `Bool`  | its keyword                            | `true`, `false`      |
+| `Null`  | its keyword                            | `null`               |
 
 ### Truthiness
 
-The following values evaluate as false under the truthiness:
-- 0
-- 0.0
-- null
-- false
-- ""
-
-The rest of the values evaluate to true.
+| Type    | Falsey        | Truthy                        |
+| ------- | ------------- | ----------------------------- |
+| `Int`   | `0`           | any other `Int`               |
+| `Float` | `0.0`, `-0.0` | any other `Float`, even `NaN` |
+| `Str`   | `""`          | any non-empty `Str`           |
+| `Bool`  | `false`       | `true`                        |
+| `Null`  | `null`        | never                         |
 
 ### Operator semantics
 
-- Arithmetic: `+ - * / % ^` and unary `-` accept `Int` and `Float` only. Any other operand is a runtime error
-- `++`: concatenates two strings. Both operands must be `Str`, so `"a" ++ 1` is a runtime error; convert first with `to_string`
-- `+` on strings: a runtime error, since `+` only accepts numbers. `"a" + "b"` must be written `"a" ++ "b"`
-- Mixed types: Operations with `integer` and `float` types mixed together resolve to `float`
-- Comparison: `<`, `<=`, `>`, `>=` accept `integer` and `float` (mixed included) and return a `boolean`. Strings do not compare; `"a" < "b"` is a runtime error
-- Equality across types: `Int` and `Float` compare by value, so `1 == 1.0` is `true`. Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`. Mixed types are always `false`, e.g. `1 == "1"`.
-- Division by zero: `Int` `/` or `%` by zero is a runtime error. `Float` follows IEEE 754, so `1.0 / 0` is `inf`
-- Integer overflow: `+ - * ^` and unary `-` on `Int` are checked, and overflow is a runtime error
-- Negative `Int` exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
-- Evaluation order: operands are evaluated left to right, and both are evaluated before the operator applies. `and` and `or` do not short-circuit
+Operands are evaluated left to right, and both are evaluated before the operator applies.
+
+#### Arithmetic: `+ - * / % ^`, unary `-`
+
+- Operands: `Int` and `Float` only. Anything else is a runtime error
+- Mixed types: an `Int` mixed with a `Float` is promoted, so `1 + 2.0` is `3.0`
+- `Int` division: `/` truncates toward zero, so `1 / 2` is `0` and `-7 / 2` is `-3`. Write `1.0 / 2` for `0.5`
+- `%`: takes the sign of the left operand, so `-7 % 2` is `-1` and `7 % -2` is `1`
+- Division by zero: `Int` `/` or `%` by zero is a runtime error, since `Int` has no infinity to return. `Float` follows IEEE 754 and never errors: `1.0 / 0` is `inf`, `-1.0 / 0` is `-inf`, `0.0 / 0` is `NaN`
+- Overflow: `Int` arithmetic is checked, and overflow is a runtime error
+- Negative exponent: `2 ^ -1` is a runtime error, since an `Int` can't hold a fraction
+
+#### Concatenation: `++`
+
+- Operands: `Str` only, so `"a" ++ 1` is a runtime error. Convert first with `to_string`
+- `+` doesn't concatenate: `"a" + "b"` is a runtime error
+
+#### Comparison: `< <= > >=`
+
+- Operands: `Int` and `Float`, mixed included. Strings don't compare, so `"a" < "b"` is a runtime error
+- Returns a `Bool`. Any comparison with `NaN` is `false`
+
+#### Equality: `== !=`
+
+- Operands: any types, never an error
+- `Int` and `Float` compare by value, so `1 == 1.0` is `true`
+- Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
+- Mixed types are unequal, so `1 == "1"` is `false`
+
+#### Logical: `and or not`
+
+- Operands: any types, tested with the truthiness rule
+- Returns a `Bool`, so `1 and "a"` is `true`
+- `and` and `or` don't short-circuit
 
 ### Scope and bindings
 
@@ -272,7 +299,6 @@ The rest of the values evaluate to true.
 
 ### Control flow and functions
 
-- Logical operators return: Logical operators evaluate left to right and return boolean values. Non-boolean operands check for truthiness when evaluating.
 - Dangling else binds to: [which if]
 - Closure capture of a loop variable: [per iteration, or shared]
 - Function with no return statement produces: [value]
@@ -324,7 +350,7 @@ Error at line 1: Missing ';' at end
 | tests/lab4 | Context   | inline  | none         |
 | tests/lab5 | Functions | inline  | none         |
 
-Each folder has a `manifest.json` and one `.griz` file per test case, grouped into subfolders by feature (e.g. `tests/lab2/groupings`). Runtime error cases live in `tests/lab3/errors`, one error per file.
+Each folder has a `manifest.json` and one `.griz` file per test case. Sidecar folders group cases into subfolders by feature (e.g. `tests/lab2/groupings`). Inline folders name each file after the feature it covers (e.g. `tests/lab3/truthiness.griz`), and annotate with `# expect:`, `# expect runtime error:`, and `# expect error:`. Error cases live in `tests/lab3/errors`, one error per file.
 
 Run locally with:
 
@@ -611,3 +637,4 @@ The language design is grounded in tabular data transformation. Each decision ex
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Lab 1    | Scanner with the full token vocabulary (keywords, operators, punctuation), `--tokenize` flag and line REPL, string escapes `\n \t \\ \" \{`, `Int` and `Float` literals (digits on both sides of `.`), `#` line comments  |
 | Lab 2    | Recursive descent parser for expressions, `--parse` flag and parse REPL, `;`-terminated expressions, prefix AST printer with `(group ...)`, `^` right-associative, non-chaining comparisons, syntax error recovery at `;` |
+| Lab 3    | Tree-walking evaluator, `--eval` flag and value-printing REPL, `Int`/`Float`/`Str`/`Bool`/`Null` values, checked `Int` arithmetic, IEEE 754 `Float`s, `++` concatenation, truthiness rule, runtime errors with exit 70 |
