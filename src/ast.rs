@@ -38,7 +38,7 @@ pub enum Expr<'a> {
     /// A assignment to a variable
     Assign {
         name: Token<'a>,
-        value: Box<Expr<'a>>
+        value: Box<Expr<'a>>,
     },
 }
 

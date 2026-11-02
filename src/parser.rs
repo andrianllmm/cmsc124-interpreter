@@ -24,7 +24,7 @@ pub enum ParseErrorKind {
     /// A token that can't start an expression, e.g. `*` or `;`.
     UnexpectedToken,
     /// An invalid assignment operation
-    InvalidAssignTarget
+    InvalidAssignTarget,
 }
 
 impl Display for ParseError {
@@ -120,14 +120,19 @@ impl<'a> Parser<'a> {
         let mut expr = self.pipe()?;
 
         while self.check(&TokenType::Assign) {
-            let token;
-            match expr {
-                Expr::Variable { name: token_name } => {token = token_name;},
+            
+            let token = match expr {
+                Expr::Variable { name: token_name } => {
+                    token_name
+                }
                 _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
-            }
+            };
             self.advance();
             let right = self.assignment()?;
-            expr = Expr::Assign { name: token, value: Box::new(right) }
+            expr = Expr::Assign {
+                name: token,
+                value: Box::new(right),
+            }
         }
 
         Ok(expr)
