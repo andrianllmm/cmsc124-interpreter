@@ -105,6 +105,9 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
             let right = evaluate(right)?;
             binary(left, operator, right)
         }
+        Expr::Assign { name: _, value: _ } => {
+            todo!("add assign features")
+        }
     }
 }
 
