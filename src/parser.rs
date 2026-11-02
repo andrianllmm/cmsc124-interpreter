@@ -120,11 +120,8 @@ impl<'a> Parser<'a> {
         let mut expr = self.pipe()?;
 
         while self.check(&TokenType::Assign) {
-            
             let token = match expr {
-                Expr::Variable { name: token_name } => {
-                    token_name
-                }
+                Expr::Variable { name: token_name } => token_name,
                 _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
             };
             self.advance();
