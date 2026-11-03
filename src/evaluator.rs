@@ -1,10 +1,13 @@
 //! Tree-walking evaluator that turns expressions into values.
 
 use crate::ast::Expr;
+use crate::environment::Environment;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
+use std::cell::RefCell;
 use std::fmt::{self, Display, Formatter};
+use std::rc::Rc;
 
 /// An error raised while evaluating.
 pub struct RuntimeError<'a> {
@@ -69,41 +72,57 @@ impl Display for RuntimeError<'_> {
     }
 }
 
-/// Evaluates an expression. Operands are evaluated before their operator
-/// (post-order), so each node works with values, never with subtrees.
-pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
-    match expr {
-        Expr::Literal { value, .. } => Ok(value.clone().into()),
-        Expr::Grouping { expression } => evaluate(expression),
-        // Only built-ins are bound until assignment exists.
-        Expr::Variable { name } => match Native::lookup(name.lexeme()) {
-            Some(native) => Ok(Value::Native(native)),
-            None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
-        },
-        Expr::Call {
-            callee,
-            paren,
-            arguments,
-        } => {
-            let callee = evaluate(callee)?;
-            let arguments = arguments
-                .iter()
-                .map(evaluate)
-                .collect::<Result<Vec<_>, _>>()?;
-            call(callee, paren, arguments)
+/// Evaluates expressions against a global environment that outlives each call,
+/// so state persists across a run's statements and across REPL lines.
+pub struct Interpreter {
+    /// Held for bindings once assignment exists; a runtime error never resets it.
+    #[allow(dead_code)]
+    environment: Rc<RefCell<Environment>>,
+}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
-        Expr::Unary { operator, right } => {
-            let right = evaluate(right)?;
-            unary(operator, right)
-        }
-        Expr::Binary {
-            left,
-            operator,
-            right,
-        } => {
-            let left = evaluate(left)?;
-            let right = evaluate(right)?;
-            binary(left, operator, right)
+    }
+
+    /// Evaluates an expression. Operands are evaluated before their operator
+    /// (post-order), so each node works with values, never with subtrees.
+    pub fn evaluate<'a>(&mut self, expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
+        match expr {
+            Expr::Literal { value, .. } => Ok(value.clone().into()),
+            Expr::Grouping { expression } => self.evaluate(expression),
+            // Only built-ins are bound until assignment exists.
+            Expr::Variable { name } => match Native::lookup(name.lexeme()) {
+                Some(native) => Ok(Value::Native(native)),
+                None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
+            },
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                let callee = self.evaluate(callee)?;
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.evaluate(argument))
+                    .collect::<Result<Vec<_>, _>>()?;
+                call(callee, paren, arguments)
+            }
+            Expr::Unary { operator, right } => {
+                let right = self.evaluate(right)?;
+                unary(operator, right)
+            }
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                let left = self.evaluate(left)?;
+                let right = self.evaluate(right)?;
+                binary(left, operator, right)
+            }
         }
         Expr::Assign { name: _, value: _ } => {
             todo!("add assign features")

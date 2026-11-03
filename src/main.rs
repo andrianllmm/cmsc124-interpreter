@@ -3,6 +3,7 @@
 //! Runs a file, or starts a REPL when no file is given. `--tokenize`,
 //! `--parse`, and `--eval` stop after that stage and print its output.
 
+use crate::evaluator::Interpreter;
 use crate::pipeline::Failure;
 use crate::stage::Stage;
 use std::process::exit;
@@ -65,7 +66,7 @@ fn run_file(path: &str, stage: Option<Stage>) {
         }
     };
 
-    match pipeline::run(&source, stage) {
+    match pipeline::run(&mut Interpreter::new(), &source, stage) {
         Ok(()) => exit(0),
         Err(Failure::Static) => exit(EX_DATAERR),
         Err(Failure::Runtime) => exit(EX_SOFTWARE),
