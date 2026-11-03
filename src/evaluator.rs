@@ -107,6 +107,9 @@ pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
         }
         Expr::Assign { name: _, value: _ } => {
             todo!("add assign features")
+        },
+        Expr::CompoundAssign { name: _, operator: _, value: _ } => {
+            todo!("add compound assign features")
         }
     }
 }
