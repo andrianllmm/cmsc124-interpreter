@@ -9,6 +9,7 @@ use std::process::exit;
 
 mod ast;
 mod ast_printer;
+mod environment;
 mod evaluator;
 mod keyword;
 mod native;
