@@ -119,16 +119,32 @@ impl<'a> Parser<'a> {
         // parse the left side first
         let mut expr = self.pipe()?;
 
-        while self.check(&TokenType::Assign) {
-            let token = match expr {
+        while self.mul_check(&[
+            TokenType::Assign,
+            TokenType::AddAssign,
+            TokenType::SubAssign,
+            TokenType::MulAssign,
+            TokenType::DivAssign,
+            TokenType::PipeAssign,
+        ]) {
+            let op_token = self.peek().clone();
+            let name_token = match expr {
                 Expr::Variable { name: token_name } => token_name,
                 _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
             };
             self.advance();
             let right = self.assignment()?;
-            expr = Expr::Assign {
-                name: token,
-                value: Box::new(right),
+            expr = match op_token.token_type() {
+                TokenType::Assign => Expr::Assign {
+                    name: name_token,
+                    value: Box::new(right),
+                },
+                // valid token types are filtered in mul_check. only compound assignments are present here
+                _ => Expr::CompoundAssign {
+                    name: name_token,
+                    operator: op_token,
+                    value: Box::new(right),
+                },
             }
         }
 
@@ -383,6 +399,20 @@ impl<'a> Parser<'a> {
             return false;
         }
         discriminant(self.peek().token_type()) == discriminant(token_type)
+    }
+
+    /// Returns `true` if the current token is of one of `token_types`.
+    ///
+    /// Compares only the variant, so a payload like the `0` in `Integer(0)` is ignored.
+    fn mul_check(&self, token_types: &[TokenType]) -> bool {
+        let mut is_present = false;
+        for token_type in token_types {
+            if discriminant(self.peek().token_type()) == discriminant(token_type) {
+                is_present = true;
+                break;
+            }
+        }
+        is_present
     }
 
     /// Consumes and returns the current token if it's one of `token_types`.

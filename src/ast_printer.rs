@@ -37,6 +37,9 @@ pub fn print(expr: &Expr) -> String {
         },
         Expr::Assign { name, value } => {
             format!("(= {} {})", name.lexeme(), print(value))
+        },
+        Expr::CompoundAssign { name, operator, value } => {
+            format!("({} {} {})", operator.lexeme(), name.lexeme(), print(value))
         }
     }
 }
