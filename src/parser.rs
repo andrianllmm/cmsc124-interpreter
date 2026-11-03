@@ -23,6 +23,8 @@ pub enum ParseErrorKind {
     UnclosedParen,
     /// A token that can't start an expression, e.g. `*` or `;`.
     UnexpectedToken,
+    /// An invalid assignment operation
+    InvalidAssignTarget,
 }
 
 impl Display for ParseError {
@@ -31,6 +33,7 @@ impl Display for ParseError {
             ParseErrorKind::MissingTerminator => "Missing ';'",
             ParseErrorKind::UnclosedParen => "Missing ')'",
             ParseErrorKind::UnexpectedToken => "Missing expression",
+            ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
         };
         let location = match &self.found {
             Some(lexeme) => format!("'{}'", lexeme),
@@ -113,8 +116,23 @@ impl<'a> Parser<'a> {
     /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
     /// | pipe`
     fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
-        // TODO: Parse assignments once identifiers are supported.
-        self.pipe()
+        // parse the left side first
+        let mut expr = self.pipe()?;
+
+        while self.check(&TokenType::Assign) {
+            let token = match expr {
+                Expr::Variable { name: token_name } => token_name,
+                _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
+            };
+            self.advance();
+            let right = self.assignment()?;
+            expr = Expr::Assign {
+                name: token,
+                value: Box::new(right),
+            }
+        }
+
+        Ok(expr)
     }
 
     /// `pipe → logicOr ( "|>" logicOr )*`

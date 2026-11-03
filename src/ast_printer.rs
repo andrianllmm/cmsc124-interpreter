@@ -35,5 +35,8 @@ pub fn print(expr: &Expr) -> String {
             LiteralValue::Bool(b) => b.to_string(),
             LiteralValue::Null => "null".to_string(),
         },
+        Expr::Assign { name, value } => {
+            format!("(= {} {})", name.lexeme(), print(value))
+        }
     }
 }

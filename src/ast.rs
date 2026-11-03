@@ -35,6 +35,11 @@ pub enum Expr<'a> {
         paren: Token<'a>,
         arguments: Vec<Expr<'a>>,
     },
+    /// A assignment to a variable
+    Assign {
+        name: Token<'a>,
+        value: Box<Expr<'a>>,
+    },
 }
 
 /// The value of a literal expression.
