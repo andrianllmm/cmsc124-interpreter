@@ -123,9 +123,9 @@ impl Interpreter {
                 let right = self.evaluate(right)?;
                 binary(left, operator, right)
             }
-        }
-        Expr::Assign { name: _, value: _ } => {
-            todo!("add assign features")
+            Expr::Assign { name: _, value: _ } => {
+                todo!("add assign features")
+            }
         }
     }
 }
