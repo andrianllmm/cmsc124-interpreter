@@ -1,5 +1,6 @@
 //! Interactive prompt.
 
+use crate::evaluator::Interpreter;
 use crate::pipeline;
 use crate::stage::Stage;
 use std::io::{self, Write};
@@ -10,6 +11,8 @@ use std::io::{self, Write};
 pub fn run(stage: Option<Stage>) {
     let stdin = io::stdin();
     let mut line = String::new();
+    // One interpreter for the whole session, so state survives across lines.
+    let mut interpreter = Interpreter::new();
 
     loop {
         print!("> ");
@@ -30,6 +33,6 @@ pub fn run(stage: Option<Stage>) {
             break;
         }
 
-        let _ = pipeline::run(&line, stage);
+        let _ = pipeline::run(&mut interpreter, &line, stage);
     }
 }
