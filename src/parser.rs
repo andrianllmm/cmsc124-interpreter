@@ -137,13 +137,13 @@ impl<'a> Parser<'a> {
                 TokenType::Assign => Expr::Assign {
                     name: name_token,
                     value: Box::new(right),
-                }, 
+                },
                 TokenType::PipeAssign => Expr::CompoundAssign {
                     name: name_token,
                     operator: op_token,
-                    /* to allow for correct chaining of pipes, 
+                    /* to allow for correct chaining of pipes,
                     skip the entire pipe section and jump straight to logic_or */
-                    value:  Box::new(self.logic_or()?)
+                    value: Box::new(self.logic_or()?),
                 },
                 // valid token types are filtered in mul_check. only compound assignments are present here
                 _ => Expr::CompoundAssign {

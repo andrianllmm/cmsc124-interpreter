@@ -44,8 +44,8 @@ pub enum Expr<'a> {
     CompoundAssign {
         name: Token<'a>,
         operator: Token<'a>,
-        value: Box<Expr<'a>>
-    }
+        value: Box<Expr<'a>>,
+    },
 }
 
 /// The value of a literal expression.
