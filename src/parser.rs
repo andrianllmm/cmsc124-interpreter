@@ -125,10 +125,9 @@ impl<'a> Parser<'a> {
             TokenType::SubAssign,
             TokenType::MulAssign,
             TokenType::DivAssign,
-            TokenType::PipeAssign,
         ]) {
             let op_token = self.peek().clone();
-            let name_token = match expr {
+            let name_token = match expr.clone() {
                 Expr::Variable { name: token_name } => token_name,
                 _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
             };
@@ -138,6 +137,13 @@ impl<'a> Parser<'a> {
                 TokenType::Assign => Expr::Assign {
                     name: name_token,
                     value: Box::new(right),
+                }, 
+                TokenType::PipeAssign => Expr::CompoundAssign {
+                    name: name_token,
+                    operator: op_token,
+                    /* to allow for correct chaining of pipes, 
+                    skip the entire pipe section and jump straight to logic_or */
+                    value:  Box::new(self.logic_or()?)
                 },
                 // valid token types are filtered in mul_check. only compound assignments are present here
                 _ => Expr::CompoundAssign {
@@ -155,7 +161,7 @@ impl<'a> Parser<'a> {
     fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
         let mut expr = self.logic_or()?;
 
-        while let Some(operator) = self.match_token(&[TokenType::Pipe]) {
+        while let Some(operator) = self.match_token(&[TokenType::Pipe, TokenType::PipeAssign]) {
             let right = self.logic_or()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
