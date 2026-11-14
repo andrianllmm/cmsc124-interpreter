@@ -5,7 +5,16 @@ use crate::token::Token;
 /// The root of the tree: every statement in source order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program<'a> {
-    pub statements: Vec<Expr<'a>>,
+    pub statements: Vec<Stmt<'a>>,
+}
+
+/// A statement node. Runs for its effect rather than its value.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Stmt<'a> {
+    /// An expression followed by `;`.
+    Expression(Expr<'a>),
+    /// Statements between `{` and `}`.
+    Block(Vec<Stmt<'a>>),
 }
 
 /// An expression node. Borrows from the source through its tokens.

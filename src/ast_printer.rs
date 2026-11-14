@@ -1,6 +1,18 @@
 //! Prints the syntax tree for `--parse`.
 
-use crate::ast::{Expr, LiteralValue};
+use crate::ast::{Expr, LiteralValue, Stmt};
+
+/// Renders a statement. An expression statement prints as its expression.
+pub fn print_stmt(stmt: &Stmt) -> String {
+    match stmt {
+        Stmt::Expression(expr) => print(expr),
+        Stmt::Block(statements) => {
+            let mut parts = vec!["block".to_string()];
+            parts.extend(statements.iter().map(print_stmt));
+            format!("({})", parts.join(" "))
+        }
+    }
+}
 
 /// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
 pub fn print(expr: &Expr) -> String {
