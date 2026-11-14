@@ -75,8 +75,7 @@ impl Display for RuntimeError<'_> {
 /// Evaluates expressions against a global environment that outlives each call,
 /// so state persists across a run's statements and across REPL lines.
 pub struct Interpreter {
-    /// Held for bindings once assignment exists; a runtime error never resets it.
-    #[allow(dead_code)]
+    /// Global bindings; a runtime error never resets it.
     environment: Rc<RefCell<Environment>>,
 }
 
@@ -93,11 +92,16 @@ impl Interpreter {
         match expr {
             Expr::Literal { value, .. } => Ok(value.clone().into()),
             Expr::Grouping { expression } => self.evaluate(expression),
-            // Only built-ins are bound until assignment exists.
-            Expr::Variable { name } => match Native::lookup(name.lexeme()) {
-                Some(native) => Ok(Value::Native(native)),
-                None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
-            },
+            // Built-ins are a fallback until they're bound in the global environment.
+            Expr::Variable { name } => {
+                if let Some(value) = self.environment.borrow().get(name.lexeme()) {
+                    return Ok(value);
+                }
+                match Native::lookup(name.lexeme()) {
+                    Some(native) => Ok(Value::Native(native)),
+                    None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
+                }
+            }
             Expr::Call {
                 callee,
                 paren,
