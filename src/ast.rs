@@ -13,6 +13,8 @@ pub struct Program<'a> {
 pub enum Stmt<'a> {
     /// An expression followed by `;`.
     Expression(Expr<'a>),
+    /// Statements between `{` and `}`.
+    Block(Vec<Stmt<'a>>),
 }
 
 /// An expression node. Borrows from the source through its tokens.

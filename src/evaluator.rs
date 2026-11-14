@@ -91,6 +91,7 @@ impl Interpreter {
     pub fn execute<'a>(&mut self, stmt: &Stmt<'a>) -> Result<Option<Value>, RuntimeError<'a>> {
         match stmt {
             Stmt::Expression(expr) => self.evaluate(expr).map(Some),
+            Stmt::Block(_) => todo!("evaluate blocks"),
         }
     }
 

@@ -6,6 +6,11 @@ use crate::ast::{Expr, LiteralValue, Stmt};
 pub fn print_stmt(stmt: &Stmt) -> String {
     match stmt {
         Stmt::Expression(expr) => print(expr),
+        Stmt::Block(statements) => {
+            let mut parts = vec!["block".to_string()];
+            parts.extend(statements.iter().map(print_stmt));
+            format!("({})", parts.join(" "))
+        }
     }
 }
 

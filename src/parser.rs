@@ -21,6 +21,8 @@ pub enum ParseErrorKind {
     MissingTerminator,
     /// A `(` has no matching `)`.
     UnclosedParen,
+    /// A `{` has no matching `}`.
+    UnclosedBrace,
     /// A token that can't start an expression, e.g. `*` or `;`.
     UnexpectedToken,
     /// An invalid assignment operation
@@ -32,6 +34,7 @@ impl Display for ParseError {
         let message = match self.kind {
             ParseErrorKind::MissingTerminator => "Missing ';'",
             ParseErrorKind::UnclosedParen => "Missing ')'",
+            ParseErrorKind::UnclosedBrace => "Missing '}'",
             ParseErrorKind::UnexpectedToken => "Missing expression",
             ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
         };
@@ -91,9 +94,22 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `statement → exprStmt`
+    /// `statement → exprStmt | block`
     fn statement(&mut self) -> Result<Stmt<'a>, ParseError> {
+        if self.match_token(&[TokenType::LBrace]).is_some() {
+            return self.block();
+        }
         self.expr_stmt()
+    }
+
+    /// `block → "{" statement* "}"`, with the `{` already consumed.
+    fn block(&mut self) -> Result<Stmt<'a>, ParseError> {
+        let mut statements = Vec::new();
+        while !self.check(&TokenType::RBrace) && !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        self.consume(&TokenType::RBrace, ParseErrorKind::UnclosedBrace)?;
+        Ok(Stmt::Block(statements))
     }
 
     /// `exprStmt → expression ";"`
