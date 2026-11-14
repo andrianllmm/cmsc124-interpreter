@@ -184,7 +184,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
 - Blocks nest to any depth and can appear anywhere a statement can
 
-NOTE: Assignment and blocks are in the grammar but not parsed yet.
+NOTE: Blocks are parsed but not evaluated yet.
 
 ## Parse output format
 
@@ -195,6 +195,7 @@ NOTE: Assignment and blocks are in the grammar but not parsed yet.
 ```
 
 - Groupings print as: `(group <expr>)`
+- Blocks print as: `(block <stmt>...)`, or `(block)` when empty
 - Integers print as written: `2`
 - Floats always keep a decimal point: `3.0`, never `3`
 - Strings print quoted and escaped: `"hi\n"`
@@ -329,6 +330,7 @@ Syntax errors also name the token where parsing failed, or `end` at end of file.
 ```
 Error at line 1: Missing expression at ';'
 Error at line 1: Missing ')' at ';'
+Error at line 2: Missing '}' at end
 Error at line 1: Missing ';' at end
 ```
 
