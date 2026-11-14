@@ -90,8 +90,26 @@ impl Interpreter {
     pub fn execute<'a>(&mut self, stmt: &Stmt<'a>) -> Result<Option<Value>, RuntimeError<'a>> {
         match stmt {
             Stmt::Expression(expr) => self.evaluate(expr).map(Some),
-            Stmt::Block(_) => todo!("evaluate blocks"),
+            Stmt::Block(statements) => {
+                let block = Environment::with_enclosing(Rc::clone(&self.environment));
+                self.execute_block(statements, block).map(|_| None)
+            }
         }
+    }
+
+    /// Runs `statements` in `environment`, then restores the previous one,
+    /// even on a runtime error, so the REPL never stays in a finished block's scope.
+    fn execute_block<'a>(
+        &mut self,
+        statements: &[Stmt<'a>],
+        environment: Environment,
+    ) -> Result<(), RuntimeError<'a>> {
+        let previous = std::mem::replace(&mut self.environment, Rc::new(RefCell::new(environment)));
+        let result = statements
+            .iter()
+            .try_for_each(|stmt| self.execute(stmt).map(|_| ()));
+        self.environment = previous;
+        result
     }
 
     /// Evaluates an expression. Operands are evaluated before their operator
