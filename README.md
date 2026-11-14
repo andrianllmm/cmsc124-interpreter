@@ -327,9 +327,13 @@ Planned for Lab 5, not built yet: lambdas and calls to them, `return`, list lite
 
 ## Native functions
 
-| Name    | Arguments | Returns | Notes                                                |
-| ------- | --------- | ------- | ---------------------------------------------------- |
-| `print` | 1, any    | `Null`  | Writes the value and a newline to stdout             |
+| Name        | Arguments | Returns | Notes                                                                    |
+| ----------- | --------- | ------- | ------------------------------------------------------------------------ |
+| `print`     | 1, any    | `Null`  | Writes the value and a newline to stdout                                 |
+| `to_string` | 1, any    | `Str`   | Converts a value to text using the value printing rules (planned, Lab 5) |
+| `length`    | 1, `Str`  | `Int`   | Number of characters (planned, Lab 5; `List` once lists exist)           |
+| `to_int`    | 1, `Str`  | `Int`   | Parses an integer; unparseable input is a runtime error (planned, Lab 5) |
+| `to_float`  | 1, `Str`  | `Float` | Parses a float; unparseable input is a runtime error (planned, Lab 5)    |
 
 Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression.
 
