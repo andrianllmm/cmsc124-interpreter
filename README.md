@@ -55,7 +55,7 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtim
 | ------------------- | ---------- | -------- | ------------- | ------------ | ------------------------------------------------------- |
 | `=`                 | assignment | binary   | right         | 0            | `x = y`                                                 |
 | `+=` `-=` `*=` `/=` | assignment | binary   | right         | 0            | `x OP= y` means `x = x OP y`                            |
-| `\|>`               | pipe       | binary   | left          | 0            | `x \|> f` means `f(x)`                                  |
+| `\|>`               | pipe       | binary   | left          | 0            | `x \|> f` means `f(x)`, `x \|> f(a)` means `f(x, a)`    |
 | `\|=`               | assignment | binary   | right         | 0            | `x \|= f1 \|> f2` means `x = x \|> f1 \|> f2`           |
 | `or`                | logical    | binary   | left          | 1 (loosest)  |                                                         |
 | `and`               | logical    | binary   | left          | 2            |                                                         |
@@ -140,9 +140,15 @@ String literals print escaped.
 program     → statement* EOF
 
 statement   → exprStmt
+            | ifStmt
+            | whileStmt
             | block
 
 exprStmt    → expression ";"
+
+ifStmt      → "if" expression block ( "else" ( ifStmt | block ) )?
+
+whileStmt   → "while" expression block
 
 block       → "{" statement* "}"
 
@@ -183,8 +189,9 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
 - A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
 - Blocks nest to any depth and can appear anywhere a statement can
+- `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
-NOTE: Blocks are parsed but not evaluated yet.
+NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the grammar but not parsed yet.
 
 ## Parse output format
 
@@ -300,16 +307,33 @@ Operands are evaluated left to right, and both are evaluated before the operator
 
 ### Control flow and functions
 
-- Dangling else binds to: [which if]
-- Closure capture of a loop variable: [per iteration, or shared]
-- Function with no return statement produces: [value]
-- Arity mismatch: [message and exit code]
+- Conditions: tested with the truthiness rule. Only the chosen branch runs, and each branch is a block with its own scope
+- `if` without `else`: does nothing when the condition is falsey
+- Dangling else binds to: can't arise, since every branch is a braced block, so each `else` belongs to the `if` whose block just closed
+- `while`: tests the condition before every iteration, so a falsey condition runs the body zero times. Each iteration runs the body as a fresh block
+- Functions: created only as lambdas with `->` and named by assigning them, e.g. `tax = (amount, rate) -> amount * rate;`. There's no separate declaration form. A function is a value like any other, so it can be passed, returned, and stored
+- Bodies: `x -> expr` produces `expr`. A block body `x -> { ... }` produces its value with `return`, which exits the function from inside any loop or `if`
+- Function with no return statement produces: `null`
+- Calls: arguments are evaluated left to right at the call site, then bound as parameters in a fresh environment for that call
+- Scope of a call: lexical. The call's environment encloses the environment where the lambda was created, not the caller's
+- Closures: a lambda captures the environment it was created in and keeps it alive after the creating call returns, so `make_adder = n -> (x -> x + n);` works. Each call of `make_adder` captures its own `n`
+- Closure capture of a loop variable: per iteration for names first assigned in the body, since each iteration is a fresh block. Names from outside the loop are shared
+- Recursion: a lambda finds its own name at call time through ordinary lookup, so recursion and mutual recursion need nothing special
+- Arity mismatch: `Expected 2 arguments but got 1.`, a runtime error (exit 70). Natives and lambdas are checked the same way
+- Calling a non-function: `Can only call functions`, a runtime error (exit 70)
+- Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
+
+Planned for Lab 5, not built yet: lambdas and calls to them, `return`, list literals and `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
-| Name    | Arguments | Returns | Notes                                                |
-| ------- | --------- | ------- | ---------------------------------------------------- |
-| `print` | 1, any    | `Null`  | Writes the value and a newline to stdout             |
+| Name        | Arguments | Returns | Notes                                                                    |
+| ----------- | --------- | ------- | ------------------------------------------------------------------------ |
+| `print`     | 1, any    | `Null`  | Writes the value and a newline to stdout                                 |
+| `to_string` | 1, any    | `Str`   | Converts a value to text using the value printing rules (planned, Lab 5) |
+| `length`    | 1, `Str`  | `Int`   | Number of characters (planned, Lab 5; `List` once lists exist)           |
+| `to_int`    | 1, `Str`  | `Int`   | Parses an integer; unparseable input is a runtime error (planned, Lab 5) |
+| `to_float`  | 1, `Str`  | `Float` | Parses a float; unparseable input is a runtime error (planned, Lab 5)    |
 
 Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression.
 
