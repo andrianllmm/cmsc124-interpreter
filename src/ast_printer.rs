@@ -1,6 +1,13 @@
 //! Prints the syntax tree for `--parse`.
 
-use crate::ast::{Expr, LiteralValue};
+use crate::ast::{Expr, LiteralValue, Stmt};
+
+/// Renders a statement. An expression statement prints as its expression.
+pub fn print_stmt(stmt: &Stmt) -> String {
+    match stmt {
+        Stmt::Expression(expr) => print(expr),
+    }
+}
 
 /// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
 pub fn print(expr: &Expr) -> String {

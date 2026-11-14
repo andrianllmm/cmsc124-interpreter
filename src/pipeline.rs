@@ -36,8 +36,8 @@ pub fn run(
 
     let program = parse(tokens)?;
     if let Some(Stage::Parse) = stage {
-        for expr in &program.statements {
-            println!("{}", ast_printer::print(expr));
+        for stmt in &program.statements {
+            println!("{}", ast_printer::print_stmt(stmt));
         }
         return Ok(());
     }
@@ -72,16 +72,16 @@ fn parse(tokens: Vec<Token<'_>>) -> Result<Program<'_>, Failure> {
     }
 }
 
-/// Evaluates each expression, stopping at the first runtime error.
-/// With `print_values`, also prints each expression's value.
+/// Executes each statement, stopping at the first runtime error.
+/// With `print_values`, also prints each expression statement's value.
 fn evaluate(
     interpreter: &mut Interpreter,
     program: &Program<'_>,
     print_values: bool,
 ) -> Result<(), Failure> {
-    for expr in &program.statements {
-        match interpreter.evaluate(expr) {
-            Ok(value) if print_values => println!("{}", value),
+    for stmt in &program.statements {
+        match interpreter.execute(stmt) {
+            Ok(Some(value)) if print_values => println!("{}", value),
             Ok(_) => {}
             Err(error) => {
                 eprintln!("{}", error);

@@ -1,6 +1,6 @@
 //! Tree-walking evaluator that turns expressions into values.
 
-use crate::ast::Expr;
+use crate::ast::{Expr, Stmt};
 use crate::environment::Environment;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
@@ -84,6 +84,13 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             environment: Rc::new(RefCell::new(Environment::new())),
+        }
+    }
+
+    /// Executes a statement, returning an expression statement's value.
+    pub fn execute<'a>(&mut self, stmt: &Stmt<'a>) -> Result<Option<Value>, RuntimeError<'a>> {
+        match stmt {
+            Stmt::Expression(expr) => self.evaluate(expr).map(Some),
         }
     }
 

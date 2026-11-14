@@ -2,7 +2,7 @@
 //!
 //! Each rule method follows its rule from the grammar in the README.
 
-use crate::ast::{Expr, LiteralValue, Program};
+use crate::ast::{Expr, LiteralValue, Program, Stmt};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 use std::mem::discriminant;
@@ -67,16 +67,16 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `program → exprStmt* EOF`
+    /// `program → statement* EOF`
     ///
-    /// Parses each `;`-terminated expression into one `Program` root.
+    /// Parses each statement into one `Program` root.
     ///
     /// On a syntax error, skips to the next `;` and keeps going,
     /// so every error in the source is reported at once.
     pub fn parse(&mut self) -> Result<&Program<'a>, &Vec<ParseError>> {
         while !self.is_at_end() {
-            match self.expr_stmt() {
-                Ok(expr) => self.program.statements.push(expr),
+            match self.statement() {
+                Ok(stmt) => self.program.statements.push(stmt),
                 Err(error) => {
                     self.errors.push(error);
                     self.synchronize();
@@ -91,11 +91,16 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// `statement → exprStmt`
+    fn statement(&mut self) -> Result<Stmt<'a>, ParseError> {
+        self.expr_stmt()
+    }
+
     /// `exprStmt → expression ";"`
-    fn expr_stmt(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn expr_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
         let expr = self.expression()?;
         self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
-        Ok(expr)
+        Ok(Stmt::Expression(expr))
     }
 
     /// Discards tokens up to and including the next `;`,
