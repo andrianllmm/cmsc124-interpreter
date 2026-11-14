@@ -55,7 +55,7 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtim
 | ------------------- | ---------- | -------- | ------------- | ------------ | ------------------------------------------------------- |
 | `=`                 | assignment | binary   | right         | 0            | `x = y`                                                 |
 | `+=` `-=` `*=` `/=` | assignment | binary   | right         | 0            | `x OP= y` means `x = x OP y`                            |
-| `\|>`               | pipe       | binary   | left          | 0            | `x \|> f` means `f(x)`                                  |
+| `\|>`               | pipe       | binary   | left          | 0            | `x \|> f` means `f(x)`, `x \|> f(a)` means `f(x, a)`    |
 | `\|=`               | assignment | binary   | right         | 0            | `x \|= f1 \|> f2` means `x = x \|> f1 \|> f2`           |
 | `or`                | logical    | binary   | left          | 1 (loosest)  |                                                         |
 | `and`               | logical    | binary   | left          | 2            |                                                         |
