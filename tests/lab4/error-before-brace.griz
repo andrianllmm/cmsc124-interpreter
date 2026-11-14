@@ -1,0 +1,2 @@
+{ print(1 +) }   # expect error: Missing expression at ')'
+print(2;         # expect error: Missing ')' at ';'

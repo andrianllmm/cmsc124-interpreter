@@ -74,7 +74,7 @@ impl<'a> Parser<'a> {
     ///
     /// Parses each statement into one `Program` root.
     ///
-    /// On a syntax error, skips to the next `;` and keeps going,
+    /// On a syntax error, skips to the next statement boundary and keeps going,
     /// so every error in the source is reported at once.
     pub fn parse(&mut self) -> Result<&Program<'a>, &Vec<ParseError>> {
         while !self.is_at_end() {
@@ -103,10 +103,22 @@ impl<'a> Parser<'a> {
     }
 
     /// `block → "{" statement* "}"`, with the `{` already consumed.
+    ///
+    /// Recovers from errors inside the block, so its `}` still closes it
+    /// instead of being reported as a stray token.
     fn block(&mut self) -> Result<Stmt<'a>, ParseError> {
         let mut statements = Vec::new();
         while !self.check(&TokenType::RBrace) && !self.is_at_end() {
-            statements.push(self.statement()?);
+            match self.statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(error) => {
+                    self.errors.push(error);
+                    // Already at the closing `}`: let the loop end the block.
+                    if !self.check(&TokenType::RBrace) {
+                        self.synchronize();
+                    }
+                }
+            }
         }
         self.consume(&TokenType::RBrace, ParseErrorKind::UnclosedBrace)?;
         Ok(Stmt::Block(statements))
@@ -119,11 +131,25 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Expression(expr))
     }
 
-    /// Discards tokens up to and including the next `;`,
-    /// so parsing resumes at the start of the next expression.
+    /// Discards tokens until a statement boundary: after a `;`,
+    /// or before a `}` or a statement keyword.
+    ///
+    /// Always consumes at least one token, so recovery can't loop
+    /// on the token that caused the error.
     fn synchronize(&mut self) {
         while !self.is_at_end() {
             if matches!(self.advance().token_type(), TokenType::Terminator) {
+                return;
+            }
+            if matches!(
+                self.peek().token_type(),
+                TokenType::RBrace
+                    | TokenType::If
+                    | TokenType::While
+                    | TokenType::For
+                    | TokenType::Match
+                    | TokenType::Return
+            ) {
                 return;
             }
         }
