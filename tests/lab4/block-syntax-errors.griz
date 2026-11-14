@@ -1,0 +1,5 @@
+{
+    print(1 +);   # expect error: Missing expression at ')'
+    print(2;      # expect error: Missing ')' at ';'
+}
+print(3 *);       # expect error: Missing expression at ')'
