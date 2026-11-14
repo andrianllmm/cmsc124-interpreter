@@ -250,7 +250,7 @@ Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, mat
 
 ### Operator semantics
 
-Operands are evaluated left to right, and both are evaluated before the operator applies.
+Operands are evaluated left to right, and both are evaluated before the operator applies, except for `and` and `or`, which short-circuit.
 
 #### Arithmetic: `+ - * / % ^`, unary `-`
 
@@ -283,7 +283,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 
 - Operands: any types, tested with the truthiness rule
 - Returns a `Bool`, so `1 and "a"` is `true`
-- `and` and `or` don't short-circuit
+- Short-circuit: the right side is skipped when `and`'s left is falsey or `or`'s left is truthy, so `false and 1 / 0` is `false`
 
 ### Scope and bindings
 

@@ -132,6 +132,12 @@ impl Interpreter {
                 right,
             } => {
                 let left = self.evaluate(left)?;
+                // `and` and `or` skip the right side once the left decides.
+                match (operator.token_type(), is_truthy(&left)) {
+                    (TokenType::And, false) => return Ok(Value::Bool(false)),
+                    (TokenType::Or, true) => return Ok(Value::Bool(true)),
+                    _ => {}
+                }
                 let right = self.evaluate(right)?;
                 binary(left, operator, right)
             }
@@ -193,8 +199,8 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
             _ => Err(error(RuntimeErrorKind::OperandNotString)),
         },
-        TokenType::And => Ok(Value::Bool(is_truthy(&left) && is_truthy(&right))),
-        TokenType::Or => Ok(Value::Bool(is_truthy(&left) || is_truthy(&right))),
+        // Reached only when the left side didn't decide, so the right one does.
+        TokenType::And | TokenType::Or => Ok(Value::Bool(is_truthy(&right))),
         TokenType::Equals => Ok(Value::Bool(is_equal(&left, &right))),
         TokenType::NotEquals => Ok(Value::Bool(!is_equal(&left, &right))),
         _ => {
