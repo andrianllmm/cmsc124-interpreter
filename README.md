@@ -307,10 +307,23 @@ Operands are evaluated left to right, and both are evaluated before the operator
 
 ### Control flow and functions
 
-- Dangling else binds to: [which if]
-- Closure capture of a loop variable: [per iteration, or shared]
-- Function with no return statement produces: [value]
-- Arity mismatch: [message and exit code]
+- Conditions: tested with the truthiness rule. Only the chosen branch runs, and each branch is a block with its own scope
+- `if` without `else`: does nothing when the condition is falsey
+- Dangling else binds to: can't arise, since every branch is a braced block, so each `else` belongs to the `if` whose block just closed
+- `while`: tests the condition before every iteration, so a falsey condition runs the body zero times. Each iteration runs the body as a fresh block
+- Functions: created only as lambdas with `->` and named by assigning them, e.g. `tax = (amount, rate) -> amount * rate;`. There's no separate declaration form. A function is a value like any other, so it can be passed, returned, and stored
+- Bodies: `x -> expr` produces `expr`. A block body `x -> { ... }` produces its value with `return`, which exits the function from inside any loop or `if`
+- Function with no return statement produces: `null`
+- Calls: arguments are evaluated left to right at the call site, then bound as parameters in a fresh environment for that call
+- Scope of a call: lexical. The call's environment encloses the environment where the lambda was created, not the caller's
+- Closures: a lambda captures the environment it was created in and keeps it alive after the creating call returns, so `make_adder = n -> (x -> x + n);` works. Each call of `make_adder` captures its own `n`
+- Closure capture of a loop variable: per iteration for names first assigned in the body, since each iteration is a fresh block. Names from outside the loop are shared
+- Recursion: a lambda finds its own name at call time through ordinary lookup, so recursion and mutual recursion need nothing special
+- Arity mismatch: `Expected 2 arguments but got 1.`, a runtime error (exit 70). Natives and lambdas are checked the same way
+- Calling a non-function: `Can only call functions`, a runtime error (exit 70)
+- Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
+
+Planned for Lab 5, not built yet: lambdas and calls to them, `return`, list literals and `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
