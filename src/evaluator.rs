@@ -80,9 +80,14 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    /// Starts with every native bound in the global environment.
     pub fn new() -> Self {
+        let mut globals = Environment::new();
+        for native in Native::ALL {
+            globals.set(native.name(), Value::Native(native));
+        }
         Interpreter {
-            environment: Rc::new(RefCell::new(Environment::new())),
+            environment: Rc::new(RefCell::new(globals)),
         }
     }
 
