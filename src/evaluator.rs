@@ -159,8 +159,13 @@ impl Interpreter {
                 let right = self.evaluate(right)?;
                 binary(left, operator, right)
             }
-            Expr::Assign { name: _, value: _ } => {
-                todo!("add assign features")
+            Expr::Assign { name, value } => {
+                let right = self.evaluate(value)?;
+                let mut env = self.environment.borrow_mut();
+
+                env.set(name.lexeme(), right.clone());
+
+                Ok(right)
             }
             Expr::CompoundAssign {
                 name: _,
