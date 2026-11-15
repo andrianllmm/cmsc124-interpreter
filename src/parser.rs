@@ -125,7 +125,7 @@ impl<'a> Parser<'a> {
             TokenType::SubAssign,
             TokenType::MulAssign,
             TokenType::DivAssign,
-            TokenType::PipeAssign
+            TokenType::PipeAssign,
         ]) {
             let op_token = self.peek().clone();
             let name_token = match expr.clone() {
