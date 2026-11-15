@@ -1,0 +1,4 @@
+{
+    b = 1;
+}
+print(b);   # expect runtime error: Undefined variable 'b'

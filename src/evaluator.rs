@@ -1,10 +1,13 @@
 //! Tree-walking evaluator that turns expressions into values.
 
-use crate::ast::Expr;
+use crate::ast::{Expr, Stmt};
+use crate::environment::Environment;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
+use std::cell::RefCell;
 use std::fmt::{self, Display, Formatter};
+use std::rc::Rc;
 
 /// An error raised while evaluating.
 pub struct RuntimeError<'a> {
@@ -69,44 +72,96 @@ impl Display for RuntimeError<'_> {
     }
 }
 
-/// Evaluates an expression. Operands are evaluated before their operator
-/// (post-order), so each node works with values, never with subtrees.
-pub fn evaluate<'a>(expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
-    match expr {
-        Expr::Literal { value, .. } => Ok(value.clone().into()),
-        Expr::Grouping { expression } => evaluate(expression),
-        // Only built-ins are bound until assignment exists.
-        Expr::Variable { name } => match Native::lookup(name.lexeme()) {
-            Some(native) => Ok(Value::Native(native)),
-            None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
-        },
-        Expr::Call {
-            callee,
-            paren,
-            arguments,
-        } => {
-            let callee = evaluate(callee)?;
-            let arguments = arguments
-                .iter()
-                .map(evaluate)
-                .collect::<Result<Vec<_>, _>>()?;
-            call(callee, paren, arguments)
+/// Evaluates expressions against a global environment that outlives each call,
+/// so state persists across a run's statements and across REPL lines.
+pub struct Interpreter {
+    /// Global bindings; a runtime error never resets it.
+    environment: Rc<RefCell<Environment>>,
+}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
-        Expr::Unary { operator, right } => {
-            let right = evaluate(right)?;
-            unary(operator, right)
+    }
+
+    /// Executes a statement, returning an expression statement's value.
+    pub fn execute<'a>(&mut self, stmt: &Stmt<'a>) -> Result<Option<Value>, RuntimeError<'a>> {
+        match stmt {
+            Stmt::Expression(expr) => self.evaluate(expr).map(Some),
+            Stmt::Block(statements) => {
+                let block = Environment::with_enclosing(Rc::clone(&self.environment));
+                self.execute_block(statements, block).map(|_| None)
+            }
         }
-        Expr::Binary {
-            left,
-            operator,
-            right,
-        } => {
-            let left = evaluate(left)?;
-            let right = evaluate(right)?;
-            binary(left, operator, right)
-        }
-        Expr::Assign { name: _, value: _ } => {
-            todo!("add assign features")
+    }
+
+    /// Runs `statements` in `environment`, then restores the previous one,
+    /// even on a runtime error, so the REPL never stays in a finished block's scope.
+    fn execute_block<'a>(
+        &mut self,
+        statements: &[Stmt<'a>],
+        environment: Environment,
+    ) -> Result<(), RuntimeError<'a>> {
+        let previous = std::mem::replace(&mut self.environment, Rc::new(RefCell::new(environment)));
+        let result = statements
+            .iter()
+            .try_for_each(|stmt| self.execute(stmt).map(|_| ()));
+        self.environment = previous;
+        result
+    }
+
+    /// Evaluates an expression. Operands are evaluated before their operator
+    /// (post-order), so each node works with values, never with subtrees.
+    pub fn evaluate<'a>(&mut self, expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
+        match expr {
+            Expr::Literal { value, .. } => Ok(value.clone().into()),
+            Expr::Grouping { expression } => self.evaluate(expression),
+            // Built-ins are a fallback until they're bound in the global environment.
+            Expr::Variable { name } => {
+                if let Some(value) = self.environment.borrow().get(name.lexeme()) {
+                    return Ok(value);
+                }
+                match Native::lookup(name.lexeme()) {
+                    Some(native) => Ok(Value::Native(native)),
+                    None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
+                }
+            }
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                let callee = self.evaluate(callee)?;
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.evaluate(argument))
+                    .collect::<Result<Vec<_>, _>>()?;
+                call(callee, paren, arguments)
+            }
+            Expr::Unary { operator, right } => {
+                let right = self.evaluate(right)?;
+                unary(operator, right)
+            }
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                let left = self.evaluate(left)?;
+                // `and` and `or` skip the right side once the left decides.
+                match (operator.token_type(), is_truthy(&left)) {
+                    (TokenType::And, false) => return Ok(Value::Bool(false)),
+                    (TokenType::Or, true) => return Ok(Value::Bool(true)),
+                    _ => {}
+                }
+                let right = self.evaluate(right)?;
+                binary(left, operator, right)
+            }
+            Expr::Assign { name: _, value: _ } => {
+                todo!("add assign features")
+            }
         }
         Expr::CompoundAssign {
             name: _,
@@ -169,8 +224,8 @@ fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, 
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
             _ => Err(error(RuntimeErrorKind::OperandNotString)),
         },
-        TokenType::And => Ok(Value::Bool(is_truthy(&left) && is_truthy(&right))),
-        TokenType::Or => Ok(Value::Bool(is_truthy(&left) || is_truthy(&right))),
+        // Reached only when the left side didn't decide, so the right one does.
+        TokenType::And | TokenType::Or => Ok(Value::Bool(is_truthy(&right))),
         TokenType::Equals => Ok(Value::Bool(is_equal(&left, &right))),
         TokenType::NotEquals => Ok(Value::Bool(!is_equal(&left, &right))),
         _ => {

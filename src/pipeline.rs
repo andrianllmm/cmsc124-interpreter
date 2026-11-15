@@ -2,7 +2,7 @@
 
 use crate::ast::Program;
 use crate::ast_printer;
-use crate::evaluator;
+use crate::evaluator::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::stage::Stage;
@@ -21,7 +21,11 @@ pub enum Failure {
 ///
 /// Errors are already printed by the time `Err` returns,
 /// so callers only decide whether to exit or keep going.
-pub fn run(source: &str, stage: Option<Stage>) -> Result<(), Failure> {
+pub fn run(
+    interpreter: &mut Interpreter,
+    source: &str,
+    stage: Option<Stage>,
+) -> Result<(), Failure> {
     let tokens = scan(source)?;
     if let Some(Stage::Tokenize) = stage {
         for token in &tokens {
@@ -32,14 +36,14 @@ pub fn run(source: &str, stage: Option<Stage>) -> Result<(), Failure> {
 
     let program = parse(tokens)?;
     if let Some(Stage::Parse) = stage {
-        for expr in &program.statements {
-            println!("{}", ast_printer::print(expr));
+        for stmt in &program.statements {
+            println!("{}", ast_printer::print_stmt(stmt));
         }
         return Ok(());
     }
 
     // `--eval` prints every value; a program only prints through `print`.
-    evaluate(&program, matches!(stage, Some(Stage::Eval)))
+    evaluate(interpreter, &program, matches!(stage, Some(Stage::Eval)))
 }
 
 fn scan(source: &str) -> Result<Vec<Token<'_>>, Failure> {
@@ -68,12 +72,16 @@ fn parse(tokens: Vec<Token<'_>>) -> Result<Program<'_>, Failure> {
     }
 }
 
-/// Evaluates each expression, stopping at the first runtime error.
-/// With `print_values`, also prints each expression's value.
-fn evaluate(program: &Program<'_>, print_values: bool) -> Result<(), Failure> {
-    for expr in &program.statements {
-        match evaluator::evaluate(expr) {
-            Ok(value) if print_values => println!("{}", value),
+/// Executes each statement, stopping at the first runtime error.
+/// With `print_values`, also prints each expression statement's value.
+fn evaluate(
+    interpreter: &mut Interpreter,
+    program: &Program<'_>,
+    print_values: bool,
+) -> Result<(), Failure> {
+    for stmt in &program.statements {
+        match interpreter.execute(stmt) {
+            Ok(Some(value)) if print_values => println!("{}", value),
             Ok(_) => {}
             Err(error) => {
                 eprintln!("{}", error);

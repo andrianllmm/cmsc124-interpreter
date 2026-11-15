@@ -6,3 +6,4 @@ true and false;      # expect: false
 6 and 7;             # expect: true
 "hello" and "world"; # expect: true
 "hello" and "";      # expect: false
+false and 1 / 0;     # expect: false
