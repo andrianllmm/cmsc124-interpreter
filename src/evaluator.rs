@@ -123,16 +123,11 @@ impl Interpreter {
         match expr {
             Expr::Literal { value, .. } => Ok(value.clone().into()),
             Expr::Grouping { expression } => self.evaluate(expression),
-            // Built-ins are a fallback until they're bound in the global environment.
-            Expr::Variable { name } => {
-                if let Some(value) = self.environment.borrow().get(name.lexeme()) {
-                    return Ok(value);
-                }
-                match Native::lookup(name.lexeme()) {
-                    Some(native) => Ok(Value::Native(native)),
-                    None => Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
-                }
-            }
+            Expr::Variable { name } => self
+                .environment
+                .borrow()
+                .get(name.lexeme())
+                .ok_or_else(|| RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable)),
             Expr::Call {
                 callee,
                 paren,

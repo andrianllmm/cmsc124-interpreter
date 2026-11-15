@@ -13,14 +13,6 @@ impl Native {
     /// Every built-in, so each can be bound in the global environment.
     pub const ALL: [Native; 1] = [Native::Print];
 
-    /// Finds the built-in named `name`, if there is one.
-    pub fn lookup(name: &str) -> Option<Native> {
-        match name {
-            "print" => Some(Native::Print),
-            _ => None,
-        }
-    }
-
     pub fn name(&self) -> &'static str {
         match self {
             Native::Print => "print",
