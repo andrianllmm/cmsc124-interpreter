@@ -13,7 +13,6 @@ pub struct Environment {
     enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
-#[allow(dead_code)] // Used once the interpreter owns an environment.
 impl Environment {
     /// A global environment, with nothing enclosing it.
     pub fn new() -> Self {
