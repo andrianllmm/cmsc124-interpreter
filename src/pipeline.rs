@@ -1,12 +1,13 @@
 //! Runs source through each stage. Shared by file mode and the REPL.
 
-use crate::ast::Program;
+use crate::ast::{Expr, Program, Stmt};
 use crate::ast_printer;
 use crate::evaluator::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::stage::Stage;
 use crate::token::Token;
+use crate::value::Value;
 use std::fmt::Display;
 
 /// Why the pipeline stopped. Decides the exit code in file mode.
@@ -64,7 +65,8 @@ fn report<E: Display>(errors: Vec<E>) -> Failure {
 }
 
 /// Executes each statement, stopping at the first runtime error.
-/// With `print_values`, also prints each expression statement's value.
+/// With `print_values`, also prints each expression statement's value,
+/// except a call's `null`.
 fn evaluate(
     interpreter: &mut Interpreter,
     program: &Program,
@@ -72,7 +74,7 @@ fn evaluate(
 ) -> Result<(), Failure> {
     for stmt in &program.statements {
         match interpreter.execute(stmt) {
-            Ok(Some(value)) if print_values => println!("{}", value),
+            Ok(Some(value)) if print_values && echoes(stmt, &value) => println!("{}", value),
             Ok(_) => {}
             Err(error) => {
                 eprintln!("{}", error);
@@ -81,4 +83,13 @@ fn evaluate(
         }
     }
     Ok(())
+}
+
+/// A call made for its effect, like `print(x);`, returns `null`.
+/// Echoing it would print a stray `null` after the call's own output.
+fn echoes(stmt: &Stmt, value: &Value) -> bool {
+    !matches!(
+        (stmt, value),
+        (Stmt::Expression(Expr::Call { .. }), Value::Null)
+    )
 }
