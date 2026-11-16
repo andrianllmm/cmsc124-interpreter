@@ -1,0 +1,5 @@
+# `greet` sees the `greeting` where it was written, not its caller's.
+greeting = "Hello";
+greet = () -> print(greeting);
+rude = greeting -> greet();
+rude("Go away");                # expect: Hello

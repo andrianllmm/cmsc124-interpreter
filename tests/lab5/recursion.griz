@@ -1,0 +1,11 @@
+# A lambda finds its own name, and another lambda's, through ordinary lookup.
+countdown = n -> { if n > 0 { print(n); countdown(n - 1); } };
+countdown(3);                   # expect: 3
+                                # expect: 2
+                                # expect: 1
+countdown(0);                   # prints nothing: the base case
+
+is_even = n -> { if n == 0 { print(true); } else { is_odd(n - 1); } };
+is_odd = n -> { if n == 0 { print(false); } else { is_even(n - 1); } };
+is_even(4);                     # expect: true
+is_even(3);                     # expect: false

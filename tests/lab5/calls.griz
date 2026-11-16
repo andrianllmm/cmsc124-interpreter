@@ -1,0 +1,6 @@
+greet = () -> print("hi");
+greet();                        # expect: hi
+sum3 = (a, b, c) -> a + b + c;
+print(sum3(1, 2, 3));           # expect: 6
+nothing = () -> {};
+print(nothing());               # expect: null

@@ -1,7 +1,9 @@
 //! Tree-walking evaluator that turns expressions into values.
 
 use crate::ast::{Expr, Stmt};
+use crate::callable::Callable;
 use crate::environment::Environment;
+use crate::function::Function;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
@@ -57,7 +59,7 @@ impl Display for RuntimeError {
             }
             RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
             RuntimeErrorKind::ArityMismatch { expected, found } => {
-                format!("Expected {} arguments but got {}", expected, found)
+                format!("Expected {} arguments but got {}.", expected, found)
             }
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number".to_string(),
             RuntimeErrorKind::OperandNotString => "Operand must be a string".to_string(),
@@ -122,19 +124,58 @@ impl Interpreter {
         }
     }
 
-    /// Runs `statements` in `environment`, then restores the previous one,
-    /// even on a runtime error, so the REPL never stays in a finished block's scope.
-    fn execute_block(
+    /// Runs `statements` in `environment`.
+    pub fn execute_block(
         &mut self,
         statements: &[Stmt],
         environment: Environment,
     ) -> Result<(), RuntimeError> {
+        self.with_environment(environment, |interpreter| {
+            statements
+                .iter()
+                .try_for_each(|stmt| interpreter.execute(stmt).map(|_| ()))
+        })
+    }
+
+    /// Runs `body` with `environment` as the current scope, then restores the
+    /// previous one, even on a runtime error, so the REPL never stays in a
+    /// finished block's or call's scope.
+    pub fn with_environment<T>(
+        &mut self,
+        environment: Environment,
+        body: impl FnOnce(&mut Self) -> Result<T, RuntimeError>,
+    ) -> Result<T, RuntimeError> {
         let previous = std::mem::replace(&mut self.environment, Rc::new(RefCell::new(environment)));
-        let result = statements
-            .iter()
-            .try_for_each(|stmt| self.execute(stmt).map(|_| ()));
+        let result = body(self);
         self.environment = previous;
         result
+    }
+
+    /// Calls `callee` with already-evaluated `arguments`.
+    ///
+    /// The only place that checks callability and arity, so every kind of
+    /// callable gets the same checks and the same errors.
+    fn call(
+        &mut self,
+        callee: Value,
+        paren: &Token,
+        arguments: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
+        let callable: &dyn Callable = match &callee {
+            Value::Native(native) => native,
+            Value::Function(function) => function.as_ref(),
+            _ => return Err(RuntimeError::new(paren, RuntimeErrorKind::NotCallable)),
+        };
+        if arguments.len() != callable.arity() {
+            return Err(RuntimeError::new(
+                paren,
+                RuntimeErrorKind::ArityMismatch {
+                    expected: callable.arity(),
+                    found: arguments.len(),
+                },
+            ));
+        }
+        callable.call(self, arguments)
     }
 
     /// Evaluates an expression. Operands are evaluated before their operator
@@ -158,7 +199,7 @@ impl Interpreter {
                     .iter()
                     .map(|argument| self.evaluate(argument))
                     .collect::<Result<Vec<_>, _>>()?;
-                call(callee, paren, arguments)
+                self.call(callee, paren, arguments)
             }
             Expr::Unary { operator, right } => {
                 let right = self.evaluate(right)?;
@@ -187,7 +228,12 @@ impl Interpreter {
 
                 Ok(right)
             }
-            Expr::Lambda { .. } => todo!("evaluate lambdas"),
+            // Captures the environment the lambda is created in, not the one
+            // it's later called from, which makes scope lexical.
+            Expr::Lambda(lambda) => Ok(Value::Function(Rc::new(Function {
+                lambda: Rc::clone(lambda),
+                closure: Rc::clone(&self.environment),
+            }))),
             Expr::CompoundAssign {
                 name,
                 operator,
@@ -223,22 +269,6 @@ impl Interpreter {
             }
         }
     }
-}
-
-/// Calls a native function after checking its arity.
-fn call(callee: Value, paren: &Token, arguments: Vec<Value>) -> Result<Value, RuntimeError> {
-    let error = |kind| RuntimeError::new(paren, kind);
-
-    let Value::Native(native) = callee else {
-        return Err(error(RuntimeErrorKind::NotCallable));
-    };
-    if arguments.len() != native.arity() {
-        return Err(error(RuntimeErrorKind::ArityMismatch {
-            expected: native.arity(),
-            found: arguments.len(),
-        }));
-    }
-    Ok(native.call(arguments))
 }
 
 /// Applies a unary operator to an evaluated operand.
@@ -391,7 +421,7 @@ fn is_truthy(val: &Value) -> bool {
         Value::Null => false,
         Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
-        Value::Native(_) => true,
+        Value::Native(_) | Value::Function(_) => true,
     }
 }
 

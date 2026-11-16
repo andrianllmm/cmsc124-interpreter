@@ -2,10 +2,11 @@
 //!
 //! Each rule method follows its rule from the grammar in the README.
 
-use crate::ast::{Expr, LambdaBody, LiteralValue, Program, Stmt};
+use crate::ast::{Expr, Lambda, LambdaBody, LiteralValue, Program, Stmt};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 use std::mem::discriminant;
+use std::rc::Rc;
 
 /// A syntax error encountered while parsing.
 pub struct ParseError {
@@ -321,7 +322,7 @@ impl Parser {
             LambdaBody::Expression(Box::new(self.expression()?))
         };
 
-        Ok(Expr::Lambda { params, body })
+        Ok(Expr::Lambda(Rc::new(Lambda { params, body })))
     }
 
     /// `parameters → IDENTIFIER ( "," IDENTIFIER )*`, then the closing `)`,

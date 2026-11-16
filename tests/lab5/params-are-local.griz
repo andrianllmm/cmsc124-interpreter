@@ -1,0 +1,5 @@
+# A parameter shadows a global of the same name instead of overwriting it.
+x = 1;
+show = x -> print(x);
+show(2);                        # expect: 2
+print(x);                       # expect: 1
