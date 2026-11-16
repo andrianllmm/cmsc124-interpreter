@@ -1,16 +1,12 @@
 //! Prints the syntax tree for `--parse`.
 
-use crate::ast::{Expr, LiteralValue, Stmt};
+use crate::ast::{Expr, LambdaBody, LiteralValue, Stmt};
 
 /// Renders a statement. An expression statement prints as its expression.
 pub fn print_stmt(stmt: &Stmt) -> String {
     match stmt {
         Stmt::Expression(expr) => print(expr),
-        Stmt::Block(statements) => {
-            let mut parts = vec!["block".to_string()];
-            parts.extend(statements.iter().map(print_stmt));
-            format!("({})", parts.join(" "))
-        }
+        Stmt::Block(statements) => print_block(statements),
         Stmt::If {
             condition,
             then_branch,
@@ -25,6 +21,15 @@ pub fn print_stmt(stmt: &Stmt) -> String {
             None => format!("(if {} {})", print(condition), print_stmt(then_branch)),
         },
     }
+}
+
+/// Renders a block as `(block <stmt>...)`, or `(block)` when empty.
+///
+/// Shared by block statements and lambda block bodies, so both print the same way.
+fn print_block(statements: &[Stmt]) -> String {
+    let mut parts = vec!["block".to_string()];
+    parts.extend(statements.iter().map(print_stmt));
+    format!("({})", parts.join(" "))
 }
 
 /// Renders the tree in parenthesized prefix form, e.g. `(+ 1 2)`.
@@ -69,6 +74,16 @@ pub fn print(expr: &Expr) -> String {
             value,
         } => {
             format!("({} {} {})", operator.lexeme(), name.lexeme(), print(value))
+        }
+        // `(lambda (a b) body)`. Parameters are grouped in their own list,
+        // so `()` marks a lambda with none.
+        Expr::Lambda { params, body } => {
+            let params: Vec<&str> = params.iter().map(|p| p.lexeme()).collect();
+            let body = match body {
+                LambdaBody::Expression(expr) => print(expr),
+                LambdaBody::Block(statements) => print_block(statements),
+            };
+            format!("(lambda ({}) {})", params.join(" "), body)
         }
     }
 }

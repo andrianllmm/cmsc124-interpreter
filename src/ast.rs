@@ -61,6 +61,22 @@ pub enum Expr<'a> {
         operator: Token<'a>,
         value: Box<Expr<'a>>,
     },
+    /// An anonymous function: `(params) -> body`.
+    /// Named only by assigning it, e.g. `add = (a, b) -> a + b;`.
+    Lambda {
+        /// Parameter names in order. Empty for `() -> ...`.
+        params: Vec<Token<'a>>,
+        body: LambdaBody<'a>,
+    },
+}
+
+/// What follows a lambda's `->`.
+#[derive(Debug, Clone, PartialEq)]
+pub enum LambdaBody<'a> {
+    /// `x -> expr`, which produces `expr`.
+    Expression(Box<Expr<'a>>),
+    /// `x -> { ... }`, the statements of a block.
+    Block(Vec<Stmt<'a>>),
 }
 
 /// The value of a literal expression.
