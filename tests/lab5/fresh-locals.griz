@@ -1,0 +1,9 @@
+# Each call gets a fresh environment, so `last` from the first call is gone.
+# If locals carried over, the second call would print `seen` instead.
+remember = first -> {
+    if not first { print(last); }
+    last = "seen";
+    print("ok");
+};
+remember(true);                 # expect: ok
+remember(false);                # expect runtime error: Undefined variable 'last'
