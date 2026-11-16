@@ -15,6 +15,12 @@ pub enum Stmt<'a> {
     Expression(Expr<'a>),
     /// Statements between `{` and `}`.
     Block(Vec<Stmt<'a>>),
+    /// `if condition { ... }`, with an optional `else` that is a block or another `if`.
+    If {
+        condition: Expr<'a>,
+        then_branch: Box<Stmt<'a>>,
+        else_branch: Option<Box<Stmt<'a>>>,
+    },
 }
 
 /// An expression node. Borrows from the source through its tokens.
