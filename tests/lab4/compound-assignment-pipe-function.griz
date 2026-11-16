@@ -1,0 +1,1 @@
+x = 1; x |= print;  # expect runtime error: Pipe needs a function
