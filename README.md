@@ -217,6 +217,7 @@ NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the gramm
 - `^` is right-associative and binds tighter than unary `-`: `-2 ^ 2` is `(- (^ 2 2))`.
 - `not` binds looser than comparisons: `not 1 < 2` is `(not (< 1 2))`.
 - `|>` binds looser than `or`: `a or b |> f` is `(|> (or a b) f)`.
+- The target of `=` or `OP=` must be a bare identifier. Anything else, e.g. `1 = 2;` or `(x) = 2;`, is `Invalid assignment target`, a syntax error (exit 65).
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
