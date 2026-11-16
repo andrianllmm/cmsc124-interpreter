@@ -1,0 +1,2 @@
+(= report (lambda () (block (= total 1) (call print total))))
+(= noop (lambda () (block)))

@@ -181,6 +181,7 @@ impl Interpreter {
 
                 Ok(right)
             }
+            Expr::Lambda { .. } => todo!("evaluate lambdas"),
             Expr::CompoundAssign {
                 name,
                 operator,

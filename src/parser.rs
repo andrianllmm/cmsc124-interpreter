@@ -2,7 +2,7 @@
 //!
 //! Each rule method follows its rule from the grammar in the README.
 
-use crate::ast::{Expr, LiteralValue, Program, Stmt};
+use crate::ast::{Expr, LambdaBody, LiteralValue, Program, Stmt};
 use crate::token::{Token, TokenType};
 use std::fmt::{self, Display, Formatter};
 use std::mem::discriminant;
@@ -29,6 +29,8 @@ pub enum ParseErrorKind {
     UnexpectedToken,
     /// An invalid assignment operation
     InvalidAssignTarget,
+    /// A lambda parameter that isn't an identifier, e.g. `(1) -> 1`.
+    MissingParameter,
 }
 
 impl Display for ParseError {
@@ -40,6 +42,7 @@ impl Display for ParseError {
             ParseErrorKind::UnclosedBrace => "Missing '}'",
             ParseErrorKind::UnexpectedToken => "Missing expression",
             ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
+            ParseErrorKind::MissingParameter => "Missing parameter name",
         };
         let location = match &self.found {
             Some(lexeme) => format!("'{}'", lexeme),
@@ -103,7 +106,7 @@ impl<'a> Parser<'a> {
             return self.if_stmt();
         }
         if self.match_token(&[TokenType::LBrace]).is_some() {
-            return self.block();
+            return Ok(Stmt::Block(self.block()?));
         }
         self.expr_stmt()
     }
@@ -136,14 +139,17 @@ impl<'a> Parser<'a> {
     /// A block where the grammar requires one, so a missing `{` is an error.
     fn required_block(&mut self) -> Result<Stmt<'a>, ParseError> {
         self.consume(&TokenType::LBrace, ParseErrorKind::MissingBrace)?;
-        self.block()
+        Ok(Stmt::Block(self.block()?))
     }
 
     /// `block → "{" statement* "}"`, with the `{` already consumed.
     ///
+    /// Returns the bare statements, so each caller wraps them in what it needs:
+    /// a `Stmt::Block`, or a lambda's `LambdaBody::Block`.
+    ///
     /// Recovers from errors inside the block, so its `}` still closes it
     /// instead of being reported as a stray token.
-    fn block(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn block(&mut self) -> Result<Vec<Stmt<'a>>, ParseError> {
         let mut statements = Vec::new();
         while !self.check(&TokenType::RBrace) && !self.is_at_end() {
             match self.statement() {
@@ -158,7 +164,7 @@ impl<'a> Parser<'a> {
             }
         }
         self.consume(&TokenType::RBrace, ParseErrorKind::UnclosedBrace)?;
-        Ok(Stmt::Block(statements))
+        Ok(statements)
     }
 
     /// `exprStmt → expression ";"`
@@ -198,8 +204,14 @@ impl<'a> Parser<'a> {
     }
 
     /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
-    /// | pipe`
+    /// | lambda | pipe`
     fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
+        // Checked before `pipe`, which would otherwise read a lambda's
+        // parameters as a variable or grouping and then trip on the `->`.
+        if self.is_lambda_start() {
+            return self.lambda();
+        }
+
         // parse the left side first
         let mut expr = self.pipe()?;
 
@@ -233,6 +245,89 @@ impl<'a> Parser<'a> {
         }
 
         Ok(expr)
+    }
+
+    /// Whether the upcoming tokens start a lambda: `IDENTIFIER "->"`,
+    /// or a parenthesized list whose matching `)` is followed by `->`.
+    ///
+    /// Looks past the whole `( ... )`, so a malformed parameter list like
+    /// `(1) -> 1` is still parsed as a lambda and reported as one.
+    fn is_lambda_start(&self) -> bool {
+        match self.peek().token_type() {
+            TokenType::Identifier => self.is_arrow_at(self.current + 1),
+            TokenType::LParen => {
+                // Track nesting so a `)` inside the list, e.g. in `(f(a)) -> 1`,
+                // isn't mistaken for the one that closes it.
+                let mut depth = 0;
+                for (i, token) in self.tokens.iter().enumerate().skip(self.current) {
+                    match token.token_type() {
+                        TokenType::LParen => depth += 1,
+                        TokenType::RParen => {
+                            depth -= 1;
+                            if depth == 0 {
+                                return self.is_arrow_at(i + 1);
+                            }
+                        }
+                        // Unclosed `(`: not a lambda. Let grouping report the missing `)`.
+                        TokenType::Eof => return false,
+                        _ => {}
+                    }
+                }
+                false
+            }
+            _ => false,
+        }
+    }
+
+    /// Whether the token at `index` is `->`.
+    fn is_arrow_at(&self, index: usize) -> bool {
+        self.tokens
+            .get(index)
+            .is_some_and(|t| matches!(t.token_type(), TokenType::LambdaArrow))
+    }
+
+    /// `lambda → ( IDENTIFIER | "(" parameters? ")" ) "->" ( expression | block )`
+    ///
+    /// Only called after `is_lambda_start`, so the parameters and `->` are known to be there
+    /// unless the parameter list itself is malformed.
+    fn lambda(&mut self) -> Result<Expr<'a>, ParseError> {
+        // `(a, b) -> ...` or the paren-less single-parameter form `x -> ...`.
+        let params = if self.match_token(&[TokenType::LParen]).is_some() {
+            self.parameters()?
+        } else {
+            vec![self.consume(&TokenType::Identifier, ParseErrorKind::MissingParameter)?]
+        };
+        self.consume(&TokenType::LambdaArrow, ParseErrorKind::UnexpectedToken)?;
+
+        // A `{` right after `->` always starts a block body. Otherwise the body is
+        // a full expression, so it extends as far right as possible:
+        // `x -> x + 1` is `x -> (x + 1)`, not `(x -> x) + 1`.
+        let body = if self.match_token(&[TokenType::LBrace]).is_some() {
+            LambdaBody::Block(self.block()?)
+        } else {
+            LambdaBody::Expression(Box::new(self.expression()?))
+        };
+
+        Ok(Expr::Lambda { params, body })
+    }
+
+    /// `parameters → IDENTIFIER ( "," IDENTIFIER )*`, then the closing `)`,
+    /// with the `(` already consumed.
+    fn parameters(&mut self) -> Result<Vec<Token<'a>>, ParseError> {
+        let mut params = Vec::new();
+        // `()` takes no parameters. Otherwise every `,` must be followed by a
+        // name, so a trailing comma like `(a, )` is an error.
+        if !self.check(&TokenType::RParen) {
+            loop {
+                params
+                    .push(self.consume(&TokenType::Identifier, ParseErrorKind::MissingParameter)?);
+                if self.match_token(&[TokenType::Comma]).is_none() {
+                    break;
+                }
+            }
+        }
+        self.consume(&TokenType::RParen, ParseErrorKind::UnclosedParen)?;
+        Ok(params)
     }
 
     /// `pipe → logicOr ( "|>" logicOr )*`
