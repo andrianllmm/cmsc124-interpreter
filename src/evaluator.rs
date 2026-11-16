@@ -113,6 +113,12 @@ impl Interpreter {
                 }
                 Ok(None)
             }
+            Stmt::While {
+                condition: _,
+                body: _,
+            } => {
+                todo!("add while evaluator arm")
+            }
         }
     }
 
