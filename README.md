@@ -191,7 +191,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - Blocks nest to any depth and can appear anywhere a statement can
 - `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
-NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the grammar but not parsed yet.
+NOTE: `if` and `while` are in the grammar but not parsed yet.
 
 ## Parse output format
 
@@ -203,6 +203,7 @@ NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the gramm
 
 - Groupings print as: `(group <expr>)`
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
+- Assignments print as: `(= x 1)`, compound ones with their operator, `(+= x 1)`. Chains nest to the right: `a = b = 2` is `(= a (= b 2))`
 - Integers print as written: `2`
 - Floats always keep a decimal point: `3.0`, never `3`
 - Strings print quoted and escaped: `"hi\n"`
@@ -216,6 +217,7 @@ NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the gramm
 - `^` is right-associative and binds tighter than unary `-`: `-2 ^ 2` is `(- (^ 2 2))`.
 - `not` binds looser than comparisons: `not 1 < 2` is `(not (< 1 2))`.
 - `|>` binds looser than `or`: `a or b |> f` is `(|> (or a b) f)`.
+- The target of `=` or `OP=` must be a bare identifier. Anything else, e.g. `1 = 2;` or `(x) = 2;`, is `Invalid assignment target`, a syntax error (exit 65).
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
@@ -302,8 +304,12 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Mutability: every binding is mutable, and both its value and its type can change, e.g. `x = 1; x = "a";`
 - Binding time: a name is bound to storage and a value when its first assignment runs. Types are bound at runtime
 - Storage lifetime: top-level bindings are static and last the whole program, or the whole REPL session. Block bindings are stack-dynamic: their storage begins at the first assignment in the block and ends when the block exits
+- Leaving a block: the enclosing scope is restored however the block exits, including on a runtime error, so the REPL keeps working in the outer scope. A block is a statement and produces no value, so the REPL prints nothing for it
 - Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
 - A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
+- Compound assignment: `x OP= v` means `x = x OP v` for `+= -= *= /=`, with the same errors as the plain operator. It reads `x` first, so it needs an existing binding and never creates one: `y += 1;` with no `y` is `Undefined variable 'y'` (exit 70). It produces the new value
+- `|=`: a runtime error (exit 70), `Pipe needs a function`, until functions exist in Lab 5
+- Natives: bound as ordinary globals, so assignment can rebind them. After `print = 1;`, `print(2);` is `Can only call functions` (exit 70)
 
 ### Control flow and functions
 
