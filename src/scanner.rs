@@ -40,10 +40,10 @@ impl Display for ScanError {
     }
 }
 
-/// Scans source into tokens that borrow their lexemes from it.
+/// Scans source into tokens. Borrows the source only while scanning.
 pub struct Scanner<'a> {
     source: &'a str,
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Token>,
     errors: Vec<ScanError>,
     /// Byte offset where the current lexeme starts.
     start: usize,
@@ -67,7 +67,8 @@ impl<'a> Scanner<'a> {
     /// Scans the whole source into tokens ending with `Eof`.
     ///
     /// Returns every lexical error found, not just the first.
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'a>>, &Vec<ScanError>> {
+    /// Consumes the scanner, so the tokens are handed over without a copy.
+    pub fn scan_tokens(mut self) -> Result<Vec<Token>, Vec<ScanError>> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -76,9 +77,9 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token::new(TokenType::Eof, "", self.line));
 
         if self.errors.is_empty() {
-            Ok(&self.tokens)
+            Ok(self.tokens)
         } else {
-            Err(&self.errors)
+            Err(self.errors)
         }
     }
 

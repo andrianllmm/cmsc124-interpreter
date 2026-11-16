@@ -59,19 +59,21 @@ pub enum TokenType {
     Eof,
 }
 
-/// A lexeme borrowed from the source, with its type and line.
+/// A lexeme copied out of the source, with its type and line.
+///
+/// Owns its text, so the syntax tree doesn't depend on the source staying alive.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token<'a> {
+pub struct Token {
     token_type: TokenType,
-    lexeme: &'a str,
+    lexeme: String,
     line: u32,
 }
 
-impl<'a> Token<'a> {
-    pub fn new(token_type: TokenType, lexeme: &'a str, line: u32) -> Token<'a> {
+impl Token {
+    pub fn new(token_type: TokenType, lexeme: &str, line: u32) -> Token {
         Token {
             token_type,
-            lexeme,
+            lexeme: lexeme.to_string(),
             line,
         }
     }
@@ -81,7 +83,7 @@ impl<'a> Token<'a> {
     }
 
     pub fn lexeme(&self) -> &str {
-        self.lexeme
+        &self.lexeme
     }
 
     pub fn line(&self) -> u32 {
@@ -160,7 +162,7 @@ impl TokenType {
     }
 }
 
-impl<'a> Display for Token<'a> {
+impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(
             f,

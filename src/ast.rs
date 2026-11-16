@@ -4,83 +4,77 @@ use crate::token::Token;
 
 /// The root of the tree: every statement in source order.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Program<'a> {
-    pub statements: Vec<Stmt<'a>>,
+pub struct Program {
+    pub statements: Vec<Stmt>,
 }
 
 /// A statement node. Runs for its effect rather than its value.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Stmt<'a> {
+pub enum Stmt {
     /// An expression followed by `;`.
-    Expression(Expr<'a>),
+    Expression(Expr),
     /// Statements between `{` and `}`.
-    Block(Vec<Stmt<'a>>),
+    Block(Vec<Stmt>),
     /// `if condition { ... }`, with an optional `else` that is a block or another `if`.
     If {
-        condition: Expr<'a>,
-        then_branch: Box<Stmt<'a>>,
-        else_branch: Option<Box<Stmt<'a>>>,
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
     },
     While {
-        condition: Expr<'a>,
-        body: Box<Stmt<'a>>,
+        condition: Expr,
+        body: Box<Stmt>,
     },
 }
 
-/// An expression node. Borrows from the source through its tokens.
+/// An expression node.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr<'a> {
+pub enum Expr {
     /// A number, string, boolean, or `null`.
     Literal { value: LiteralValue, line: u32 },
     /// A binary operation: `left operator right`.
     Binary {
-        left: Box<Expr<'a>>,
-        operator: Token<'a>,
-        right: Box<Expr<'a>>,
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
     },
     /// A unary operation: `operator right`.
-    Unary {
-        operator: Token<'a>,
-        right: Box<Expr<'a>>,
-    },
+    Unary { operator: Token, right: Box<Expr> },
     /// A parenthesized expression.
-    Grouping { expression: Box<Expr<'a>> },
+    Grouping { expression: Box<Expr> },
     /// A name, read from the environment.
-    Variable { name: Token<'a> },
+    Variable { name: Token },
     /// A call: `callee(arguments)`.
     Call {
-        callee: Box<Expr<'a>>,
+        callee: Box<Expr>,
         /// The closing `)`, so errors can point at the call's line.
-        paren: Token<'a>,
-        arguments: Vec<Expr<'a>>,
+        paren: Token,
+        arguments: Vec<Expr>,
     },
     /// A assignment to a variable
-    Assign {
-        name: Token<'a>,
-        value: Box<Expr<'a>>,
-    },
+    Assign { name: Token, value: Box<Expr> },
     /// Compound assignments
     CompoundAssign {
-        name: Token<'a>,
-        operator: Token<'a>,
-        value: Box<Expr<'a>>,
+        name: Token,
+        operator: Token,
+        value: Box<Expr>,
     },
     /// An anonymous function: `(params) -> body`.
     /// Named only by assigning it, e.g. `add = (a, b) -> a + b;`.
     Lambda {
         /// Parameter names in order. Empty for `() -> ...`.
-        params: Vec<Token<'a>>,
-        body: LambdaBody<'a>,
+        params: Vec<Token>,
+        body: LambdaBody,
     },
 }
 
 /// What follows a lambda's `->`.
 #[derive(Debug, Clone, PartialEq)]
-pub enum LambdaBody<'a> {
+pub enum LambdaBody {
     /// `x -> expr`, which produces `expr`.
-    Expression(Box<Expr<'a>>),
+    Expression(Box<Expr>),
     /// `x -> { ... }`, the statements of a block.
-    Block(Vec<Stmt<'a>>),
+    Block(Vec<Stmt>),
 }
 
 /// The value of a literal expression.

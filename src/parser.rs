@@ -57,20 +57,16 @@ impl Display for ParseError {
 }
 
 /// Parses the scanner's tokens, which must end with `Eof`.
-pub struct Parser<'a> {
-    tokens: Vec<Token<'a>>,
-    program: Program<'a>,
+pub struct Parser {
+    tokens: Vec<Token>,
     errors: Vec<ParseError>,
     current: usize,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(tokens: Vec<Token<'a>>) -> Parser<'a> {
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
         Parser {
             tokens,
-            program: Program {
-                statements: Vec::new(),
-            },
             errors: Vec::new(),
             current: 0,
         }
@@ -82,10 +78,12 @@ impl<'a> Parser<'a> {
     ///
     /// On a syntax error, skips to the next statement boundary and keeps going,
     /// so every error in the source is reported at once.
-    pub fn parse(&mut self) -> Result<&Program<'a>, &Vec<ParseError>> {
+    /// Consumes the parser, so the tree is handed over without a copy.
+    pub fn parse(mut self) -> Result<Program, Vec<ParseError>> {
+        let mut statements = Vec::new();
         while !self.is_at_end() {
             match self.statement() {
-                Ok(stmt) => self.program.statements.push(stmt),
+                Ok(stmt) => statements.push(stmt),
                 Err(error) => {
                     self.errors.push(error);
                     self.synchronize();
@@ -94,14 +92,14 @@ impl<'a> Parser<'a> {
         }
 
         if self.errors.is_empty() {
-            Ok(&self.program)
+            Ok(Program { statements })
         } else {
-            Err(&self.errors)
+            Err(self.errors)
         }
     }
 
     /// `statement → exprStmt | ifStmt | block`
-    fn statement(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenType::If]).is_some() {
             return self.if_stmt();
         }
@@ -118,7 +116,7 @@ impl<'a> Parser<'a> {
     /// with the `if` already consumed.
     ///
     /// Branches must be blocks, so there is no dangling `else`.
-    fn if_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn if_stmt(&mut self) -> Result<Stmt, ParseError> {
         let condition = self.expression()?;
         let then_branch = self.required_block()?;
 
@@ -141,7 +139,7 @@ impl<'a> Parser<'a> {
 
     /// `whileStmt → "while" expression block`,
     /// with the while already consumed.
-    fn while_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn while_stmt(&mut self) -> Result<Stmt, ParseError> {
         let condition = self.expression()?;
         let body = self.required_block()?;
 
@@ -152,7 +150,7 @@ impl<'a> Parser<'a> {
     }
 
     /// A block where the grammar requires one, so a missing `{` is an error.
-    fn required_block(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn required_block(&mut self) -> Result<Stmt, ParseError> {
         self.consume(&TokenType::LBrace, ParseErrorKind::MissingBrace)?;
         Ok(Stmt::Block(self.block()?))
     }
@@ -164,7 +162,7 @@ impl<'a> Parser<'a> {
     ///
     /// Recovers from errors inside the block, so its `}` still closes it
     /// instead of being reported as a stray token.
-    fn block(&mut self) -> Result<Vec<Stmt<'a>>, ParseError> {
+    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = Vec::new();
         while !self.check(&TokenType::RBrace) && !self.is_at_end() {
             match self.statement() {
@@ -183,7 +181,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `exprStmt → expression ";"`
-    fn expr_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
+    fn expr_stmt(&mut self) -> Result<Stmt, ParseError> {
         let expr = self.expression()?;
         self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
         Ok(Stmt::Expression(expr))
@@ -214,13 +212,13 @@ impl<'a> Parser<'a> {
     }
 
     /// `expression → assignment`
-    fn expression(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn expression(&mut self) -> Result<Expr, ParseError> {
         self.assignment()
     }
 
     /// `assignment → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
     /// | lambda | pipe`
-    fn assignment(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
         // Checked before `pipe`, which would otherwise read a lambda's
         // parameters as a variable or grouping and then trip on the `->`.
         if self.is_lambda_start() {
@@ -239,9 +237,9 @@ impl<'a> Parser<'a> {
             TokenType::PipeAssign,
         ]) {
             let op_token = self.peek().clone();
-            let name_token = match expr.clone() {
-                Expr::Variable { name: token_name } => token_name,
-                _ => return Err(self.error(ParseErrorKind::InvalidAssignTarget)),
+            // Moves the target out instead of copying it. `expr` is reassigned below.
+            let Expr::Variable { name: name_token } = expr else {
+                return Err(self.error(ParseErrorKind::InvalidAssignTarget));
             };
             self.advance();
             let right = self.assignment()?;
@@ -305,7 +303,7 @@ impl<'a> Parser<'a> {
     ///
     /// Only called after `is_lambda_start`, so the parameters and `->` are known to be there
     /// unless the parameter list itself is malformed.
-    fn lambda(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn lambda(&mut self) -> Result<Expr, ParseError> {
         // `(a, b) -> ...` or the paren-less single-parameter form `x -> ...`.
         let params = if self.match_token(&[TokenType::LParen]).is_some() {
             self.parameters()?
@@ -328,7 +326,7 @@ impl<'a> Parser<'a> {
 
     /// `parameters → IDENTIFIER ( "," IDENTIFIER )*`, then the closing `)`,
     /// with the `(` already consumed.
-    fn parameters(&mut self) -> Result<Vec<Token<'a>>, ParseError> {
+    fn parameters(&mut self) -> Result<Vec<Token>, ParseError> {
         let mut params = Vec::new();
         // `()` takes no parameters. Otherwise every `,` must be followed by a
         // name, so a trailing comma like `(a, )` is an error.
@@ -346,7 +344,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `pipe → logicOr ( "|>" logicOr )*`
-    fn pipe(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn pipe(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.logic_or()?;
 
         while let Some(operator) = self.match_token(&[TokenType::Pipe]) {
@@ -362,7 +360,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `logicOr → logicAnd ( "or" logicAnd )*`
-    fn logic_or(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn logic_or(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.logic_and()?;
 
         while let Some(operator) = self.match_token(&[TokenType::Or]) {
@@ -378,7 +376,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `logicAnd → logicNot ( "and" logicNot )*`
-    fn logic_and(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn logic_and(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.logic_not()?;
 
         while let Some(operator) = self.match_token(&[TokenType::And]) {
@@ -394,7 +392,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `logicNot → "not" logicNot | comparison`
-    fn logic_not(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn logic_not(&mut self) -> Result<Expr, ParseError> {
         if let Some(operator) = self.match_token(&[TokenType::Not]) {
             let right = self.logic_not()?;
             let expr = Expr::Unary {
@@ -408,7 +406,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `comparison → term ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) term )?`
-    fn comparison(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.term()?;
 
         // `if`, not `while`: comparisons don't chain, so `1 < 2 < 3` is a syntax error.
@@ -432,7 +430,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `term → factor ( ( "+" | "-" | "++" ) factor )*`
-    fn term(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn term(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.factor()?;
 
         while let Some(operator) =
@@ -450,7 +448,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `factor → unary ( ( "*" | "/" | "%" ) unary )*`
-    fn factor(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn factor(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.unary()?;
 
         while let Some(operator) =
@@ -468,7 +466,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `unary → "-" unary | exponent`
-    fn unary(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if let Some(operator) = self.match_token(&[TokenType::Subtract]) {
             let right = self.unary()?;
             let expr = Expr::Unary {
@@ -482,7 +480,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `exponent → call ( "^" unary )?`
-    fn exponent(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn exponent(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.call()?;
 
         if let Some(operator) = self.match_token(&[TokenType::Exponent]) {
@@ -499,7 +497,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `call → primary ( "(" arguments? ")" )*`
-    fn call(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary()?;
 
         while self.match_token(&[TokenType::LParen]).is_some() {
@@ -510,7 +508,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `arguments → expression ( "," expression )*`, then the closing `)`.
-    fn finish_call(&mut self, callee: Expr<'a>) -> Result<Expr<'a>, ParseError> {
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
         let mut arguments = Vec::new();
         if !self.check(&TokenType::RParen) {
             loop {
@@ -531,7 +529,7 @@ impl<'a> Parser<'a> {
 
     /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
     /// | IDENTIFIER | "(" expression ")"`
-    fn primary(&mut self) -> Result<Expr<'a>, ParseError> {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.peek().clone();
 
         let value = match token.token_type() {
@@ -570,14 +568,14 @@ impl<'a> Parser<'a> {
     }
 
     /// Returns the current token without consuming it.
-    fn peek(&self) -> &Token<'a> {
+    fn peek(&self) -> &Token {
         &self.tokens[self.current]
     }
 
     /// Consumes and returns the current token.
     ///
     /// Stays on EOF so `peek` never goes out of bounds.
-    fn advance(&mut self) -> &Token<'a> {
+    fn advance(&mut self) -> &Token {
         let token = &self.tokens[self.current];
         if !self.is_at_end() {
             self.current += 1;
@@ -610,7 +608,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Consumes and returns the current token if it's one of `token_types`.
-    fn match_token(&mut self, token_types: &[TokenType]) -> Option<Token<'a>> {
+    fn match_token(&mut self, token_types: &[TokenType]) -> Option<Token> {
         for token_type in token_types {
             if self.check(token_type) {
                 return Some(self.advance().clone());
@@ -625,7 +623,7 @@ impl<'a> Parser<'a> {
         &mut self,
         token_type: &TokenType,
         kind: ParseErrorKind,
-    ) -> Result<Token<'a>, ParseError> {
+    ) -> Result<Token, ParseError> {
         if self.check(token_type) {
             Ok(self.advance().clone())
         } else {
