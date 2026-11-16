@@ -203,6 +203,7 @@ NOTE: Blocks are parsed but not evaluated yet. `if` and `while` are in the gramm
 
 - Groupings print as: `(group <expr>)`
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
+- Assignments print as: `(= x 1)`, compound ones with their operator, `(+= x 1)`. Chains nest to the right: `a = b = 2` is `(= a (= b 2))`
 - Integers print as written: `2`
 - Floats always keep a decimal point: `3.0`, never `3`
 - Strings print quoted and escaped: `"hi\n"`
