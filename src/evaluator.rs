@@ -124,17 +124,29 @@ impl Interpreter {
         }
     }
 
-    /// Runs `statements` in `environment`, then restores the previous one,
-    /// even on a runtime error, so the REPL never stays in a finished block's scope.
-    fn execute_block(
+    /// Runs `statements` in `environment`.
+    pub fn execute_block(
         &mut self,
         statements: &[Stmt],
         environment: Environment,
     ) -> Result<(), RuntimeError> {
+        self.with_environment(environment, |interpreter| {
+            statements
+                .iter()
+                .try_for_each(|stmt| interpreter.execute(stmt).map(|_| ()))
+        })
+    }
+
+    /// Runs `body` with `environment` as the current scope, then restores the
+    /// previous one, even on a runtime error, so the REPL never stays in a
+    /// finished block's or call's scope.
+    pub fn with_environment<T>(
+        &mut self,
+        environment: Environment,
+        body: impl FnOnce(&mut Self) -> Result<T, RuntimeError>,
+    ) -> Result<T, RuntimeError> {
         let previous = std::mem::replace(&mut self.environment, Rc::new(RefCell::new(environment)));
-        let result = statements
-            .iter()
-            .try_for_each(|stmt| self.execute(stmt).map(|_| ()));
+        let result = body(self);
         self.environment = previous;
         result
     }
