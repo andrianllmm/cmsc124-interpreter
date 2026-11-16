@@ -1,0 +1,21 @@
+# Running total for a shopping trip.
+# `total` lives outside, so every block adds to the same one.
+# `cost` is first assigned inside each block, so it's local and gone after.
+
+total = 0;
+
+{
+    cost = 45 * 3;       # bread
+    total += cost;
+}
+
+{
+    cost = 18 * 6;       # eggs
+    {
+        cost -= 18;      # one free: updates this block's cost
+    }
+    total += cost;
+}
+
+print(total);                       # expect: 225
+print(total += total * 12 / 100);   # expect: 252
