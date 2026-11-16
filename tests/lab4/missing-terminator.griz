@@ -1,1 +1,1 @@
-print(1 + 1)    # expect error:
+print(1 + 1)    # expect error: Missing ';' at end
