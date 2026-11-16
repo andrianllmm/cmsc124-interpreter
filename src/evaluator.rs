@@ -214,7 +214,7 @@ impl Interpreter {
 
                 Ok(right)
             }
-            Expr::Lambda { .. } => todo!("evaluate lambdas"),
+            Expr::Lambda(_) => todo!("evaluate lambdas"),
             Expr::CompoundAssign {
                 name,
                 operator,

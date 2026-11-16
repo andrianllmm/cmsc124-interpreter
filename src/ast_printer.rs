@@ -80,9 +80,9 @@ pub fn print(expr: &Expr) -> String {
         }
         // `(lambda (a b) body)`. Parameters are grouped in their own list,
         // so `()` marks a lambda with none.
-        Expr::Lambda { params, body } => {
-            let params: Vec<&str> = params.iter().map(|p| p.lexeme()).collect();
-            let body = match body {
+        Expr::Lambda(lambda) => {
+            let params: Vec<&str> = lambda.params.iter().map(|p| p.lexeme()).collect();
+            let body = match &lambda.body {
                 LambdaBody::Expression(expr) => print(expr),
                 LambdaBody::Block(statements) => print_block(statements),
             };

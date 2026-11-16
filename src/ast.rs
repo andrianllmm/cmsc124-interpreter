@@ -1,6 +1,7 @@
 //! Syntax tree built by the parser.
 
 use crate::token::Token;
+use std::rc::Rc;
 
 /// The root of the tree: every statement in source order.
 #[derive(Debug, Clone, PartialEq)]
@@ -61,15 +62,21 @@ pub enum Expr {
     },
     /// An anonymous function: `(params) -> body`.
     /// Named only by assigning it, e.g. `add = (a, b) -> a + b;`.
-    Lambda {
-        /// Parameter names in order. Empty for `() -> ...`.
-        params: Vec<Token>,
-        body: LambdaBody,
-    },
+    ///
+    /// Behind an `Rc` so a function value can share the node instead of copying it.
+    Lambda(Rc<Lambda>),
+}
+
+/// A lambda's parameters and body.
+#[derive(Debug, PartialEq)]
+pub struct Lambda {
+    /// Parameter names in order. Empty for `() -> ...`.
+    pub params: Vec<Token>,
+    pub body: LambdaBody,
 }
 
 /// What follows a lambda's `->`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum LambdaBody {
     /// `x -> expr`, which produces `expr`.
     Expression(Box<Expr>),
