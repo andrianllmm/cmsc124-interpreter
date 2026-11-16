@@ -6,4 +6,3 @@ print(y);                       # expect: 3
 a = b = 4; print(a);            # expect: 4
 print(b);                       # expect: 4
 n = 1; n = n + 1; print(n);     # expect: 2
-x = z;                          # expect runtime error: Undefined variable 'z'

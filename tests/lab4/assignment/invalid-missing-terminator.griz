@@ -1,0 +1,2 @@
+x = 1   # expect error: Missing ';' at 'print'
+print(x);
