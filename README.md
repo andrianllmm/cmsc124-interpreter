@@ -360,7 +360,7 @@ Planned for Lab 5, not built yet: `return`, list literals and `for x in list { .
 | `to_int`    | 1, `Str`  | `Int`   | Parses an integer; unparseable input is a runtime error (planned, Lab 5) |
 | `to_float`  | 1, `Str`  | `Float` | Parses a float; unparseable input is a runtime error (planned, Lab 5)    |
 
-Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression.
+Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression, except a call that returns `null`, so `print(5);` prints `5` once instead of `5` then `null`. `--eval` follows the same rule.
 
 ## Errors and diagnostics
 
