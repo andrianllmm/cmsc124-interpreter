@@ -159,15 +159,46 @@ impl Interpreter {
                 let right = self.evaluate(right)?;
                 binary(left, operator, right)
             }
-            Expr::Assign { name: _, value: _ } => {
-                todo!("add assign features")
+            Expr::Assign { name, value } => {
+                let right = self.evaluate(value)?;
+                let mut env = self.environment.borrow_mut();
+
+                env.set(name.lexeme(), right.clone());
+
+                Ok(right)
             }
             Expr::CompoundAssign {
-                name: _,
-                operator: _,
-                value: _,
+                name,
+                operator,
+                value,
             } => {
-                todo!("add compound assign features")
+                let env = self.environment.clone();
+                let var = env.borrow().get(name.lexeme());
+
+                // temporary check for Pipe Assign until lab5 is implemented
+                if *operator.token_type() == TokenType::PipeAssign {
+                    return Err(RuntimeError {
+                        token: operator.clone(),
+                        kind: RuntimeErrorKind::PipeUnsupported,
+                    });
+                }
+
+                let new_val = match var {
+                    None => {
+                        return Err(RuntimeError {
+                            token: name.clone(),
+                            kind: RuntimeErrorKind::UndefinedVariable,
+                        });
+                    }
+                    Some(val) => {
+                        let right = self.evaluate(value)?;
+                        binary(val, operator, right)?
+                    }
+                };
+
+                env.borrow_mut().set(name.lexeme(), new_val.clone());
+
+                Ok(new_val)
             }
         }
     }
@@ -253,15 +284,15 @@ fn arithmetic(operator: &Token, numbers: Numbers) -> Result<Value, RuntimeErrorK
 /// Applies an arithmetic operator to `Int`s, erroring instead of overflowing.
 fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorKind> {
     let result = match operator.token_type() {
-        TokenType::Add => n.checked_add(m),
-        TokenType::Subtract => n.checked_sub(m),
-        TokenType::Multiply => n.checked_mul(m),
+        TokenType::Add | TokenType::AddAssign => n.checked_add(m),
+        TokenType::Subtract | TokenType::SubAssign => n.checked_sub(m),
+        TokenType::Multiply | TokenType::MulAssign => n.checked_mul(m),
         // `Int` has no infinity, so dividing by zero is an error.
-        TokenType::Divide | TokenType::Modulo if m == 0 => {
+        TokenType::Divide | TokenType::Modulo | TokenType::DivAssign if m == 0 => {
             return Err(RuntimeErrorKind::DivisionByZero);
         }
         // Only `Int::MIN / -1` is left to overflow.
-        TokenType::Divide => n.checked_div(m),
+        TokenType::Divide | TokenType::DivAssign => n.checked_div(m),
         TokenType::Modulo => n.checked_rem(m),
         // A negative exponent would need a fraction, which `Int` can't hold.
         TokenType::Exponent if m < 0 => return Err(RuntimeErrorKind::NegativeExponent),
@@ -275,10 +306,10 @@ fn int_arithmetic(operator: &Token, n: i64, m: i64) -> Result<i64, RuntimeErrorK
 /// Can't fail: dividing by zero gives `inf` or `NaN`, e.g. `1.0 / 0` is `inf`.
 fn float_arithmetic(operator: &Token, n: f64, m: f64) -> f64 {
     match operator.token_type() {
-        TokenType::Add => n + m,
-        TokenType::Subtract => n - m,
-        TokenType::Multiply => n * m,
-        TokenType::Divide => n / m,
+        TokenType::Add | TokenType::AddAssign => n + m,
+        TokenType::Subtract | TokenType::SubAssign => n - m,
+        TokenType::Multiply | TokenType::MulAssign => n * m,
+        TokenType::Divide | TokenType::DivAssign => n / m,
         TokenType::Modulo => n % m,
         TokenType::Exponent => n.powf(m),
         _ => unreachable!("only called for arithmetic operators"),
