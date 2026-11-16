@@ -304,6 +304,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Mutability: every binding is mutable, and both its value and its type can change, e.g. `x = 1; x = "a";`
 - Binding time: a name is bound to storage and a value when its first assignment runs. Types are bound at runtime
 - Storage lifetime: top-level bindings are static and last the whole program, or the whole REPL session. Block bindings are stack-dynamic: their storage begins at the first assignment in the block and ends when the block exits
+- Leaving a block: the enclosing scope is restored however the block exits, including on a runtime error, so the REPL keeps working in the outer scope. A block is a statement and produces no value, so the REPL prints nothing for it
 - Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
 - A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
 - Compound assignment: `x OP= v` means `x = x OP v` for `+= -= *= /=`, with the same errors as the plain operator. It reads `x` first, so it needs an existing binding and never creates one: `y += 1;` with no `y` is `Undefined variable 'y'` (exit 70). It produces the new value
