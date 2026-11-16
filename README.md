@@ -236,37 +236,44 @@ NOTE: `while` is parsed but not evaluated yet.
 
 ### Values and types
 
-| Type    | Host representation  |
-| ------- | -------------------- |
-| `Int`   | `Value::Int(i64)`    |
-| `Float` | `Value::Float(f64)`  |
-| `Str`   | `Value::Str(String)` |
-| `Bool`  | `Value::Bool(bool)`  |
-| `Null`  | `Value::Null`        |
+| Type       | Host representation             |
+| ---------- | ------------------------------- |
+| `Int`      | `Value::Int(i64)`               |
+| `Float`    | `Value::Float(f64)`             |
+| `Str`      | `Value::Str(String)`            |
+| `Bool`     | `Value::Bool(bool)`             |
+| `Null`     | `Value::Null`                   |
+| native     | `Value::Native(Native)`         |
+| `Function` | `Value::Function(Rc<Function>)` |
 
 Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, matching on the variant tells the evaluator what it has, and the compiler flags a `match` that forgets a type.
 
+A `Function` is a lambda turned into a value: its parameters, its body, and the environment it was created in. It's behind an `Rc`, so copying the value shares the same function. Natives and functions both implement one `Callable` trait (`arity` and `call`), so a call checks callability and arity in one place for both.
+
 ### Value printing
 
-| Type    | Prints as                              | Example              |
-| ------- | -------------------------------------- | -------------------- |
-| `Int`   | as written                             | `5`                  |
-| `Float` | always with a decimal point            | `5.0`, never `5`     |
-|         | exponent form when very large or small | `1e20`, `1e-7`       |
-|         | non-finite values by name              | `inf`, `-inf`, `NaN` |
-| `Str`   | without quotes                         | `"hi"` prints `hi`   |
-| `Bool`  | its keyword                            | `true`, `false`      |
-| `Null`  | its keyword                            | `null`               |
+| Type       | Prints as                              | Example              |
+| ---------- | -------------------------------------- | -------------------- |
+| `Int`      | as written                             | `5`                  |
+| `Float`    | always with a decimal point            | `5.0`, never `5`     |
+|            | exponent form when very large or small | `1e20`, `1e-7`       |
+|            | non-finite values by name              | `inf`, `-inf`, `NaN` |
+| `Str`      | without quotes                         | `"hi"` prints `hi`   |
+| `Bool`     | its keyword                            | `true`, `false`      |
+| `Null`     | its keyword                            | `null`               |
+| native     | its name                               | `<native fn print>`  |
+| `Function` | a placeholder                          | `<fn>`               |
 
 ### Truthiness
 
-| Type    | Falsey        | Truthy                        |
-| ------- | ------------- | ----------------------------- |
-| `Int`   | `0`           | any other `Int`               |
-| `Float` | `0.0`, `-0.0` | any other `Float`, even `NaN` |
-| `Str`   | `""`          | any non-empty `Str`           |
-| `Bool`  | `false`       | `true`                        |
-| `Null`  | `null`        | never                         |
+| Type                 | Falsey        | Truthy                        |
+| -------------------- | ------------- | ----------------------------- |
+| `Int`                | `0`           | any other `Int`               |
+| `Float`              | `0.0`, `-0.0` | any other `Float`, even `NaN` |
+| `Str`                | `""`          | any non-empty `Str`           |
+| `Bool`               | `false`       | `true`                        |
+| `Null`               | `null`        | never                         |
+| native, `Function`   | never         | always                        |
 
 ### Operator semantics
 
@@ -297,6 +304,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Operands: any types, never an error
 - `Int` and `Float` compare by value, so `1 == 1.0` is `true`
 - Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
+- Functions are equal only to themselves: after `g = f;`, `g == f` is `true`, but two separately written `x -> x` are unequal
 - Mixed types are unequal, so `1 == "1"` is `false`
 
 #### Logical: `and or not`
