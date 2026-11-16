@@ -13,6 +13,7 @@ mod ast_printer;
 mod callable;
 mod environment;
 mod evaluator;
+mod function;
 mod keyword;
 mod native;
 mod parser;

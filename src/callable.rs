@@ -4,7 +4,7 @@
 use crate::evaluator::{Interpreter, RuntimeError};
 use crate::value::Value;
 
-/// Something a call expression can invoke, e.g. a native like `print`.
+/// Something a call expression can invoke: a native like `print`, or a `Function`.
 pub trait Callable {
     /// How many arguments a call must pass.
     fn arity(&self) -> usize;

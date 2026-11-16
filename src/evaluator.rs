@@ -3,6 +3,7 @@
 use crate::ast::{Expr, Stmt};
 use crate::callable::Callable;
 use crate::environment::Environment;
+use crate::function::Function;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
@@ -150,6 +151,7 @@ impl Interpreter {
     ) -> Result<Value, RuntimeError> {
         let callable: &dyn Callable = match &callee {
             Value::Native(native) => native,
+            Value::Function(function) => function.as_ref(),
             _ => return Err(RuntimeError::new(paren, RuntimeErrorKind::NotCallable)),
         };
         if arguments.len() != callable.arity() {
@@ -214,7 +216,12 @@ impl Interpreter {
 
                 Ok(right)
             }
-            Expr::Lambda(_) => todo!("evaluate lambdas"),
+            // Captures the environment the lambda is created in, not the one
+            // it's later called from, which makes scope lexical.
+            Expr::Lambda(lambda) => Ok(Value::Function(Rc::new(Function {
+                lambda: Rc::clone(lambda),
+                closure: Rc::clone(&self.environment),
+            }))),
             Expr::CompoundAssign {
                 name,
                 operator,
@@ -402,7 +409,7 @@ fn is_truthy(val: &Value) -> bool {
         Value::Null => false,
         Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
-        Value::Native(_) => true,
+        Value::Native(_) | Value::Function(_) => true,
     }
 }
 
