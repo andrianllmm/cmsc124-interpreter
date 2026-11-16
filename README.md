@@ -155,7 +155,12 @@ block       → "{" statement* "}"
 expression  → assignment
 
 assignment  → IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "|=" ) assignment
+            | lambda
             | pipe
+
+lambda      → ( IDENTIFIER | "(" parameters? ")" ) "->" ( expression | block )
+
+parameters  → IDENTIFIER ( "," IDENTIFIER )*
 
 pipe        → logicOr ( "|>" logicOr )*
 
@@ -188,6 +193,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 
 - Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
 - A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
+- A lambda sits at assignment level, so it can be assigned or passed as an argument directly, but needs parentheses as an operand, e.g. `(x -> x) |> f`. Its expression body extends as far right as possible: `x -> x + 1` is `(lambda (x) (+ x 1))`
 - Blocks nest to any depth and can appear anywhere a statement can
 - `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
@@ -203,6 +209,7 @@ NOTE: `while` is in the grammar but not parsed yet. `if` is parsed but not evalu
 
 - Groupings print as: `(group <expr>)`
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
+- Lambdas print as: `(lambda (a b) (+ a b))`, or `(lambda () (block ...))` with a block body
 - `if` prints as: `(if <cond> <then>)`, or `(if <cond> <then> <else>)`. An `else if` nests as the else branch: `(if a (block) (if b (block)))`
 - Assignments print as: `(= x 1)`, compound ones with their operator, `(+= x 1)`. Chains nest to the right: `a = b = 2` is `(= a (= b 2))`
 - Integers print as written: `2`
@@ -221,6 +228,7 @@ NOTE: `while` is in the grammar but not parsed yet. `if` is parsed but not evalu
 - The target of `=` or `OP=` must be a bare identifier. Anything else, e.g. `1 = 2;` or `(x) = 2;`, is `Invalid assignment target`, a syntax error (exit 65).
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
 - A missing `{` after an `if` condition or `else` is `Missing '{'`, a syntax error (exit 65).
+- A lambda parameter must be an identifier, so `(1) -> 1;` and `(a, ) -> 1;` are `Missing parameter name`, a syntax error (exit 65).
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
 ## Semantics
