@@ -322,7 +322,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Uninitialized variable holds: nothing, since every binding is created with a value
 - Mutability: every binding is mutable, and both its value and its type can change, e.g. `x = 1; x = "a";`
 - Binding time: a name is bound to storage and a value when its first assignment runs. Types are bound at runtime
-- Storage lifetime: top-level bindings are static and last the whole program, or the whole REPL session. Block bindings are stack-dynamic: their storage begins at the first assignment in the block and ends when the block exits
+- Storage lifetime: every binding is implicit heap-dynamic, since its storage is allocated by its first assignment rather than before the program runs. A top-level binding then lasts the rest of the program, or the rest of the REPL session. A block binding stops being visible when the block exits, and its storage is reclaimed then unless a closure created in the block captured it
 - Leaving a block: the enclosing scope is restored however the block exits, including on a runtime error, so the REPL keeps working in the outer scope. A block is a statement and produces no value, so the REPL prints nothing for it
 - Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
 - A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
