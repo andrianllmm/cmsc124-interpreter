@@ -1,6 +1,7 @@
 //! Tree-walking evaluator that turns expressions into values.
 
 use crate::ast::{Expr, Stmt};
+use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::native::Native;
 use crate::token::{Token, TokenType};
@@ -137,6 +138,32 @@ impl Interpreter {
         result
     }
 
+    /// Calls `callee` with already-evaluated `arguments`.
+    ///
+    /// The only place that checks callability and arity, so every kind of
+    /// callable gets the same checks and the same errors.
+    fn call(
+        &mut self,
+        callee: Value,
+        paren: &Token,
+        arguments: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
+        let callable: &dyn Callable = match &callee {
+            Value::Native(native) => native,
+            _ => return Err(RuntimeError::new(paren, RuntimeErrorKind::NotCallable)),
+        };
+        if arguments.len() != callable.arity() {
+            return Err(RuntimeError::new(
+                paren,
+                RuntimeErrorKind::ArityMismatch {
+                    expected: callable.arity(),
+                    found: arguments.len(),
+                },
+            ));
+        }
+        callable.call(self, arguments)
+    }
+
     /// Evaluates an expression. Operands are evaluated before their operator
     /// (post-order), so each node works with values, never with subtrees.
     pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
@@ -158,7 +185,7 @@ impl Interpreter {
                     .iter()
                     .map(|argument| self.evaluate(argument))
                     .collect::<Result<Vec<_>, _>>()?;
-                call(callee, paren, arguments)
+                self.call(callee, paren, arguments)
             }
             Expr::Unary { operator, right } => {
                 let right = self.evaluate(right)?;
@@ -223,22 +250,6 @@ impl Interpreter {
             }
         }
     }
-}
-
-/// Calls a native function after checking its arity.
-fn call(callee: Value, paren: &Token, arguments: Vec<Value>) -> Result<Value, RuntimeError> {
-    let error = |kind| RuntimeError::new(paren, kind);
-
-    let Value::Native(native) = callee else {
-        return Err(error(RuntimeErrorKind::NotCallable));
-    };
-    if arguments.len() != native.arity() {
-        return Err(error(RuntimeErrorKind::ArityMismatch {
-            expected: native.arity(),
-            found: arguments.len(),
-        }));
-    }
-    Ok(native.call(arguments))
 }
 
 /// Applies a unary operator to an evaluated operand.

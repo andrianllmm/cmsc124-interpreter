@@ -1,5 +1,7 @@
 //! Functions built into the interpreter rather than written in Grizzly.
 
+use crate::callable::Callable;
+use crate::evaluator::{Interpreter, RuntimeError};
 use crate::value::Value;
 
 /// A built-in function.
@@ -18,20 +20,25 @@ impl Native {
             Native::Print => "print",
         }
     }
+}
 
-    /// How many arguments a call must pass.
-    pub fn arity(&self) -> usize {
+impl Callable for Native {
+    fn arity(&self) -> usize {
         match self {
             Native::Print => 1,
         }
     }
 
-    /// Runs the function. The caller has already checked `arity`.
-    pub fn call(&self, arguments: Vec<Value>) -> Value {
+    /// Runs host code. Natives don't touch the interpreter's state.
+    fn call(
+        &self,
+        _interpreter: &mut Interpreter,
+        arguments: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
         match self {
             Native::Print => {
                 println!("{}", arguments[0]);
-                Value::Null
+                Ok(Value::Null)
             }
         }
     }
