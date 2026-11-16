@@ -1,0 +1,8 @@
+a = true; b = true;
+if a { if b { print("a b"); } else { print("a"); } } else { if b { print("b"); } else { print("none"); } }   # expect: a b
+a = true; b = false;
+if a { if b { print("a b"); } else { print("a"); } } else { if b { print("b"); } else { print("none"); } }   # expect: a
+a = false; b = true;
+if a { if b { print("a b"); } else { print("a"); } } else { if b { print("b"); } else { print("none"); } }   # expect: b
+a = false; b = false;
+if a { if b { print("a b"); } else { print("a"); } } else { if b { print("b"); } else { print("none"); } }   # expect: none
