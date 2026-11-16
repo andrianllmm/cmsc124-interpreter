@@ -1,6 +1,6 @@
 //! Functions written in Grizzly, as opposed to natives.
 
-use crate::ast::Lambda;
+use crate::ast::{Lambda, LambdaBody};
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::evaluator::{Interpreter, RuntimeError};
@@ -15,7 +15,6 @@ pub struct Function {
     /// Shared with the syntax tree, so creating a function copies nothing.
     pub lambda: Rc<Lambda>,
     /// Kept alive by the function, so it can outlive the call that made it.
-    #[expect(dead_code, reason = "read once calls run the body (#251)")]
     pub closure: Rc<RefCell<Environment>>,
 }
 
@@ -24,12 +23,30 @@ impl Callable for Function {
         self.lambda.params.len()
     }
 
+    /// Runs the body in a fresh environment whose parent is the captured one,
+    /// not the caller's, so names in the body mean what they meant where the
+    /// lambda was written.
     fn call(
         &self,
-        _interpreter: &mut Interpreter,
-        _arguments: Vec<Value>,
+        interpreter: &mut Interpreter,
+        arguments: Vec<Value>,
     ) -> Result<Value, RuntimeError> {
-        todo!("call lambdas")
+        // Fresh per call, so locals never carry over between calls and
+        // recursive calls each get their own parameters.
+        let mut environment = Environment::with_enclosing(Rc::clone(&self.closure));
+        for (param, argument) in self.lambda.params.iter().zip(arguments) {
+            environment.define(param.lexeme(), argument);
+        }
+
+        match &self.lambda.body {
+            LambdaBody::Expression(expr) => {
+                interpreter.with_environment(environment, |interpreter| interpreter.evaluate(expr))
+            }
+            // Without `return`, a block body produces `null`.
+            LambdaBody::Block(statements) => interpreter
+                .execute_block(statements, environment)
+                .map(|()| Value::Null),
+        }
     }
 }
 

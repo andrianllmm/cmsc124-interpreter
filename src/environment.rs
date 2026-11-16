@@ -35,6 +35,12 @@ impl Environment {
         }
     }
 
+    /// Binds `name` in this scope, shadowing any outer binding.
+    /// Used for parameters, which are always local to their call.
+    pub fn define(&mut self, name: &str, value: Value) {
+        self.values.insert(name.to_string(), value);
+    }
+
     /// Updates the nearest binding of `name`, or creates it here if none exists.
     /// Never creates it in an outer scope.
     pub fn set(&mut self, name: &str, value: Value) {
