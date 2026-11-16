@@ -401,7 +401,7 @@ Error at line 1: Missing ';' at end
 | tests/lab4 | Context   | inline  | none         |
 | tests/lab5 | Functions | inline  | none         |
 
-Each folder has a `manifest.json` and one `.griz` file per test case. Sidecar folders group cases into subfolders by feature (e.g. `tests/lab2/groupings`). Inline folders name each file after the feature it covers (e.g. `tests/lab3/truthiness.griz`), and annotate with `# expect:`, `# expect runtime error:`, and `# expect error:`. Error cases are one per file: in `tests/lab3/errors`, or prefixed `invalid-` inside a feature subfolder (e.g. `tests/lab4/block/invalid-unclosed.griz`).
+Each folder has a `manifest.json` and one `.griz` file per test case, mostly grouped into subfolders by feature (e.g. `tests/lab2/groupings`, `tests/lab3/arithmetic`). Inline folders annotate with `# expect:`, `# expect runtime error:`, and `# expect error:`. Error cases are one per file, prefixed `invalid-` (e.g. `tests/lab3/arithmetic/invalid-divide-by-zero.griz`).
 
 Run locally with:
 
