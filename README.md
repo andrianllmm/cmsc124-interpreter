@@ -348,7 +348,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Calling a non-function: `Can only call functions`, a runtime error (exit 70)
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
 
-Planned for Lab 5, not built yet: lambdas and calls to them, `return`, list literals and `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
+Planned for Lab 5, not built yet: `return`, list literals and `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
@@ -679,6 +679,8 @@ The language design is grounded in tabular data transformation. Each decision ex
 **Row-context evaluation, not vectorization.** Table verbs like `filter` and `add_col` evaluate their expression argument once per row, with column names bound as ordinary scalars for that row. Every operator (`+`, `>`, `and`, `or`, ...) is always scalar-to-scalar; there is no vector/column value type and no broadcasting. This keeps operator semantics uniform instead of giving `and`/`or`/comparisons a second, elementwise meaning depending on whether their operands are scalars or columns.
 
 ## Known limitations
+
+- **Functions that capture their own binding are never freed.** A function holds its environment through an `Rc`, so `f = x -> x;` stores `f` in the same environment `f` captured, and neither reference count reaches zero. That memory lives until the process exits, which is harmless for a script or a REPL session, but a long-running program creating many such functions would grow.
 
 - **No vectorized or columnar execution.** Table verbs (`filter`, `add_col`, `summarize`, `sort`, ...) are implemented as tree-walking interpretation that re-evaluates the row expression once per row, rather than compiling to a columnar, batched execution plan. This is a scope simplification since it will not scale to real-sized datasets.
 
