@@ -108,6 +108,9 @@ impl<'a> Parser<'a> {
         if self.match_token(&[TokenType::LBrace]).is_some() {
             return Ok(Stmt::Block(self.block()?));
         }
+        if self.match_token(&[TokenType::While]).is_some() {
+            return self.while_stmt();
+        }
         self.expr_stmt()
     }
 
@@ -133,6 +136,18 @@ impl<'a> Parser<'a> {
             condition,
             then_branch: Box::new(then_branch),
             else_branch,
+        })
+    }
+
+    /// `whileStmt → "while" expression block`,
+    /// with the while already consumed.
+    fn while_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
+        let condition = self.expression()?;
+        let body = self.required_block()?;
+
+        Ok(Stmt::While {
+            condition,
+            body: Box::new(body),
         })
     }
 

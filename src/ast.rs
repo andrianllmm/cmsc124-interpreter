@@ -21,6 +21,10 @@ pub enum Stmt<'a> {
         then_branch: Box<Stmt<'a>>,
         else_branch: Option<Box<Stmt<'a>>>,
     },
+    While {
+        condition: Expr<'a>,
+        body: Box<Stmt<'a>>,
+    },
 }
 
 /// An expression node. Borrows from the source through its tokens.

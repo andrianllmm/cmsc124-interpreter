@@ -20,6 +20,9 @@ pub fn print_stmt(stmt: &Stmt) -> String {
             ),
             None => format!("(if {} {})", print(condition), print_stmt(then_branch)),
         },
+        Stmt::While { condition, body } => {
+            format!("(while {} {})", print(condition), print_stmt(body))
+        }
     }
 }
 
