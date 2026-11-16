@@ -57,7 +57,7 @@ impl Display for RuntimeError {
             }
             RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
             RuntimeErrorKind::ArityMismatch { expected, found } => {
-                format!("Expected {} arguments but got {}", expected, found)
+                format!("Expected {} arguments but got {}.", expected, found)
             }
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number".to_string(),
             RuntimeErrorKind::OperandNotString => "Operand must be a string".to_string(),
