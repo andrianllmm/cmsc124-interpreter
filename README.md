@@ -191,7 +191,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - Blocks nest to any depth and can appear anywhere a statement can
 - `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
-NOTE: `if` and `while` are in the grammar but not parsed yet.
+NOTE: `while` is in the grammar but not parsed yet. `if` is parsed but not evaluated yet.
 
 ## Parse output format
 
@@ -203,6 +203,7 @@ NOTE: `if` and `while` are in the grammar but not parsed yet.
 
 - Groupings print as: `(group <expr>)`
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
+- `if` prints as: `(if <cond> <then>)`, or `(if <cond> <then> <else>)`. An `else if` nests as the else branch: `(if a (block) (if b (block)))`
 - Assignments print as: `(= x 1)`, compound ones with their operator, `(+= x 1)`. Chains nest to the right: `a = b = 2` is `(= a (= b 2))`
 - Integers print as written: `2`
 - Floats always keep a decimal point: `3.0`, never `3`
@@ -219,6 +220,7 @@ NOTE: `if` and `while` are in the grammar but not parsed yet.
 - `|>` binds looser than `or`: `a or b |> f` is `(|> (or a b) f)`.
 - The target of `=` or `OP=` must be a bare identifier. Anything else, e.g. `1 = 2;` or `(x) = 2;`, is `Invalid assignment target`, a syntax error (exit 65).
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
+- A missing `{` after an `if` condition or `else` is `Missing '{'`, a syntax error (exit 65).
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
 ## Semantics

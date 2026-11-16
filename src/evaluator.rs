@@ -99,6 +99,7 @@ impl Interpreter {
                 let block = Environment::with_enclosing(Rc::clone(&self.environment));
                 self.execute_block(statements, block).map(|_| None)
             }
+            Stmt::If { .. } => todo!("evaluate if and else"),
         }
     }
 

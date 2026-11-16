@@ -11,6 +11,19 @@ pub fn print_stmt(stmt: &Stmt) -> String {
             parts.extend(statements.iter().map(print_stmt));
             format!("({})", parts.join(" "))
         }
+        Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => match else_branch {
+            Some(else_branch) => format!(
+                "(if {} {} {})",
+                print(condition),
+                print_stmt(then_branch),
+                print_stmt(else_branch)
+            ),
+            None => format!("(if {} {})", print(condition), print_stmt(then_branch)),
+        },
     }
 }
 

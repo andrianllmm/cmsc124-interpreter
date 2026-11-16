@@ -21,6 +21,8 @@ pub enum ParseErrorKind {
     MissingTerminator,
     /// A `(` has no matching `)`.
     UnclosedParen,
+    /// A `{` is missing where a block must start, e.g. after an `if` condition.
+    MissingBrace,
     /// A `{` has no matching `}`.
     UnclosedBrace,
     /// A token that can't start an expression, e.g. `*` or `;`.
@@ -34,6 +36,7 @@ impl Display for ParseError {
         let message = match self.kind {
             ParseErrorKind::MissingTerminator => "Missing ';'",
             ParseErrorKind::UnclosedParen => "Missing ')'",
+            ParseErrorKind::MissingBrace => "Missing '{'",
             ParseErrorKind::UnclosedBrace => "Missing '}'",
             ParseErrorKind::UnexpectedToken => "Missing expression",
             ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
@@ -94,12 +97,46 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `statement → exprStmt | block`
+    /// `statement → exprStmt | ifStmt | block`
     fn statement(&mut self) -> Result<Stmt<'a>, ParseError> {
+        if self.match_token(&[TokenType::If]).is_some() {
+            return self.if_stmt();
+        }
         if self.match_token(&[TokenType::LBrace]).is_some() {
             return self.block();
         }
         self.expr_stmt()
+    }
+
+    /// `ifStmt → "if" expression block ( "else" ( ifStmt | block ) )?`,
+    /// with the `if` already consumed.
+    ///
+    /// Branches must be blocks, so there is no dangling `else`.
+    fn if_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
+        let condition = self.expression()?;
+        let then_branch = self.required_block()?;
+
+        let else_branch = if self.match_token(&[TokenType::Else]).is_some() {
+            if self.match_token(&[TokenType::If]).is_some() {
+                Some(Box::new(self.if_stmt()?))
+            } else {
+                Some(Box::new(self.required_block()?))
+            }
+        } else {
+            None
+        };
+
+        Ok(Stmt::If {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch,
+        })
+    }
+
+    /// A block where the grammar requires one, so a missing `{` is an error.
+    fn required_block(&mut self) -> Result<Stmt<'a>, ParseError> {
+        self.consume(&TokenType::LBrace, ParseErrorKind::MissingBrace)?;
+        self.block()
     }
 
     /// `block → "{" statement* "}"`, with the `{` already consumed.
