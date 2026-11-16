@@ -7,6 +7,7 @@ use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::stage::Stage;
 use crate::token::Token;
+use std::fmt::Display;
 
 /// Why the pipeline stopped. Decides the exit code in file mode.
 pub enum Failure {
@@ -46,37 +47,27 @@ pub fn run(
     evaluate(interpreter, &program, matches!(stage, Some(Stage::Eval)))
 }
 
-fn scan(source: &str) -> Result<Vec<Token<'_>>, Failure> {
-    let mut scanner = Scanner::new(source);
-    match scanner.scan_tokens() {
-        Ok(tokens) => Ok(tokens.clone()),
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            Err(Failure::Static)
-        }
-    }
+fn scan(source: &str) -> Result<Vec<Token>, Failure> {
+    Scanner::new(source).scan_tokens().map_err(report)
 }
 
-fn parse(tokens: Vec<Token<'_>>) -> Result<Program<'_>, Failure> {
-    let mut parser = Parser::new(tokens);
-    match parser.parse() {
-        Ok(program) => Ok(program.clone()),
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            Err(Failure::Static)
-        }
+fn parse(tokens: Vec<Token>) -> Result<Program, Failure> {
+    Parser::new(tokens).parse().map_err(report)
+}
+
+/// Prints every static error, then marks the run as rejected before running.
+fn report<E: Display>(errors: Vec<E>) -> Failure {
+    for error in errors {
+        eprintln!("{}", error);
     }
+    Failure::Static
 }
 
 /// Executes each statement, stopping at the first runtime error.
 /// With `print_values`, also prints each expression statement's value.
 fn evaluate(
     interpreter: &mut Interpreter,
-    program: &Program<'_>,
+    program: &Program,
     print_values: bool,
 ) -> Result<(), Failure> {
     for stmt in &program.statements {

@@ -10,16 +10,16 @@ use std::fmt::{self, Display, Formatter};
 use std::rc::Rc;
 
 /// An error raised while evaluating.
-pub struct RuntimeError<'a> {
+pub struct RuntimeError {
     /// Token where evaluation failed, e.g. an operator or a name,
     /// so the message can point at its line.
-    pub token: Token<'a>,
+    pub token: Token,
     pub kind: RuntimeErrorKind,
 }
 
-impl<'a> RuntimeError<'a> {
+impl RuntimeError {
     /// Builds an error pointing at `token`.
-    fn new(token: &Token<'a>, kind: RuntimeErrorKind) -> Self {
+    fn new(token: &Token, kind: RuntimeErrorKind) -> Self {
         RuntimeError {
             token: token.clone(),
             kind,
@@ -49,7 +49,7 @@ pub enum RuntimeErrorKind {
     PipeUnsupported,
 }
 
-impl Display for RuntimeError<'_> {
+impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let message = match self.kind {
             RuntimeErrorKind::UndefinedVariable => {
@@ -92,7 +92,7 @@ impl Interpreter {
     }
 
     /// Executes a statement, returning an expression statement's value.
-    pub fn execute<'a>(&mut self, stmt: &Stmt<'a>) -> Result<Option<Value>, RuntimeError<'a>> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<Option<Value>, RuntimeError> {
         match stmt {
             Stmt::Expression(expr) => self.evaluate(expr).map(Some),
             Stmt::Block(statements) => {
@@ -124,11 +124,11 @@ impl Interpreter {
 
     /// Runs `statements` in `environment`, then restores the previous one,
     /// even on a runtime error, so the REPL never stays in a finished block's scope.
-    fn execute_block<'a>(
+    fn execute_block(
         &mut self,
-        statements: &[Stmt<'a>],
+        statements: &[Stmt],
         environment: Environment,
-    ) -> Result<(), RuntimeError<'a>> {
+    ) -> Result<(), RuntimeError> {
         let previous = std::mem::replace(&mut self.environment, Rc::new(RefCell::new(environment)));
         let result = statements
             .iter()
@@ -139,7 +139,7 @@ impl Interpreter {
 
     /// Evaluates an expression. Operands are evaluated before their operator
     /// (post-order), so each node works with values, never with subtrees.
-    pub fn evaluate<'a>(&mut self, expr: &Expr<'a>) -> Result<Value, RuntimeError<'a>> {
+    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Literal { value, .. } => Ok(value.clone().into()),
             Expr::Grouping { expression } => self.evaluate(expression),
@@ -226,11 +226,7 @@ impl Interpreter {
 }
 
 /// Calls a native function after checking its arity.
-fn call<'a>(
-    callee: Value,
-    paren: &Token<'a>,
-    arguments: Vec<Value>,
-) -> Result<Value, RuntimeError<'a>> {
+fn call(callee: Value, paren: &Token, arguments: Vec<Value>) -> Result<Value, RuntimeError> {
     let error = |kind| RuntimeError::new(paren, kind);
 
     let Value::Native(native) = callee else {
@@ -246,7 +242,7 @@ fn call<'a>(
 }
 
 /// Applies a unary operator to an evaluated operand.
-fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
+fn unary(operator: &Token, right: Value) -> Result<Value, RuntimeError> {
     match operator.token_type() {
         TokenType::Subtract => match right {
             // `i64::MIN` has no positive counterpart, so negating it overflows.
@@ -265,7 +261,7 @@ fn unary<'a>(operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'
 }
 
 /// Applies a binary operator to two evaluated operands.
-fn binary<'a>(left: Value, operator: &Token<'a>, right: Value) -> Result<Value, RuntimeError<'a>> {
+fn binary(left: Value, operator: &Token, right: Value) -> Result<Value, RuntimeError> {
     let error = |kind| RuntimeError::new(operator, kind);
 
     match operator.token_type() {
