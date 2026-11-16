@@ -1,0 +1,6 @@
+score = 95;
+if score >= 90 { print("A"); } else if score >= 80 { print("B"); } else { print("F"); }   # expect: A
+score = 85;
+if score >= 90 { print("A"); } else if score >= 80 { print("B"); } else { print("F"); }   # expect: B
+score = 50;
+if score >= 90 { print("A"); } else if score >= 80 { print("B"); } else { print("F"); }   # expect: F

@@ -99,7 +99,20 @@ impl Interpreter {
                 let block = Environment::with_enclosing(Rc::clone(&self.environment));
                 self.execute_block(statements, block).map(|_| None)
             }
-            Stmt::If { .. } => todo!("evaluate if and else"),
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                // Only the chosen branch runs. Each branch is a block, so it
+                // gets its own child environment.
+                if is_truthy(&self.evaluate(condition)?) {
+                    self.execute(then_branch)?;
+                } else if let Some(else_branch) = else_branch {
+                    self.execute(else_branch)?;
+                }
+                Ok(None)
+            }
         }
     }
 
