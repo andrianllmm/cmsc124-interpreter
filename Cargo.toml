@@ -3,6 +3,11 @@ name = "cmsc124-interpreter"
 version = "0.1.0"
 edition = "2024"
 
+# The package keeps its course name; the installed command is `grizzly`.
+[[bin]]
+name = "grizzly"
+path = "src/main.rs"
+
 [dependencies]
 
 [package.metadata.commitlint]
