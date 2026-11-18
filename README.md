@@ -1,4 +1,7 @@
-# Grizzly
+<div align="center">
+  <h3>Grizzly</h3>
+  <img src="assets/logo.svg" alt="Grizzly logo" width="80">
+</div>
 
 ## Creators
 
