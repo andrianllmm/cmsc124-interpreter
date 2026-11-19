@@ -30,6 +30,8 @@ Grizzly is a small language for transforming tabular data. It's built for data a
 | `./run --tokenize`        | Starts the REPL, printing only tokens.          |
 | `./run --parse`           | Starts the REPL, printing only the parsed tree. |
 
+In the REPL, an entry continues onto the next line (with a `...` prompt) while a `(`, `[`, or `{` is unclosed. An empty line gives up on an incomplete entry and reports its syntax error.
+
 `./run` wraps that binary. After `cargo install --path .`, use `grizzly` in place of `./run`.
 
 Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtime error (type mismatch, division by zero, undefined name, arity mismatch).
