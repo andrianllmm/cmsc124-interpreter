@@ -1,7 +1,7 @@
 {
   "name": "grizzly",
   "displayName": "Grizzly",
-  "description": "Grizzly language support for .griz files",
+  "description": "Grizzly language support for .griz files and griz Markdown code blocks",
   "version": "0.1.0",
   "publisher": "andrianllmm",
   "license": "Apache-2.0",
@@ -45,6 +45,16 @@
         "language": "grizzly",
         "scopeName": "source.grizzly",
         "path": "./syntaxes/grizzly.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.grizzly.codeblock",
+        "path": "./syntaxes/grizzly.markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.grizzly": "grizzly"
+        }
       }
     ]
   }

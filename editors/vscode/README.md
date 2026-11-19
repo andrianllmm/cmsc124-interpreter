@@ -1,6 +1,6 @@
 # Grizzly for VS Code
 
-Language support for [Grizzly](https://github.com/andrianllmm/cmsc124-interpreter) `.griz` files: syntax highlighting, comment toggling, bracket matching and auto-closing, and a file icon.
+Language support for [Grizzly](https://github.com/andrianllmm/cmsc124-interpreter) `.griz` files: syntax highlighting (including ```` ```griz ```` blocks in Markdown), comment toggling, bracket matching and auto-closing, and a file icon.
 
 ## Development
 
