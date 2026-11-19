@@ -48,8 +48,6 @@ pub enum RuntimeErrorKind {
     NotCallable,
     /// A call passed the wrong number of arguments, e.g. `print()`.
     ArityMismatch { expected: usize, found: usize },
-    /// `|>` needs functions, which don't exist yet.
-    PipeUnsupported,
 }
 
 impl Display for RuntimeError {
@@ -67,9 +65,6 @@ impl Display for RuntimeError {
             RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
             RuntimeErrorKind::DivisionByZero => "Division by zero".to_string(),
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
-            RuntimeErrorKind::PipeUnsupported => {
-                "Pipe needs a function, which isn't supported yet".to_string()
-            }
         };
         write!(f, "Error at line {}: {}", self.token.line(), message)
     }
@@ -202,6 +197,55 @@ impl Interpreter {
         callable.call(self, arguments)
     }
 
+    /// Pipes `value` into `target`: `x |> f` calls `f(x)`, and `x |> f(a)`
+    /// prepends `x` to the call's arguments, calling `f(x, a)`.
+    ///
+    /// A pipe chain as `target`, as in `x |= f |> g`, threads `value` through
+    /// each step in order, so it means `x |> f |> g`.
+    ///
+    /// `target` is unevaluated, since `f(a)` after `|>` only names the function
+    /// and its extra arguments.
+    fn pipe(
+        &mut self,
+        value: Value,
+        operator: &Token,
+        target: &Expr,
+    ) -> Result<Value, RuntimeError> {
+        match target {
+            // A chain like `f |> g` in `x |= f |> g`.
+            // Only `|=` builds this, since `|>` is left-associative.
+            Expr::Binary {
+                left,
+                operator: inner,
+                right,
+            } if *inner.token_type() == TokenType::Pipe => {
+                // Run steps left to right: `g(f(x))`.
+                let value = self.pipe(value, operator, left)?;
+                self.pipe(value, inner, right)
+            }
+            // A call on the right, e.g. `x |> f(a)`, which calls `f(x, a)`.
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                // The piped value goes before the written arguments.
+                let callee = self.evaluate(callee)?;
+                let arguments = std::iter::once(Ok(value))
+                    .chain(arguments.iter().map(|argument| self.evaluate(argument)))
+                    .collect::<Result<Vec<_>, _>>()?;
+                // Errors point at the `)`, like a direct call.
+                self.call(callee, paren, arguments)
+            }
+            // Anything else, e.g. `x |> f`, is called with the piped value alone.
+            _ => {
+                let callee = self.evaluate(target)?;
+                // No `)`, so errors point at the `|>`.
+                self.call(callee, operator, vec![value])
+            }
+        }
+    }
+
     /// Evaluates an expression. Operands are evaluated before their operator
     /// (post-order), so each node works with values, never with subtrees.
     pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
@@ -235,8 +279,10 @@ impl Interpreter {
                 right,
             } => {
                 let left = self.evaluate(left)?;
-                // `and` and `or` skip the right side once the left decides.
                 match (operator.token_type(), is_truthy(&left)) {
+                    // The right side is a call target, not an operand.
+                    (TokenType::Pipe, _) => return self.pipe(left, operator, right),
+                    // `and` and `or` skip the right side once the left decides.
                     (TokenType::And, false) => return Ok(Value::Bool(false)),
                     (TokenType::Or, true) => return Ok(Value::Bool(true)),
                     _ => {}
@@ -265,26 +311,15 @@ impl Interpreter {
             } => {
                 let env = self.environment.clone();
                 let var = env.borrow().get(name.lexeme());
+                let Some(val) = var else {
+                    return Err(RuntimeError::new(name, RuntimeErrorKind::UndefinedVariable));
+                };
 
-                // temporary check for Pipe Assign until lab5 is implemented
-                if *operator.token_type() == TokenType::PipeAssign {
-                    return Err(RuntimeError {
-                        token: operator.clone(),
-                        kind: RuntimeErrorKind::PipeUnsupported,
-                    });
-                }
-
-                let new_val = match var {
-                    None => {
-                        return Err(RuntimeError {
-                            token: name.clone(),
-                            kind: RuntimeErrorKind::UndefinedVariable,
-                        });
-                    }
-                    Some(val) => {
-                        let right = self.evaluate(value)?;
-                        binary(val, operator, right)?
-                    }
+                let new_val = if *operator.token_type() == TokenType::PipeAssign {
+                    self.pipe(val, operator, value)?
+                } else {
+                    let right = self.evaluate(value)?;
+                    binary(val, operator, right)?
                 };
 
                 env.borrow_mut().set(name.lexeme(), new_val.clone());
@@ -319,8 +354,6 @@ fn binary(left: Value, operator: &Token, right: Value) -> Result<Value, RuntimeE
     let error = |kind| RuntimeError::new(operator, kind);
 
     match operator.token_type() {
-        // Both operands are already evaluated, so `|>` can only fail here.
-        TokenType::Pipe => Err(error(RuntimeErrorKind::PipeUnsupported)),
         // `++` only joins strings; anything else must be converted first.
         TokenType::StringConcat => match (left, right) {
             (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
