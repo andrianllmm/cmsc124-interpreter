@@ -1,0 +1,5 @@
+double = x -> x * 2;
+add = (a, b) -> a + b;
+print(3 |> double);             # expect: 6
+print(3 |> add(4));             # expect: 7
+print(3 |> double |> add(1));   # expect: 7
