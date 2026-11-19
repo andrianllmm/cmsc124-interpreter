@@ -36,6 +36,17 @@ In the REPL, an entry continues onto the next line (with a `...` prompt) while a
 
 Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtime error (type mismatch, division by zero, undefined name, arity mismatch).
 
+### Jupyter
+
+To run Grizzly in Jupyter notebooks, install `grizzly` on your PATH, then register the kernel once (needs Jupyter installed):
+
+```sh
+cargo install --path .
+python3 editors/jupyter/grizzly_kernel.py install
+```
+
+Pick the "Grizzly" kernel in JupyterLab. Cells share one interpreter and echo each expression's value, like the REPL. The kernel is a [wrapper kernel](https://jupyter-client.readthedocs.io/en/latest/wrapperkernels.html) that runs cells on `grizzly --cells`.
+
 ## File extension
 
 `.griz`
