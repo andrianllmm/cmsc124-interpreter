@@ -1,0 +1,61 @@
+{
+  "name": "grizzly",
+  "displayName": "Grizzly",
+  "description": "Grizzly language support for .griz files and griz Markdown code blocks",
+  "version": "0.2.0",
+  "publisher": "andrianllmm",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andrianllmm/cmsc124-interpreter",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "icon": "icons/grizzly.png",
+  "scripts": {
+    "assets": "node scripts/copy-assets.js",
+    "vscode:prepublish": "npm run assets",
+    "test": "node scripts/check-keywords.js"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "grizzly",
+        "aliases": [
+          "Grizzly",
+          "griz"
+        ],
+        "extensions": [
+          ".griz"
+        ],
+        "icon": {
+          "light": "./icons/grizzly.svg",
+          "dark": "./icons/grizzly.svg"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "grizzly",
+        "scopeName": "source.grizzly",
+        "path": "./syntaxes/grizzly.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.grizzly.codeblock",
+        "path": "./syntaxes/grizzly.markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.grizzly": "grizzly"
+        }
+      }
+    ]
+  }
+}
