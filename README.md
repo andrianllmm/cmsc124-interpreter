@@ -38,6 +38,8 @@ Exit codes: 0 on success, 65 on a static error (lexical, syntax), 70 on a runtim
 
 `.griz`
 
+Editor support: [VS Code extension](editors/vscode).
+
 ## Lexical structure
 
 ### Keywords
