@@ -9,6 +9,7 @@ use crate::token::{Token, TokenType};
 use crate::value::Value;
 use std::cell::RefCell;
 use std::fmt::{self, Display, Formatter};
+use std::io::{self, Write};
 use std::rc::Rc;
 
 /// An error raised while evaluating.
@@ -79,18 +80,41 @@ impl Display for RuntimeError {
 pub struct Interpreter {
     /// Global bindings; a runtime error never resets it.
     environment: Rc<RefCell<Environment>>,
+    /// Where `print`, echoed values, and stage output go.
+    out: Box<dyn Write>,
+    /// Where errors go.
+    err: Box<dyn Write>,
 }
 
 impl Interpreter {
-    /// Starts with every native bound in the global environment.
+    /// Starts with every native bound in the global environment,
+    /// writing to stdout and stderr.
     pub fn new() -> Self {
+        Self::with_output(Box::new(io::stdout()), Box::new(io::stderr()))
+    }
+
+    /// Like `new`, but writing to `out` and `err`, so a caller can capture output.
+    pub fn with_output(out: Box<dyn Write>, err: Box<dyn Write>) -> Self {
         let mut globals = Environment::new();
         for native in Native::ALL {
             globals.set(native.name(), Value::Native(native));
         }
         Interpreter {
             environment: Rc::new(RefCell::new(globals)),
+            out,
+            err,
         }
+    }
+
+    /// Writes a line to the output.
+    /// A failed write (e.g. a closed pipe) isn't the program's fault, so it's ignored.
+    pub fn print(&mut self, line: impl Display) {
+        let _ = writeln!(self.out, "{}", line);
+    }
+
+    /// Writes a line to the error output. Failed writes are ignored, like `print`.
+    pub fn eprint(&mut self, line: impl Display) {
+        let _ = writeln!(self.err, "{}", line);
     }
 
     /// Executes a statement, returning an expression statement's value.
