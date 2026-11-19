@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Grizzly",
+  "scopeName": "source.grizzly",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#keywords" },
+    { "include": "#number" },
+    { "include": "#function-call" },
+    { "include": "#variable" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.grizzly",
+      "match": "#.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.grizzly",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [
+        {
+          "name": "constant.character.escape.grizzly",
+          "match": "\\\\[nt\"\\\\]"
+        }
+      ]
+    },
+    "keywords": {
+      "comment": "Keep in sync with src/keyword.rs (checked by scripts/check-keywords.js).",
+      "patterns": [
+        {
+          "name": "keyword.control.grizzly",
+          "match": "\\b(return|if|else|match|case|for|in|while)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.grizzly",
+          "match": "\\b(and|or|not)\\b"
+        },
+        {
+          "name": "constant.language.grizzly",
+          "match": "\\b(true|false|null)\\b"
+        },
+        {
+          "name": "storage.type.grizzly",
+          "match": "\\b(table)\\b"
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.grizzly",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    "function-call": {
+      "name": "entity.name.function.grizzly",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    "variable": {
+      "name": "variable.other.readwrite.grizzly",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    "operator": {
+      "patterns": [
+        { "name": "keyword.operator.pipe.grizzly", "match": "\\|>|\\|=" },
+        { "name": "keyword.operator.arrow.grizzly", "match": "->|=>" },
+        { "name": "keyword.operator.assignment.compound.grizzly", "match": "[+\\-*/]=" },
+        { "name": "keyword.operator.comparison.grizzly", "match": "==|!=|<=|>=|<|>" },
+        { "name": "keyword.operator.concat.grizzly", "match": "\\+\\+" },
+        { "name": "keyword.operator.arithmetic.grizzly", "match": "[+\\-*/%^]" },
+        { "name": "keyword.operator.assignment.grizzly", "match": "=" },
+        { "name": "punctuation.separator.column.grizzly", "match": "\\|" },
+        { "name": "punctuation.terminator.statement.grizzly", "match": ";" }
+      ]
+    }
+  }
+}
