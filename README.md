@@ -346,8 +346,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Leaving a block: the enclosing scope is restored however the block exits, including on a runtime error, so the REPL keeps working in the outer scope. A block is a statement and produces no value, so the REPL prints nothing for it
 - Undefined name: reading a name that has no binding is a runtime error (exit 70), `Undefined variable 'x'`. It's checked at runtime so recursive and mutually recursive functions (Lab 5) work without a separate resolver pass
 - A misspelled name on the left of `=` creates a new binding instead of erroring, which is the cost of having no declaration keyword
-- Compound assignment: `x OP= v` means `x = x OP v` for `+= -= *= /=`, with the same errors as the plain operator. It reads `x` first, so it needs an existing binding and never creates one: `y += 1;` with no `y` is `Undefined variable 'y'` (exit 70). It produces the new value
-- `|=`: a runtime error (exit 70), `Pipe needs a function`, until functions exist in Lab 5
+- Compound assignment: `x OP= v` means `x = x OP v` for `+= -= *= /= |=`, with the same errors as the plain operator. It reads `x` first, so it needs an existing binding and never creates one: `y += 1;` with no `y` is `Undefined variable 'y'` (exit 70). It produces the new value
 - Natives: bound as ordinary globals, so assignment can rebind them. After `print = 1;`, `print(2);` is `Can only call functions` (exit 70)
 
 ### Control flow and functions
