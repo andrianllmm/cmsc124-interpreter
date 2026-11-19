@@ -2,6 +2,7 @@
 //!
 //! Runs a file, or starts a REPL when no file is given. `--tokenize`,
 //! `--parse`, and `--eval` stop after that stage and print its output.
+//! `--cells` runs whole cells for the Jupyter kernel (see `cells`).
 
 use crate::evaluator::Interpreter;
 use crate::pipeline::Failure;
@@ -11,6 +12,7 @@ use std::process::exit;
 mod ast;
 mod ast_printer;
 mod callable;
+mod cells;
 mod environment;
 mod evaluator;
 mod function;
@@ -48,6 +50,7 @@ fn main() {
             Some(path) => run_file(path, Some(Stage::Eval)),
             None => repl::run(Some(Stage::Eval)),
         },
+        Some("--cells") => cells::run(),
         Some(path) if !path.starts_with("--") => run_file(path, None),
         // Until statements exist (Lab 4), the REPL prints each expression's value.
         None => repl::run(Some(Stage::Eval)),

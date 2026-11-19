@@ -7,7 +7,7 @@ use crate::value::Value;
 /// A built-in function.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Native {
-    /// `print(value)`: writes the value and a newline to stdout.
+    /// `print(value)`: writes the value and a newline to the interpreter's output.
     Print,
 }
 
@@ -29,15 +29,15 @@ impl Callable for Native {
         }
     }
 
-    /// Runs host code. Natives don't touch the interpreter's state.
+    /// Runs host code. Natives only use the interpreter's output.
     fn call(
         &self,
-        _interpreter: &mut Interpreter,
+        interpreter: &mut Interpreter,
         arguments: Vec<Value>,
     ) -> Result<Value, RuntimeError> {
         match self {
             Native::Print => {
-                println!("{}", arguments[0]);
+                interpreter.print(&arguments[0]);
                 Ok(Value::Null)
             }
         }

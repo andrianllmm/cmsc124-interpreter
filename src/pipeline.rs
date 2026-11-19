@@ -28,18 +28,18 @@ pub fn run(
     source: &str,
     stage: Option<Stage>,
 ) -> Result<(), Failure> {
-    let tokens = scan(source)?;
+    let tokens = scan(interpreter, source)?;
     if let Some(Stage::Tokenize) = stage {
         for token in &tokens {
-            println!("{}", token);
+            interpreter.print(token);
         }
         return Ok(());
     }
 
-    let program = parse(tokens)?;
+    let program = parse(interpreter, tokens)?;
     if let Some(Stage::Parse) = stage {
         for stmt in &program.statements {
-            println!("{}", ast_printer::print_stmt(stmt));
+            interpreter.print(ast_printer::print_stmt(stmt));
         }
         return Ok(());
     }
@@ -48,18 +48,22 @@ pub fn run(
     evaluate(interpreter, &program, matches!(stage, Some(Stage::Eval)))
 }
 
-fn scan(source: &str) -> Result<Vec<Token>, Failure> {
-    Scanner::new(source).scan_tokens().map_err(report)
+fn scan(interpreter: &mut Interpreter, source: &str) -> Result<Vec<Token>, Failure> {
+    Scanner::new(source)
+        .scan_tokens()
+        .map_err(|errors| report(interpreter, errors))
 }
 
-fn parse(tokens: Vec<Token>) -> Result<Program, Failure> {
-    Parser::new(tokens).parse().map_err(report)
+fn parse(interpreter: &mut Interpreter, tokens: Vec<Token>) -> Result<Program, Failure> {
+    Parser::new(tokens)
+        .parse()
+        .map_err(|errors| report(interpreter, errors))
 }
 
 /// Prints every static error, then marks the run as rejected before running.
-fn report<E: Display>(errors: Vec<E>) -> Failure {
+fn report<E: Display>(interpreter: &mut Interpreter, errors: Vec<E>) -> Failure {
     for error in errors {
-        eprintln!("{}", error);
+        interpreter.eprint(error);
     }
     Failure::Static
 }
@@ -74,10 +78,10 @@ fn evaluate(
 ) -> Result<(), Failure> {
     for stmt in &program.statements {
         match interpreter.execute(stmt) {
-            Ok(Some(value)) if print_values && echoes(stmt, &value) => println!("{}", value),
+            Ok(Some(value)) if print_values && echoes(stmt, &value) => interpreter.print(value),
             Ok(_) => {}
             Err(error) => {
-                eprintln!("{}", error);
+                interpreter.eprint(error);
                 return Err(Failure::Runtime);
             }
         }
