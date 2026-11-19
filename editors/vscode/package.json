@@ -13,7 +13,10 @@
   "engines": {
     "vscode": "^1.80.0"
   },
+  "icon": "icons/grizzly.png",
   "scripts": {
+    "assets": "node scripts/copy-assets.js",
+    "vscode:prepublish": "npm run assets",
     "test": "node scripts/check-keywords.js"
   },
   "categories": [
@@ -30,6 +33,10 @@
         "extensions": [
           ".griz"
         ],
+        "icon": {
+          "light": "./icons/grizzly.svg",
+          "dark": "./icons/grizzly.svg"
+        },
         "configuration": "./language-configuration.json"
       }
     ],
