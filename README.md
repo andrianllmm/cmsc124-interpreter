@@ -422,7 +422,7 @@ python3 run_tests.py tests/lab1
 
 ### Variables, arithmetic, strings, booleans
 
-```
+```griz
 age = 25;
 name = "Ana";
 rate = 0.2;
@@ -435,7 +435,7 @@ can_vote = age >= 18 and name != "";
 
 ### Control flow
 
-```
+```griz
 if age >= 65 {
   status = "senior";
 } else if age >= 18 {
@@ -463,7 +463,7 @@ band = match age {
 
 ### Functions, closures, forwarding to a verb
 
-```
+```griz
 tax = (amount, rate) -> amount * rate;
 
 make_adder = n -> (x -> x + n);
@@ -475,7 +475,7 @@ my_filter = (t, cond) -> filter(t, cond);
 
 ### Creating a table
 
-```
+```griz
 small = table [
   name  | dept   | salary
   "Ana" | "eng"  | 60000
@@ -488,7 +488,7 @@ employees = read_csv("employees.csv");
 
 ### Filtering and selecting
 
-```
+```griz
 employees |> filter(salary > 50000);
 employees |> filter(salary > 50000 and dept == "eng");
 
@@ -500,7 +500,7 @@ employees |= select(name, age) |> filter(age > 18);
 
 ### Adding and computing columns
 
-```
+```griz
 employees |> add_col(bonus: salary * 0.10);
 
 employees |> add_col(
@@ -518,7 +518,7 @@ employees |> add_col(
 
 ### Grouping and aggregating
 
-```
+```griz
 employees
   |> group_by(dept)
   |> summarize(
@@ -537,7 +537,7 @@ employees
 
 ### Slicing
 
-```
+```griz
 employees |> slice(10, 20);
 employees |> head(5);
 employees |> tail(5);
@@ -545,14 +545,14 @@ employees |> tail(5);
 
 ### Sorting, distinct
 
-```
+```griz
 employees |> sort(salary, desc);
 employees |> distinct(dept);
 ```
 
 ### Joining and combining tables
 
-```
+```griz
 merged = employees |> join(departments, on: dept, how: left);
 combined = concat(q1_sales, q2_sales, q3_sales);
 renamed = employees |> rename(dept: department, salary: pay);
@@ -560,7 +560,7 @@ renamed = employees |> rename(dept: department, salary: pay);
 
 ### Column and record access
 
-```
+```griz
 salaries = employees |> pull(salary)
 avg = mean(salaries);
 
@@ -571,13 +571,13 @@ first_salary = get(first, "salary");
 
 ### Nulls
 
-```
+```griz
 employees |> update_col(quantity, fill_null(quantity, 0));
 ```
 
 ### String interpolation
 
-```
+```griz
 name = "Ana";
 salary = 60000;
 
@@ -586,14 +586,14 @@ salary = 60000;
 
 ### Writing output
 
-```
+```griz
 write_csv(employees, "out.csv");
 write_json(employees, "out.json");
 ```
 
 ### Lists (script-level, not table data)
 
-```
+```griz
 files = ["jan.csv", "feb.csv", "mar.csv"];
 n = length(files);
 more = append(files, "apr.csv");
@@ -619,7 +619,7 @@ for rate in [0.05, 0.10, 0.15] {
 
 ### Full example: monthly regional report
 
-```
+```griz
 monthly_regional_report = () -> {
   orders = read_csv("orders.csv")
   customers = read_csv("customers.csv")
