@@ -1,0 +1,1 @@
+to_float("abc");   # expect runtime error: Can't convert 'abc' to Float
