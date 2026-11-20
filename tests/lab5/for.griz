@@ -1,0 +1,18 @@
+for x in [1, 2, 3] {
+  print(x);
+}
+# expect: 1
+# expect: 2
+# expect: 3
+total = 0;
+for n in [1, 2, 3] { total += n; }
+print(total);                       # expect: 6
+for row in [[1, 2], [3]] {
+  for x in row { print(x); }
+}
+# expect: 1
+# expect: 2
+# expect: 3
+x = "outer";
+for x in [1] { }
+print(x);                           # expect: outer

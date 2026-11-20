@@ -162,6 +162,7 @@ program     → statement* EOF
 statement   → exprStmt
             | ifStmt
             | whileStmt
+            | forStmt
             | block
 
 exprStmt    → expression ";"
@@ -169,6 +170,8 @@ exprStmt    → expression ";"
 ifStmt      → "if" expression block ( "else" ( ifStmt | block ) )?
 
 whileStmt   → "while" expression block
+
+forStmt     → "for" IDENTIFIER "in" expression block
 
 block       → "{" statement* "}"
 
@@ -216,7 +219,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - A binding created by assignment belongs to the innermost enclosing block, or to the top level outside any block
 - A lambda sits at assignment level, so it can be assigned or passed as an argument directly, but needs parentheses as an operand, e.g. `(x -> x) |> f`. Its expression body extends as far right as possible: `x -> x + 1` is `(lambda (x) (+ x 1))`
 - Blocks nest to any depth and can appear anywhere a statement can
-- `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
+- `if`, `while`, and `for` take no parentheses, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
 NOTE: `while` is parsed but not evaluated yet.
 
@@ -234,6 +237,7 @@ NOTE: `while` is parsed but not evaluated yet.
 - Lambdas print as: `(lambda (a b) (+ a b))`, or `(lambda () (block ...))` with a block body
 - `if` prints as: `(if <cond> <then>)`, or `(if <cond> <then> <else>)`. An `else if` nests as the else branch: `(if a (block) (if b (block)))`
 - `while` prints as: `(while <cond> <block>)`. Nesting appears inside `<block>`: `(while cond (block (while cond (block)))`
+- `for` prints as: `(for x <list> <block>)`, e.g. `(for x (list 1 2) (block (call print x)))`
 - Assignments print as: `(= x 1)`, compound ones with their operator, `(+= x 1)`. Chains nest to the right: `a = b = 2` is `(= a (= b 2))`
 - Integers print as written: `2`
 - Floats always keep a decimal point: `3.0`, never `3`
@@ -252,6 +256,7 @@ NOTE: `while` is parsed but not evaluated yet.
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
 - A missing `{` after an `if` condition or `else` is `Missing '{'`, a syntax error (exit 65).
 - A trailing comma in a call or list, e.g. `[1, ]`, is `Missing expression`, a syntax error (exit 65).
+- A `for` needs a name and then `in`, so `for 1 in xs { }` is `Missing loop variable` and `for x [1] { }` is `Missing 'in'`, syntax errors (exit 65).
 - A lambda parameter must be an identifier, so `(1) -> 1;` and `(a, ) -> 1;` are `Missing parameter name`, a syntax error (exit 65).
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
@@ -364,6 +369,8 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - `if` without `else`: does nothing when the condition is falsey
 - Dangling else binds to: can't arise, since every branch is a braced block, so each `else` belongs to the `if` whose block just closed
 - `while`: tests the condition before every iteration, so a falsey condition runs the body zero times. Each iteration runs the body as a fresh block
+- `for x in list`: runs the body once per element, in order. Each iteration runs the body in a fresh block with `x` defined there, so `x` never updates an outer `x` and is gone after the loop, and a lambda created in the body keeps its own `x`. An empty list runs the body zero times
+- Looping over a non-list: `Can only loop over a list`, a runtime error (exit 70)
 - Functions: created only as lambdas with `->` and named by assigning them, e.g. `tax = (amount, rate) -> amount * rate;`. There's no separate declaration form. A function is a value like any other, so it can be passed, returned, and stored
 - Bodies: `x -> expr` produces `expr`. A block body `x -> { ... }` produces its value with `return`, which exits the function from inside any loop or `if`
 - Function with no return statement produces: `null`
@@ -376,7 +383,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Calling a non-function: `Can only call functions`, a runtime error (exit 70)
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
 
-Planned for Lab 5, not built yet: `return`, `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
+Planned for Lab 5, not built yet: `return`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
