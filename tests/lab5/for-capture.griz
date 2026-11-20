@@ -1,0 +1,8 @@
+fs = [];
+for n in [1, 2, 3] {
+  fs = append(fs, () -> n);
+}
+for f in fs { print(f()); }
+# expect: 1
+# expect: 2
+# expect: 3

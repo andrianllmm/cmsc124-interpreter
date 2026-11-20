@@ -1,0 +1,1 @@
+for x in 1 { }   # expect runtime error: Can only loop over a list

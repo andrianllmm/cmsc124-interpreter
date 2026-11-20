@@ -1,0 +1,1 @@
+for row in rows { for x in row { print(x); } }
