@@ -1,0 +1,16 @@
+xs = [1, 2.0, "a", [true, null], []];
+print(xs);                          # expect: [1, 2.0, a, [true, null], []]
+print([]);                          # expect: []
+print(to_string([1, 2]) ++ "!");    # expect: [1, 2]!
+print([1, 2] == [1, 2]);            # expect: true
+print([1] == [1.0]);                # expect: true
+print([1, [2]] == [1, [2]]);        # expect: true
+print([1] == [1, 2]);               # expect: false
+print([1] == 1);                    # expect: false
+print([] != []);                    # expect: false
+print(length([]));                  # expect: 0
+print(length(xs));                  # expect: 5
+ys = append(xs, 9);
+print(ys);                          # expect: [1, 2.0, a, [true, null], [], 9]
+print(xs);                          # expect: [1, 2.0, a, [true, null], []]
+if [] { print("truthy"); } else { print("falsey"); }   # expect: falsey

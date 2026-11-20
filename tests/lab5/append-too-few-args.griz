@@ -1,0 +1,1 @@
+append([]);   # expect runtime error: Expected 2 arguments but got 1.
