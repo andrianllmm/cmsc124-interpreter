@@ -1,0 +1,4 @@
+double = x -> x * 2;
+add = (a, b) -> a + b;
+x = 2; x |= double; print(x);   # expect: 4
+x |= double |> add(1); print(x); # expect: 9

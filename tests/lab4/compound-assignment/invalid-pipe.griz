@@ -1,1 +1,1 @@
-x = 1; x |= print;  # expect runtime error: Pipe needs a function
+x = 1; x |= 2;  # expect runtime error: Can only call functions
