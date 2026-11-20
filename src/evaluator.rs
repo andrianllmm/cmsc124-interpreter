@@ -48,8 +48,9 @@ pub enum RuntimeErrorKind {
     NotCallable,
     /// A call passed the wrong number of arguments, e.g. `print()`.
     ArityMismatch { expected: usize, found: usize },
-    /// A native that takes a string got another type, e.g. `length(1)`.
-    ArgumentNotString,
+    /// A native got an argument of the wrong type, e.g. `length(1)`.
+    /// `expected` names what it takes, e.g. `"a string"`.
+    WrongArgumentType { expected: &'static str },
     /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
     ConversionFailed { text: String, target: &'static str },
 }
@@ -69,7 +70,9 @@ impl Display for RuntimeError {
             RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
             RuntimeErrorKind::DivisionByZero => "Division by zero".to_string(),
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
-            RuntimeErrorKind::ArgumentNotString => "Argument must be a string".to_string(),
+            RuntimeErrorKind::WrongArgumentType { expected } => {
+                format!("Argument must be {}", expected)
+            }
             RuntimeErrorKind::ConversionFailed { text, target } => {
                 format!("Can't convert '{}' to {}", text, target)
             }
@@ -306,6 +309,13 @@ impl Interpreter {
 
                 Ok(right)
             }
+            Expr::List { elements } => {
+                let values = elements
+                    .iter()
+                    .map(|element| self.evaluate(element))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(Value::List(Rc::new(values)))
+            }
             // Captures the environment the lambda is created in, not the one
             // it's later called from, which makes scope lexical.
             Expr::Lambda(lambda) => Ok(Value::Function(Rc::new(Function {
@@ -478,7 +488,7 @@ fn int_pow(n: i64, m: i64) -> Option<i64> {
     }
 }
 
-/// Whether a value counts as true: zero, `null`, `false`, and `""` don't.
+/// Whether a value counts as true: zero, `null`, `false`, `""`, and `[]` don't.
 fn is_truthy(val: &Value) -> bool {
     match val {
         Value::Int(n) => *n != 0,
@@ -486,16 +496,23 @@ fn is_truthy(val: &Value) -> bool {
         Value::Null => false,
         Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
+        Value::List(elements) => !elements.is_empty(),
         Value::Native(_) | Value::Function(_) => true,
     }
 }
 
 /// Whether two values are equal. Numbers compare by value across `Int` and
-/// `Float`, so `1 == 1.0`; any other mix of types is unequal.
+/// `Float`, so `1 == 1.0`; any other mix of types is unequal. Lists compare
+/// element by element by this same rule, so `[1] == [1.0]`.
 fn is_equal(left: &Value, right: &Value) -> bool {
-    match numbers(left, right) {
-        Some(Numbers::Ints(n, m)) => n == m,
-        Some(Numbers::Floats(n, m)) => n == m,
-        None => left == right,
+    match (left, right) {
+        (Value::List(l), Value::List(r)) => {
+            l.len() == r.len() && l.iter().zip(r.iter()).all(|(l, r)| is_equal(l, r))
+        }
+        _ => match numbers(left, right) {
+            Some(Numbers::Ints(n, m)) => n == m,
+            Some(Numbers::Floats(n, m)) => n == m,
+            None => left == right,
+        },
     }
 }

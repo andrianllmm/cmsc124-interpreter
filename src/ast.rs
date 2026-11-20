@@ -52,6 +52,8 @@ pub enum Expr {
         paren: Token,
         arguments: Vec<Expr>,
     },
+    /// A list literal: `[elements]`.
+    List { elements: Vec<Expr> },
     /// A assignment to a variable
     Assign { name: Token, value: Box<Expr> },
     /// Compound assignments
