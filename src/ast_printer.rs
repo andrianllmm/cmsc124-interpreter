@@ -59,6 +59,12 @@ pub fn print(expr: &Expr) -> String {
             parts.extend(arguments.iter().map(print));
             format!("(call {})", parts.join(" "))
         }
+        // `(list 1 2 3)`, or `(list)` when empty.
+        Expr::List { elements } => {
+            let mut parts = vec!["list".to_string()];
+            parts.extend(elements.iter().map(print));
+            format!("({})", parts.join(" "))
+        }
         Expr::Literal { value, .. } => match value {
             // Quoted so strings can't be mistaken for identifiers.
             LiteralValue::Str(s) => format!("\"{}\"", s.escape_debug()),

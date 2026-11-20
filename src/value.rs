@@ -19,6 +19,8 @@ pub enum Value {
     Native(Native),
     /// A lambda, shared so copies of the value are the same function.
     Function(Rc<Function>),
+    /// Lists are immutable, so copies share one `Vec` instead of cloning it.
+    List(Rc<Vec<Value>>),
 }
 
 impl From<LiteralValue> for Value {
@@ -46,6 +48,17 @@ impl fmt::Display for Value {
             Value::Null => write!(f, "null"),
             Value::Native(native) => write!(f, "<native fn {}>", native.name()),
             Value::Function(_) => write!(f, "<fn>"),
+            // Elements print by these same rules, so `["a", 1.0]` prints `[a, 1.0]`.
+            Value::List(elements) => {
+                write!(f, "[")?;
+                for (i, element) in elements.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", element)?;
+                }
+                write!(f, "]")
+            }
         }
     }
 }
