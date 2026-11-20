@@ -34,6 +34,10 @@ pub enum ParseErrorKind {
     InvalidAssignTarget,
     /// A lambda parameter that isn't an identifier, e.g. `(1) -> 1`.
     MissingParameter,
+    /// A `for` without a loop variable, e.g. `for 1 in xs { }`.
+    MissingLoopVariable,
+    /// A `for` loop variable not followed by `in`.
+    MissingIn,
 }
 
 impl Display for ParseError {
@@ -47,6 +51,8 @@ impl Display for ParseError {
             ParseErrorKind::UnexpectedToken => "Missing expression",
             ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
             ParseErrorKind::MissingParameter => "Missing parameter name",
+            ParseErrorKind::MissingLoopVariable => "Missing loop variable",
+            ParseErrorKind::MissingIn => "Missing 'in'",
         };
         let location = match &self.found {
             Some(lexeme) => format!("'{}'", lexeme),
@@ -102,7 +108,7 @@ impl Parser {
         }
     }
 
-    /// `statement → exprStmt | ifStmt | block`
+    /// `statement → exprStmt | ifStmt | whileStmt | forStmt | block`
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenType::If]).is_some() {
             return self.if_stmt();
@@ -112,6 +118,9 @@ impl Parser {
         }
         if self.match_token(&[TokenType::While]).is_some() {
             return self.while_stmt();
+        }
+        if self.match_token(&[TokenType::For]).is_some() {
+            return self.for_stmt();
         }
         self.expr_stmt()
     }
@@ -150,6 +159,22 @@ impl Parser {
         Ok(Stmt::While {
             condition,
             body: Box::new(body),
+        })
+    }
+
+    /// `forStmt → "for" IDENTIFIER "in" expression block`,
+    /// with the `for` already consumed.
+    fn for_stmt(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(&TokenType::Identifier, ParseErrorKind::MissingLoopVariable)?;
+        self.consume(&TokenType::In, ParseErrorKind::MissingIn)?;
+        let iterable = self.expression()?;
+        self.consume(&TokenType::LBrace, ParseErrorKind::MissingBrace)?;
+        let body = self.block()?;
+
+        Ok(Stmt::For {
+            name,
+            iterable,
+            body,
         })
     }
 
