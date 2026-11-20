@@ -4,6 +4,7 @@ use crate::ast::{Lambda, LambdaBody};
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::evaluator::{Interpreter, RuntimeError};
+use crate::token::Token;
 use crate::value::Value;
 use std::cell::RefCell;
 use std::fmt;
@@ -29,6 +30,7 @@ impl Callable for Function {
     fn call(
         &self,
         interpreter: &mut Interpreter,
+        _paren: &Token,
         arguments: Vec<Value>,
     ) -> Result<Value, RuntimeError> {
         // Fresh per call, so locals never carry over between calls and

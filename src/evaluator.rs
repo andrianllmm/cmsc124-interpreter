@@ -22,7 +22,7 @@ pub struct RuntimeError {
 
 impl RuntimeError {
     /// Builds an error pointing at `token`.
-    fn new(token: &Token, kind: RuntimeErrorKind) -> Self {
+    pub fn new(token: &Token, kind: RuntimeErrorKind) -> Self {
         RuntimeError {
             token: token.clone(),
             kind,
@@ -48,11 +48,15 @@ pub enum RuntimeErrorKind {
     NotCallable,
     /// A call passed the wrong number of arguments, e.g. `print()`.
     ArityMismatch { expected: usize, found: usize },
+    /// A native that takes a string got another type, e.g. `length(1)`.
+    ArgumentNotString,
+    /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
+    ConversionFailed { text: String, target: &'static str },
 }
 
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let message = match self.kind {
+        let message = match &self.kind {
             RuntimeErrorKind::UndefinedVariable => {
                 format!("Undefined variable '{}'", self.token.lexeme())
             }
@@ -65,6 +69,10 @@ impl Display for RuntimeError {
             RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
             RuntimeErrorKind::DivisionByZero => "Division by zero".to_string(),
             RuntimeErrorKind::NegativeExponent => "Int exponent must not be negative".to_string(),
+            RuntimeErrorKind::ArgumentNotString => "Argument must be a string".to_string(),
+            RuntimeErrorKind::ConversionFailed { text, target } => {
+                format!("Can't convert '{}' to {}", text, target)
+            }
         };
         write!(f, "Error at line {}: {}", self.token.line(), message)
     }
@@ -194,7 +202,7 @@ impl Interpreter {
                 },
             ));
         }
-        callable.call(self, arguments)
+        callable.call(self, paren, arguments)
     }
 
     /// Pipes `value` into `target`: `x |> f` calls `f(x)`, and `x |> f(a)`
