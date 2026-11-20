@@ -23,6 +23,16 @@ pub fn print_stmt(stmt: &Stmt) -> String {
         Stmt::While { condition, body } => {
             format!("(while {} {})", print(condition), print_stmt(body))
         }
+        Stmt::For {
+            name,
+            iterable,
+            body,
+        } => format!(
+            "(for {} {} {})",
+            name.lexeme(),
+            print(iterable),
+            print_block(body)
+        ),
     }
 }
 
