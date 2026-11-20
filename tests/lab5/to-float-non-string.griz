@@ -1,0 +1,1 @@
+to_float(true);   # expect runtime error: Argument must be a string

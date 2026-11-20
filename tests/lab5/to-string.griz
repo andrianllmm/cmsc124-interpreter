@@ -1,0 +1,9 @@
+print(to_string(42) ++ "!");        # expect: 42!
+print(to_string(2.0));              # expect: 2.0
+print(to_string(10.0 ^ 20));        # expect: 1e20
+print(to_string("hi"));             # expect: hi
+print(to_string(true));             # expect: true
+print(to_string(null));             # expect: null
+print(to_string(print));            # expect: <native fn print>
+print(to_string(x -> x));           # expect: <fn>
+print(length(to_string(123)));      # expect: 3

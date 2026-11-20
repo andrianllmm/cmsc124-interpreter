@@ -1,0 +1,4 @@
+print(length(""));                  # expect: 0
+print(length("hello"));             # expect: 5
+print(length("a b\n"));             # expect: 4
+print(length("héllo"));             # expect: 5

@@ -1,0 +1,1 @@
+length("a", "b");   # expect runtime error: Expected 1 arguments but got 2.

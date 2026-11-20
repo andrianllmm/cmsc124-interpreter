@@ -1,0 +1,1 @@
+to_int("1.5");   # expect runtime error: Can't convert '1.5' to Int
