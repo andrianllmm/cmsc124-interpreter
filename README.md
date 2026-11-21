@@ -217,8 +217,6 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - Blocks nest to any depth and can appear anywhere a statement can
 - `if` and `while` take no parentheses around the condition, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
 
-NOTE: `while` is parsed but not evaluated yet.
-
 ## Parse output format
 
 ```

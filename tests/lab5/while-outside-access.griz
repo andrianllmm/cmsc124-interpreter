@@ -1,0 +1,6 @@
+i = 0;
+while i = 0 {
+    x = 1;
+    i = i + 1;
+}
+print(b); # expect runtime error: Undefined variable 'b'

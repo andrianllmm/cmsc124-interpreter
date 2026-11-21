@@ -142,11 +142,14 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::While {
-                condition: _,
-                body: _,
-            } => {
-                todo!("add while evaluator arm")
+            Stmt::While { condition, body } => {
+                // The condition is checked for every iteration. If the condition is
+                // true it would execute. Otherwise, skip the contents of the block
+                // and terminate the loop.
+                while is_truthy(&self.evaluate(condition)?) {
+                    self.execute(body)?;
+                }
+                Ok(None)
             }
         }
     }

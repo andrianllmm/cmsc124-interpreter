@@ -1,0 +1,13 @@
+i = 0;  # expect 0
+while i < 3 {
+    j = 0;  # expect 0
+    while j < 2 {
+        i = i + 1;
+        print(i);  
+        j = j + 1;
+    }
+}
+# expect: 1 
+# expect: 2 
+# expect: 3
+# expect: 4
