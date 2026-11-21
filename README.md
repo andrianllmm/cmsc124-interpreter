@@ -202,13 +202,14 @@ unary       → "-" unary
 
 exponent    → call ( "^" unary )?
 
-call        → primary ( "(" arguments? ")" )*
+call        → primary ( "(" exprList? ")" )*
 
-arguments   → expression ( "," expression )*
+exprList    → expression ( "," expression )*
 
 primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | IDENTIFIER
             | "(" expression ")"
+            | "[" exprList? "]"
 ```
 
 - Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
@@ -226,6 +227,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 ```
 
 - Groupings print as: `(group <expr>)`
+- Lists print as: `(list 1 2 3)`, or `(list)` when empty
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
 - Lambdas print as: `(lambda (a b) (+ a b))`, or `(lambda () (block ...))` with a block body
 - `if` prints as: `(if <cond> <then>)`, or `(if <cond> <then> <else>)`. An `else if` nests as the else branch: `(if a (block) (if b (block)))`
@@ -247,6 +249,7 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - The target of `=` or `OP=` must be a bare identifier. Anything else, e.g. `1 = 2;` or `(x) = 2;`, is `Invalid assignment target`, a syntax error (exit 65).
 - After a syntax error, parsing skips to the next statement boundary (after a `;`, or before a `}` or a statement keyword), reports every error, and runs nothing.
 - A missing `{` after an `if` condition or `else` is `Missing '{'`, a syntax error (exit 65).
+- A trailing comma in a call or list, e.g. `[1, ]`, is `Missing expression`, a syntax error (exit 65).
 - A lambda parameter must be an identifier, so `(1) -> 1;` and `(a, ) -> 1;` are `Missing parameter name`, a syntax error (exit 65).
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
 
@@ -263,8 +266,11 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 | `Null`     | `Value::Null`                   |
 | native     | `Value::Native(Native)`         |
 | `Function` | `Value::Function(Rc<Function>)` |
+| `List`     | `Value::List(Rc<Vec<Value>>)`   |
 
 Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, matching on the variant tells the evaluator what it has, and the compiler flags a `match` that forgets a type.
+
+A `List` is immutable, so it's behind an `Rc` and copies share one `Vec`. `append` returns a new list.
 
 A `Function` is a lambda turned into a value: its parameters, its body, and the environment it was created in. It's behind an `Rc`, so copying the value shares the same function. Natives and functions both implement one `Callable` trait (`arity` and `call`), so a call checks callability and arity in one place for both.
 
@@ -281,6 +287,7 @@ A `Function` is a lambda turned into a value: its parameters, its body, and the 
 | `Null`     | its keyword                            | `null`               |
 | native     | its name                               | `<native fn print>`  |
 | `Function` | a placeholder                          | `<fn>`               |
+| `List`     | elements by these rules, in brackets   | `[1, 2.0, a]`        |
 
 ### Truthiness
 
@@ -291,6 +298,7 @@ A `Function` is a lambda turned into a value: its parameters, its body, and the 
 | `Str`                | `""`          | any non-empty `Str`           |
 | `Bool`               | `false`       | `true`                        |
 | `Null`               | `null`        | never                         |
+| `List`               | `[]`          | any non-empty `List`          |
 | native, `Function`   | never         | always                        |
 
 ### Operator semantics
@@ -322,6 +330,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Operands: any types, never an error
 - `Int` and `Float` compare by value, so `1 == 1.0` is `true`
 - Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
+- Lists compare element by element by these rules, so `[1, [2]] == [1.0, [2]]` is `true`
 - Functions are equal only to themselves: after `g = f;`, `g == f` is `true`, but two separately written `x -> x` are unequal
 - Mixed types are unequal, so `1 == "1"` is `false`
 
@@ -365,19 +374,20 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Calling a non-function: `Can only call functions`, a runtime error (exit 70)
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
 
-Planned for Lab 5, not built yet: `return`, list literals and `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
+Planned for Lab 5, not built yet: `return`, `for x in list { ... }`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
-| Name        | Arguments | Returns | Notes                                                                |
-| ----------- | --------- | ------- | -------------------------------------------------------------------- |
-| `print`     | 1, any    | `Null`  | Writes the value and a newline to stdout                             |
-| `to_string` | 1, any    | `Str`   | Converts a value to text using the value printing rules              |
-| `length`    | 1, `Str`  | `Int`   | Number of characters, not bytes (`List` once lists exist)            |
-| `to_int`    | 1, `Str`  | `Int`   | Parses an integer; unparseable input is `Can't convert 'abc' to Int` |
-| `to_float`  | 1, `Str`  | `Float` | Parses a float; unparseable input is `Can't convert 'abc' to Float`  |
+| Name        | Arguments          | Returns | Notes                                                                |
+| ----------- | ------------------ | ------- | -------------------------------------------------------------------- |
+| `print`     | 1, any             | `Null`  | Writes the value and a newline to stdout                             |
+| `to_string` | 1, any             | `Str`   | Converts a value to text using the value printing rules              |
+| `length`    | 1, `Str` or `List` | `Int`   | Characters in a `Str` (not bytes), or elements in a `List`           |
+| `to_int`    | 1, `Str`           | `Int`   | Parses an integer; unparseable input is `Can't convert 'abc' to Int` |
+| `to_float`  | 1, `Str`           | `Float` | Parses a float; unparseable input is `Can't convert 'abc' to Float`  |
+| `append`    | 2, `List` and any  | `List`  | A new list with the value at the end; the original is unchanged      |
 
-A wrong argument type for `length`, `to_int`, or `to_float` is `Argument must be a string`, e.g. `length(1)`. Both errors are runtime errors (exit 70).
+A wrong argument type is `Argument must be` followed by what the native takes, e.g. `length(1)` is `Argument must be a string or list`, and `append(1, 2)` is `Argument must be a list`. Both errors are runtime errors (exit 70).
 
 Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression, except a call that returns `null`, so `print(5);` prints `5` once instead of `5` then `null`. `--eval` follows the same rule.
 
@@ -693,7 +703,7 @@ The language design is grounded in tabular data transformation. Each decision ex
 
 **Semicolons terminate statements.** Explicit `;` makes statement boundaries clear across line breaks, so pipelines, calls, and table literals can span multiple lines without special newline rules.
 
-**Braces delimit blocks.** Braces give blocks explicit boundaries without requiring indentation-based parsing. Square brackets are reserved for table literals, making data visually distinct from code.
+**Braces delimit blocks.** Braces give blocks explicit boundaries without requiring indentation-based parsing. Square brackets hold data, list and table literals, making data visually distinct from code.
 
 **Row-context evaluation, not vectorization.** Table verbs like `filter` and `add_col` evaluate their expression argument once per row, with column names bound as ordinary scalars for that row. Every operator (`+`, `>`, `and`, `or`, ...) is always scalar-to-scalar; there is no vector/column value type and no broadcasting. This keeps operator semantics uniform instead of giving `and`/`or`/comparisons a second, elementwise meaning depending on whether their operands are scalars or columns.
 

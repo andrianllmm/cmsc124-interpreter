@@ -22,6 +22,8 @@ pub enum ParseErrorKind {
     MissingTerminator,
     /// A `(` has no matching `)`.
     UnclosedParen,
+    /// A `[` has no matching `]`.
+    UnclosedBracket,
     /// A `{` is missing where a block must start, e.g. after an `if` condition.
     MissingBrace,
     /// A `{` has no matching `}`.
@@ -39,6 +41,7 @@ impl Display for ParseError {
         let message = match self.kind {
             ParseErrorKind::MissingTerminator => "Missing ';'",
             ParseErrorKind::UnclosedParen => "Missing ')'",
+            ParseErrorKind::UnclosedBracket => "Missing ']'",
             ParseErrorKind::MissingBrace => "Missing '{'",
             ParseErrorKind::UnclosedBrace => "Missing '}'",
             ParseErrorKind::UnexpectedToken => "Missing expression",
@@ -497,7 +500,7 @@ impl Parser {
         Ok(expr)
     }
 
-    /// `call → primary ( "(" arguments? ")" )*`
+    /// `call → primary ( "(" exprList? ")" )*`
     fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary()?;
 
@@ -508,19 +511,10 @@ impl Parser {
         Ok(expr)
     }
 
-    /// `arguments → expression ( "," expression )*`, then the closing `)`.
+    /// The arguments and closing `)` of a call, with the `(` already consumed.
     fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
-        let mut arguments = Vec::new();
-        if !self.check(&TokenType::RParen) {
-            loop {
-                arguments.push(self.expression()?);
-                if self.match_token(&[TokenType::Comma]).is_none() {
-                    break;
-                }
-            }
-        }
-
-        let paren = self.consume(&TokenType::RParen, ParseErrorKind::UnclosedParen)?;
+        let (arguments, paren) =
+            self.expr_list(TokenType::RParen, ParseErrorKind::UnclosedParen)?;
         Ok(Expr::Call {
             callee: Box::new(callee),
             paren,
@@ -528,8 +522,33 @@ impl Parser {
         })
     }
 
+    /// `exprList → expression ( "," expression )*`, then the `close` token,
+    /// which is returned so errors can point at it.
+    ///
+    /// Shared by call arguments and list elements. `close` right away means an
+    /// empty list. Otherwise every `,` must be followed by an expression, so a
+    /// trailing comma like `[1, ]` is an error.
+    fn expr_list(
+        &mut self,
+        close: TokenType,
+        unclosed: ParseErrorKind,
+    ) -> Result<(Vec<Expr>, Token), ParseError> {
+        let mut exprs = Vec::new();
+        if !self.check(&close) {
+            loop {
+                exprs.push(self.expression()?);
+                if self.match_token(&[TokenType::Comma]).is_none() {
+                    break;
+                }
+            }
+        }
+
+        let close = self.consume(&close, unclosed)?;
+        Ok((exprs, close))
+    }
+
     /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
-    /// | IDENTIFIER | "(" expression ")"`
+    /// | IDENTIFIER | "(" expression ")" | "[" exprList? "]"`
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.peek().clone();
 
@@ -563,6 +582,13 @@ impl Parser {
             return Ok(Expr::Grouping {
                 expression: Box::new(expr),
             });
+        }
+
+        if self.check(&TokenType::LBracket) {
+            self.advance();
+            let (elements, _) =
+                self.expr_list(TokenType::RBracket, ParseErrorKind::UnclosedBracket)?;
+            return Ok(Expr::List { elements });
         }
 
         Err(self.error(ParseErrorKind::UnexpectedToken))
