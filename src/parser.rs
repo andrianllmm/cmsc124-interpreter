@@ -99,7 +99,7 @@ impl Parser {
         }
     }
 
-    /// `statement → exprStmt | ifStmt | block`
+    /// `statement → exprStmt | ifStmt | whileStmt | block`
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenType::If]).is_some() {
             return self.if_stmt();
