@@ -163,6 +163,7 @@ statement   → exprStmt
             | ifStmt
             | whileStmt
             | forStmt
+            | returnStmt
             | block
 
 exprStmt    → expression ";"
@@ -172,6 +173,8 @@ ifStmt      → "if" expression block ( "else" ( ifStmt | block ) )?
 whileStmt   → "while" expression block
 
 forStmt     → "for" IDENTIFIER "in" expression block
+
+returnStmt  → "return" expression? ";"
 
 block       → "{" statement* "}"
 
