@@ -26,6 +26,14 @@ pub enum Stmt {
         condition: Expr,
         body: Box<Stmt>,
     },
+    /// `for name in iterable { ... }`.
+    For {
+        name: Token,
+        iterable: Expr,
+        /// The block's bare statements, so each iteration can run them in one
+        /// environment that also holds `name`.
+        body: Vec<Stmt>,
+    },
 }
 
 /// An expression node.

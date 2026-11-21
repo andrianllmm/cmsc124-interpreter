@@ -1,0 +1,2 @@
+for x in [] { print("never"); }
+print("done");                      # expect: done

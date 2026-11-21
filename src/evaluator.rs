@@ -46,6 +46,8 @@ pub enum RuntimeErrorKind {
     UndefinedVariable,
     /// A call on a value that isn't a function, e.g. `1()`.
     NotCallable,
+    /// A `for` over a value that isn't a list, e.g. `for x in 1 { }`.
+    NotIterable,
     /// A call passed the wrong number of arguments, e.g. `print()`.
     ArityMismatch { expected: usize, found: usize },
     /// A native got an argument of the wrong type, e.g. `length(1)`.
@@ -62,6 +64,7 @@ impl Display for RuntimeError {
                 format!("Undefined variable '{}'", self.token.lexeme())
             }
             RuntimeErrorKind::NotCallable => "Can only call functions".to_string(),
+            RuntimeErrorKind::NotIterable => "Can only loop over a list".to_string(),
             RuntimeErrorKind::ArityMismatch { expected, found } => {
                 format!("Expected {} arguments but got {}.", expected, found)
             }
@@ -151,6 +154,24 @@ impl Interpreter {
                 // and terminate the loop.
                 while is_truthy(&self.evaluate(condition)?) {
                     self.execute(body)?;
+                }
+                Ok(None)
+            }
+            Stmt::For {
+                name,
+                iterable,
+                body,
+            } => {
+                let Value::List(elements) = self.evaluate(iterable)? else {
+                    return Err(RuntimeError::new(name, RuntimeErrorKind::NotIterable));
+                };
+                // A fresh environment per iteration holds `name`, so it never
+                // updates an outer binding, is gone after the loop, and each
+                // iteration's closures capture their own element.
+                for element in elements.iter() {
+                    let mut environment = Environment::with_enclosing(Rc::clone(&self.environment));
+                    environment.define(name.lexeme(), element.clone());
+                    self.execute_block(body, environment)?;
                 }
                 Ok(None)
             }
