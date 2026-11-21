@@ -142,11 +142,11 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::While {
-                condition: _,
-                body: _,
-            } => {
-                todo!("add while evaluator arm")
+            Stmt::While { condition, body } => {
+                while is_truthy(&self.evaluate(condition)?) {
+                    self.execute(body)?;
+                }
+                Ok(None)
             }
         }
     }
