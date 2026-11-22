@@ -1,1 +1,1 @@
-return 1;   # expect error:
+return 1;   # expect error: Can't return from top level at '1'
