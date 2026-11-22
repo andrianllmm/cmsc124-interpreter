@@ -1,2 +1,2 @@
-f = () -> { return; }
-print(f);   # expect: null
+f = () -> { return; };
+print(f());   # expect: null

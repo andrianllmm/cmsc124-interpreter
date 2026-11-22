@@ -6,5 +6,5 @@ f = () -> {
         }
         print("while continue");
     }
-}
-print(f);   # expect: 1
+};
+print(f());   # expect: 1
