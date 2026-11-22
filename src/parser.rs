@@ -38,6 +38,8 @@ pub enum ParseErrorKind {
     MissingLoopVariable,
     /// A `for` loop variable not followed by `in`.
     MissingIn,
+    /// A return located outside of a lambda body
+    InvalidReturnLoc,
 }
 
 impl Display for ParseError {
@@ -53,6 +55,7 @@ impl Display for ParseError {
             ParseErrorKind::MissingParameter => "Missing parameter name",
             ParseErrorKind::MissingLoopVariable => "Missing loop variable",
             ParseErrorKind::MissingIn => "Missing 'in'",
+            ParseErrorKind::InvalidReturnLoc => "Can't return from top level",
         };
         let location = match &self.found {
             Some(lexeme) => format!("'{}'", lexeme),
@@ -71,6 +74,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     errors: Vec<ParseError>,
     current: usize,
+    lambda_depth: usize,
 }
 
 impl Parser {
@@ -79,6 +83,7 @@ impl Parser {
             tokens,
             errors: Vec::new(),
             current: 0,
+            lambda_depth: 0,
         }
     }
 
@@ -108,7 +113,7 @@ impl Parser {
         }
     }
 
-    /// `statement → exprStmt | ifStmt | whileStmt | forStmt | block`
+    /// `statement → exprStmt | ifStmt | whileStmt | forStmt | returnStmt | block`
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenType::If]).is_some() {
             return self.if_stmt();
@@ -121,6 +126,9 @@ impl Parser {
         }
         if self.match_token(&[TokenType::For]).is_some() {
             return self.for_stmt();
+        }
+        if self.match_token(&[TokenType::Return]).is_some() {
+            return self.return_stmt();
         }
         self.expr_stmt()
     }
@@ -176,6 +184,23 @@ impl Parser {
             iterable,
             body,
         })
+    }
+
+    /// `returnStmt → "return" expression? ";"`,
+    /// with the return already consumed and the statement terminated
+    fn return_stmt(&mut self) -> Result<Stmt, ParseError> {
+        if self.lambda_depth == 0 {
+            return Err(self.error(ParseErrorKind::InvalidReturnLoc));
+        }
+
+        if self.check(&TokenType::Terminator) {
+            self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
+            Ok(Stmt::Return { value: None })
+        } else {
+            let expr = self.expression()?;
+            self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
+            Ok(Stmt::Return { value: Some(expr) })
+        }
     }
 
     /// A block where the grammar requires one, so a missing `{` is an error.
@@ -344,12 +369,13 @@ impl Parser {
         // A `{` right after `->` always starts a block body. Otherwise the body is
         // a full expression, so it extends as far right as possible:
         // `x -> x + 1` is `x -> (x + 1)`, not `(x -> x) + 1`.
+        self.lambda_depth += 1;
         let body = if self.match_token(&[TokenType::LBrace]).is_some() {
             LambdaBody::Block(self.block()?)
         } else {
             LambdaBody::Expression(Box::new(self.expression()?))
         };
-
+        self.lambda_depth -= 1;
         Ok(Expr::Lambda(Rc::new(Lambda { params, body })))
     }
 

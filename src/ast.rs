@@ -34,6 +34,9 @@ pub enum Stmt {
         /// environment that also holds `name`.
         body: Vec<Stmt>,
     },
+    Return {
+        value: Option<Expr>,
+    },
 }
 
 /// An expression node.

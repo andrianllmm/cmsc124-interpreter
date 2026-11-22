@@ -175,6 +175,9 @@ impl Interpreter {
                 }
                 Ok(None)
             }
+            Stmt::Return { value: _ } => {
+                todo!("add return evaluator arm")
+            }
         }
     }
 
