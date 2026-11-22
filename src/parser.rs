@@ -128,7 +128,7 @@ impl Parser {
             return self.for_stmt();
         }
         if let Some(token) = self.match_token(&[TokenType::Return]) {
-            return self.return_stmt(&token);
+            return self.return_stmt(token);
         }
         self.expr_stmt()
     }
@@ -188,7 +188,7 @@ impl Parser {
 
     /// `returnStmt → "return" expression? ";"`,
     /// with the return already consumed and the statement terminated
-    fn return_stmt(&mut self, token: &Token) -> Result<Stmt, ParseError> {
+    fn return_stmt(&mut self, token: Token) -> Result<Stmt, ParseError> {
         if self.lambda_depth == 0 {
             return Err(self.error(ParseErrorKind::InvalidReturnLoc));
         }
@@ -196,14 +196,14 @@ impl Parser {
         if self.check(&TokenType::Terminator) {
             self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
             Ok(Stmt::Return {
-                keyword: token.clone(),
+                keyword: token,
                 value: None,
             })
         } else {
             let expr = self.expression()?;
             self.consume(&TokenType::Terminator, ParseErrorKind::MissingTerminator)?;
             Ok(Stmt::Return {
-                keyword: token.clone(),
+                keyword: token,
                 value: Some(expr),
             })
         }

@@ -55,17 +55,12 @@ pub enum RuntimeErrorKind {
     WrongArgumentType { expected: &'static str },
     /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
     ConversionFailed { text: String, target: &'static str },
-    /// A signal to propage the return value to the latest caller
+    /// A signal to propagate the return value to the latest caller
     ReturnSignal { value: Value },
 }
 
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // no output for return signal. terminate early to prevent message generation
-        if let RuntimeErrorKind::ReturnSignal { value: _ } = &self.kind {
-            return write!(f, "");
-        }
-
         let message = match &self.kind {
             RuntimeErrorKind::UndefinedVariable => {
                 format!("Undefined variable '{}'", self.token.lexeme())
@@ -86,7 +81,9 @@ impl Display for RuntimeError {
             RuntimeErrorKind::ConversionFailed { text, target } => {
                 format!("Can't convert '{}' to {}", text, target)
             }
-            _ => unreachable!("Runtime error message is handled."),
+            RuntimeErrorKind::ReturnSignal { value: _ } => {
+                unreachable!("return signal is caught by the call")
+            }
         };
         write!(f, "Error at line {}: {}", self.token.line(), message)
     }
@@ -183,18 +180,17 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::Return { keyword, value } => match value {
-                None => Err(RuntimeError {
-                    token: keyword.clone(),
-                    kind: RuntimeErrorKind::ReturnSignal { value: Value::Null },
-                }),
-                Some(val) => Err(RuntimeError {
-                    token: keyword.clone(),
-                    kind: RuntimeErrorKind::ReturnSignal {
-                        value: self.evaluate(val)?,
-                    },
-                }),
-            },
+            Stmt::Return { keyword, value } => {
+                let value = value
+                    .as_ref()
+                    .map(|e| self.evaluate(e))
+                    .transpose()?
+                    .unwrap_or(Value::Null);
+                Err(RuntimeError::new(
+                    keyword,
+                    RuntimeErrorKind::ReturnSignal { value },
+                ))
+            }
         }
     }
 
@@ -256,7 +252,7 @@ impl Interpreter {
             Err(RuntimeError {
                 token: _,
                 kind: RuntimeErrorKind::ReturnSignal { value },
-            }) => Ok(value.clone()),
+            }) => Ok(value),
             Err(error) => Err(error),
         }
     }
