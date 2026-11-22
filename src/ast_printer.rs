@@ -33,6 +33,11 @@ pub fn print_stmt(stmt: &Stmt) -> String {
             print(iterable),
             print_block(body)
         ),
+
+        Stmt::Return { value } => match value {
+            Some(ex) => format!("(return {})", print(ex)),
+            None => "(return)".to_string(),
+        },
     }
 }
 
