@@ -1,0 +1,10 @@
+f = () -> { 
+    while true {
+        if true {
+            return 1;
+            print("if continue");
+        }
+        print("while continue");
+    }
+}
+print(f);   # expect: 1

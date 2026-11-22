@@ -1,0 +1,7 @@
+f = () -> { 
+    while true {
+        return 1;
+        print("continue");
+    }
+}
+print(f);   # expect: 1
