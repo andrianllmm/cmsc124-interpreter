@@ -55,10 +55,17 @@ pub enum RuntimeErrorKind {
     WrongArgumentType { expected: &'static str },
     /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
     ConversionFailed { text: String, target: &'static str },
+    /// A signal to propage the return value to the latest caller
+    ReturnSignal { value: Value },
 }
 
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // no output for return signal. terminate early to prevent message generation
+        if let RuntimeErrorKind::ReturnSignal { value: _ } = &self.kind {
+            return write!(f, "");
+        }
+
         let message = match &self.kind {
             RuntimeErrorKind::UndefinedVariable => {
                 format!("Undefined variable '{}'", self.token.lexeme())
@@ -79,6 +86,7 @@ impl Display for RuntimeError {
             RuntimeErrorKind::ConversionFailed { text, target } => {
                 format!("Can't convert '{}' to {}", text, target)
             }
+            _ => unreachable!("Runtime error message is handled."),
         };
         write!(f, "Error at line {}: {}", self.token.line(), message)
     }
@@ -175,9 +183,18 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::Return { value: _ } => {
-                todo!("add return evaluator arm")
-            }
+            Stmt::Return { keyword, value } => match value {
+                None => Err(RuntimeError {
+                    token: keyword.clone(),
+                    kind: RuntimeErrorKind::ReturnSignal { value: Value::Null },
+                }),
+                Some(val) => Err(RuntimeError {
+                    token: keyword.clone(),
+                    kind: RuntimeErrorKind::ReturnSignal {
+                        value: self.evaluate(val)?,
+                    },
+                }),
+            },
         }
     }
 
@@ -232,7 +249,16 @@ impl Interpreter {
                 },
             ));
         }
-        callable.call(self, paren, arguments)
+        let return_val = callable.call(self, paren, arguments);
+
+        match return_val {
+            Ok(ok_val) => Ok(ok_val),
+            Err(RuntimeError {
+                token: _,
+                kind: RuntimeErrorKind::ReturnSignal { value },
+            }) => Ok(value.clone()),
+            Err(error) => Err(error),
+        }
     }
 
     /// Pipes `value` into `target`: `x |> f` calls `f(x)`, and `x |> f(a)`
