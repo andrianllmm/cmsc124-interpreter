@@ -1,0 +1,1 @@
+(= f (lambda () (block (while true (block (if true (block (return 1))))))))
