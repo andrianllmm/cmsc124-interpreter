@@ -1,0 +1,10 @@
+x = 0;
+print(x); # expect: 0
+f = () -> { 
+        x = 1;
+        print(x); # expect: 1
+        return;
+        print("did not return early");
+};
+f();
+print(x);   # expect: 0
