@@ -55,6 +55,8 @@ pub enum RuntimeErrorKind {
     WrongArgumentType { expected: &'static str },
     /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
     ConversionFailed { text: String, target: &'static str },
+    /// A signal to propagate the return value to the latest caller
+    ReturnSignal { value: Value },
 }
 
 impl Display for RuntimeError {
@@ -78,6 +80,9 @@ impl Display for RuntimeError {
             }
             RuntimeErrorKind::ConversionFailed { text, target } => {
                 format!("Can't convert '{}' to {}", text, target)
+            }
+            RuntimeErrorKind::ReturnSignal { value: _ } => {
+                unreachable!("return signal is caught by the call")
             }
         };
         write!(f, "Error at line {}: {}", self.token.line(), message)
@@ -175,8 +180,16 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::Return { value: _ } => {
-                todo!("add return evaluator arm")
+            Stmt::Return { keyword, value } => {
+                let value = value
+                    .as_ref()
+                    .map(|e| self.evaluate(e))
+                    .transpose()?
+                    .unwrap_or(Value::Null);
+                Err(RuntimeError::new(
+                    keyword,
+                    RuntimeErrorKind::ReturnSignal { value },
+                ))
             }
         }
     }
@@ -232,7 +245,16 @@ impl Interpreter {
                 },
             ));
         }
-        callable.call(self, paren, arguments)
+        let return_val = callable.call(self, paren, arguments);
+
+        match return_val {
+            Ok(ok_val) => Ok(ok_val),
+            Err(RuntimeError {
+                token: _,
+                kind: RuntimeErrorKind::ReturnSignal { value },
+            }) => Ok(value),
+            Err(error) => Err(error),
+        }
     }
 
     /// Pipes `value` into `target`: `x |> f` calls `f(x)`, and `x |> f(a)`
