@@ -1,0 +1,17 @@
+make_counter = () -> {
+    counter = (count) -> {
+        count += 1;
+        print(count);
+        return count;
+    };
+    return counter;
+};
+
+counter1 = make_counter();
+counter1(counter1(counter1(0)));
+# expect: 1
+# expect: 2
+# expect: 3
+
+counter2 = make_counter();
+counter2(0);    # expect: 1
