@@ -1,0 +1,9 @@
+lambda = null;
+{
+    y = "captured";
+    lambda = () -> {
+        return y;
+    };
+}
+print(lambda()); # expect: captured
+

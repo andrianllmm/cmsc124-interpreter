@@ -1,0 +1,11 @@
+lambda = null;
+x = 0;
+while x < 2 {
+    x += 1;
+    y = "captured";
+    lambda = () -> {
+        return y;
+    };
+}
+print(lambda()); # expect: captured
+
