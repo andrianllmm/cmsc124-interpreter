@@ -48,6 +48,8 @@ pub enum RuntimeErrorKind {
     NotCallable,
     /// A `for` over a value that isn't a list, e.g. `for x in 1 { }`.
     NotIterable,
+    /// Calls nested deeper than `MAX_CALL_DEPTH`, e.g. unbounded recursion.
+    StackOverflow,
     /// A call passed the wrong number of arguments, e.g. `print()`.
     ArityMismatch { expected: usize, found: usize },
     /// A native got an argument of the wrong type, e.g. `length(1)`.
@@ -70,6 +72,7 @@ impl Display for RuntimeError {
             RuntimeErrorKind::ArityMismatch { expected, found } => {
                 format!("Expected {} arguments but got {}.", expected, found)
             }
+            RuntimeErrorKind::StackOverflow => "Stack overflow".to_string(),
             RuntimeErrorKind::OperandNotNumber => "Operand must be a number".to_string(),
             RuntimeErrorKind::OperandNotString => "Operand must be a string".to_string(),
             RuntimeErrorKind::IntegerOverflow => "Integer overflow".to_string(),
@@ -89,6 +92,9 @@ impl Display for RuntimeError {
     }
 }
 
+/// How many calls may be active at once before a call is a `Stack overflow`.
+pub const MAX_CALL_DEPTH: usize = 5000;
+
 /// Evaluates expressions against a global environment that outlives each call,
 /// so state persists across a run's statements and across REPL lines.
 pub struct Interpreter {
@@ -98,6 +104,8 @@ pub struct Interpreter {
     out: Box<dyn Write>,
     /// Where errors go.
     err: Box<dyn Write>,
+    /// Calls currently active.
+    call_depth: usize,
 }
 
 impl Interpreter {
@@ -117,6 +125,7 @@ impl Interpreter {
             environment: Rc::new(RefCell::new(globals)),
             out,
             err,
+            call_depth: 0,
         }
     }
 
@@ -245,15 +254,20 @@ impl Interpreter {
                 },
             ));
         }
-        let return_val = callable.call(self, paren, arguments);
+        if self.call_depth >= MAX_CALL_DEPTH {
+            return Err(RuntimeError::new(paren, RuntimeErrorKind::StackOverflow));
+        }
+        // Restored on success and error alike, so the REPL keeps working.
+        self.call_depth += 1;
+        let result = callable.call(self, paren, arguments);
+        self.call_depth -= 1;
 
-        match return_val {
-            Ok(ok_val) => Ok(ok_val),
+        match result {
             Err(RuntimeError {
-                token: _,
                 kind: RuntimeErrorKind::ReturnSignal { value },
+                ..
             }) => Ok(value),
-            Err(error) => Err(error),
+            other => other,
         }
     }
 

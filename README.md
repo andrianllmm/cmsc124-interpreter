@@ -380,6 +380,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Closures: a lambda captures the environment it was created in and keeps it alive after the creating call returns, so `make_adder = n -> (x -> x + n);` works. Each call of `make_adder` captures its own `n`
 - Closure capture of a loop variable: per iteration for names first assigned in the body, since each iteration is a fresh block. Names from outside the loop are shared
 - Recursion: a lambda finds its own name at call time through ordinary lookup, so recursion and mutual recursion need nothing special
+- Call depth: at most 5000 calls may be active at once. One more is `Stack overflow`, a runtime error (exit 70). The depth unwinds with the error, so the REPL keeps working
 - Arity mismatch: `Expected 2 arguments but got 1.`, a runtime error (exit 70). Natives and lambdas are checked the same way
 - Calling a non-function: `Can only call functions`, a runtime error (exit 70)
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host

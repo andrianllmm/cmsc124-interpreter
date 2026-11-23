@@ -32,7 +32,20 @@ const EX_DATAERR: i32 = 65;
 const EX_NOINPUT: i32 = 66;
 const EX_SOFTWARE: i32 = 70;
 
+/// Stack size for the interpreter thread, enough for `MAX_CALL_DEPTH` nested calls.
+const STACK_SIZE: usize = 512 * 1024 * 1024;
+
 fn main() {
+    // Deep recursion needs more than the main thread's default stack.
+    std::thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(run)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn run() {
     let args: Vec<String> = std::env::args().collect();
 
     let flag = args.get(1).map(String::as_str);
