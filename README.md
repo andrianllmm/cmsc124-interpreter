@@ -385,7 +385,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Calling a non-function: `Can only call functions`, a runtime error (exit 70)
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
 
-Planned for Lab 5, not built yet: `return`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
+Planned for Lab 5, not built yet: the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
 
 ## Native functions
 
