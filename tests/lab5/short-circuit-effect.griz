@@ -1,0 +1,4 @@
+hit = () ->  { print("evaluated"); return true; };
+false and hit();
+true or hit();
+print("done");  # expect: done
