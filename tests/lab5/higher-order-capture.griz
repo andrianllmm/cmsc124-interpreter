@@ -1,0 +1,13 @@
+make_adder = (val1) -> {
+    func = (val2) -> {
+        return val1 + val2;
+    };
+
+    return func;
+};
+
+apply = (func, value) -> {
+    return func(value);
+};
+
+print(apply(make_adder(3), 4)); # expect: 7
