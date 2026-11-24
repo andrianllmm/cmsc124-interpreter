@@ -94,18 +94,19 @@ Editor support: [VS Code extension](editors/vscode).
 
 ### Literals
 
-| Kind                | Syntax                                                                                   | Produces  |
-| ------------------- | ---------------------------------------------------------------------------------------- | --------- |
-| Integer             | `42`                                                                                     | `Int`     |
-| Float               | `3.14`                                                                                   | `Float`   |
-| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                     | `Str`     |
-| Interpolated string | `"Hi {name}, you earn {salary}"`                                                         | `Str`     |
-| Boolean             | `true`, `false`                                                                          | `Bool`    |
-| Null                | `null`                                                                                   | `Null`    |
-| List                | `[1, 2, 3]`                                                                              | `List(T)` |
-| Table               | `table [ col1 \| col2 \| col3 ... ]` (header row, then one row per line, `\|`-separated) | `Table`   |
+| Kind                | Syntax                                                                                               | Produces  |
+| ------------------- | ---------------------------------------------------------------------------------------------------- | --------- |
+| Integer             | `42`                                                                                                 | `Int`     |
+| Float               | `3.14`                                                                                               | `Float`   |
+| String              | `"hello"`, escapes: `\n \t \\ \" \{`                                                                 | `Str`     |
+| Interpolated string | `"Hi {name}, you earn {salary}"`                                                                     | `Str`     |
+| Boolean             | `true`, `false`                                                                                      | `Bool`    |
+| Null                | `null`                                                                                               | `Null`    |
+| List                | `[1, 2, 3]`                                                                                          | `List(T)` |
+| Table               | `table [ a \| b, 1 \| 2, 3 \| 4 ]` (header row, then rows; cells `\|`-separated, rows `,`-separated) | `Table`   |
 
 - Strings cannot span lines. A newline before the closing `"` is an unterminated string.
+- Since newlines carry no meaning, table rows are separated by `,`, like list elements. Lay a literal out one row per line, with the `,` at the end of each row but the last.
 - A `.` in a number needs digits on both sides, so `1.`, `.5`, `1.2.3`, and `3.foo` are errors. A stray `.` is reported as a typo.
 
 ### Identifiers
@@ -208,7 +209,11 @@ unary       → "-" unary
 
 exponent    → call ( "^" unary )?
 
-call        → primary ( "(" exprList? ")" )*
+call        → primary ( "(" arguments? ")" )*
+
+arguments   → argument ( "," argument )*
+
+argument    → ( IDENTIFIER ":" )? expression
 
 exprList    → expression ( "," expression )*
 
@@ -216,6 +221,13 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
             | IDENTIFIER
             | "(" expression ")"
             | "[" exprList? "]"
+            | table
+
+table       → "table" "[" header ( "," row )* "]"
+
+header      → IDENTIFIER ( "|" IDENTIFIER )*
+
+row         → expression ( "|" expression )*
 ```
 
 - Assignment is an expression, so it can appear anywhere an expression can, e.g. `print(x = 1);`. It produces the assigned value. Its target must be an identifier
@@ -223,6 +235,8 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - A lambda sits at assignment level, so it can be assigned or passed as an argument directly, but needs parentheses as an operand, e.g. `(x -> x) |> f`. Its expression body extends as far right as possible: `x -> x + 1` is `(lambda (x) (+ x 1))`
 - Blocks nest to any depth and can appear anywhere a statement can
 - `if`, `while`, and `for` take no parentheses, and their bodies must be blocks: `if x > 1 { ... } else if y { ... } else { ... }`. `else if` needs no extra rule, since `else` may be followed by another `ifStmt`
+- A named argument is an identifier, `:`, then an expression: `add_col(t, bonus: salary * 0.1)`. The parser tells it apart by looking one token past the identifier, since an expression never starts with `IDENTIFIER ":"`. Named arguments come after all positional ones
+- `|` (`BAR`) isn't an operator, so a table cell's expression ends at the next `|`, `,`, or `]`. `|>` and `|=` are separate tokens, so a cell can still hold a pipe
 
 ## Parse output format
 
@@ -234,6 +248,8 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 
 - Groupings print as: `(group <expr>)`
 - Lists print as: `(list 1 2 3)`, or `(list)` when empty
+- Named arguments print as: `(named bonus (* salary 0.1))`, e.g. `(call add_col t (named bonus (* salary 0.1)))`
+- Tables print as: `(table (name dept) ("Ana" "eng") ("Bo" "ops"))`, the header first, then one parenthesized list per row
 - Blocks print as: `(block <stmt>...)`, or `(block)` when empty
 - Lambdas print as: `(lambda (a b) (+ a b))`, or `(lambda () (block ...))` with a block body
 - `if` prints as: `(if <cond> <then>)`, or `(if <cond> <then> <else>)`. An `else if` nests as the else branch: `(if a (block) (if b (block)))`
@@ -260,6 +276,10 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 - A `for` needs a name and then `in`, so `for 1 in xs { }` is `Missing loop variable` and `for x [1] { }` is `Missing 'in'`, syntax errors (exit 65).
 - A lambda parameter must be an identifier, so `(1) -> 1;` and `(a, ) -> 1;` are `Missing parameter name`, a syntax error (exit 65).
 - A lexical error stops the run before parsing, so syntax errors in that file go unreported.
+- A positional argument after a named one, e.g. `f(a: 1, 2)`, is `Positional argument after named one`, a syntax error (exit 65).
+- A table header cell must be an identifier, so `table [ "a" | b ]` and `table [ ]` are `Missing column name`, a syntax error (exit 65). A repeated header name is `Duplicate column 'a'`, a syntax error (exit 65).
+- Every row must have as many cells as the header, checked while parsing: `table [ a | b, 1 ]` is `Expected 2 cells but got 1.`, worded like an arity mismatch, a syntax error (exit 65).
+- A trailing `,` after the last row is `Missing expression`, the same as in a list.
 
 ## Semantics
 
@@ -275,10 +295,13 @@ primary     → INTEGER | FLOAT | STRING | "true" | "false" | "null"
 | native     | `Value::Native(Native)`         |
 | `Function` | `Value::Function(Rc<Function>)` |
 | `List`     | `Value::List(Rc<Vec<Value>>)`   |
+| `Table`    | `Value::Table(Rc<Table>)`       |
 
 Values are a Rust `enum` (a tagged union). One type holds any Grizzly value, matching on the variant tells the evaluator what it has, and the compiler flags a `match` that forgets a type.
 
 A `List` is immutable, so it's behind an `Rc` and copies share one `Vec`. `append` returns a new list.
+
+A `Table` is ordered, named columns of equal length, plus the group columns set by `group_by` (none otherwise). Each column is an `Rc<Vec<Value>>`, so verbs that keep a column (`select`, `rename`, `add_col`) share it instead of copying it. Like a `List`, a `Table` is never changed in place.
 
 A `Function` is a lambda turned into a value: its parameters, its body, and the environment it was created in. It's behind an `Rc`, so copying the value shares the same function. Natives and functions both implement one `Callable` trait (`arity` and `call`), so a call checks callability and arity in one place for both.
 
@@ -296,6 +319,23 @@ A `Function` is a lambda turned into a value: its parameters, its body, and the 
 | native     | its name                               | `<native fn print>`  |
 | `Function` | a placeholder                          | `<fn>`               |
 | `List`     | elements by these rules, in brackets   | `[1, 2.0, a]`        |
+| `Table`    | an aligned grid, see below             |                      |
+
+A `Table` prints as a header line, a rule line, then one line per row:
+
+```
+name | dept  | salary
+-----+-------+-------
+Ana  | eng   | 60000
+Cy   | sales | 70000
+```
+
+- Cells print by the rules above, so strings are unquoted and `null` prints `null`
+- Each column is left-aligned and padded to its widest cell or name, counted in characters. Cells are joined with ` | `, and the rule line uses `-` joined with `-+-`
+- The last column isn't padded, so no line has trailing spaces
+- A table with no rows prints only the header and rule lines
+- A grouped table prints the same as its ungrouped rows; grouping isn't shown
+- `to_string` produces the same text, lines joined by `\n`, with no trailing newline
 
 ### Truthiness
 
@@ -307,6 +347,7 @@ A `Function` is a lambda turned into a value: its parameters, its body, and the 
 | `Bool`               | `false`       | `true`                        |
 | `Null`               | `null`        | never                         |
 | `List`               | `[]`          | any non-empty `List`          |
+| `Table`              | no rows       | one or more rows              |
 | native, `Function`   | never         | always                        |
 
 ### Operator semantics
@@ -339,6 +380,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - `Int` and `Float` compare by value, so `1 == 1.0` is `true`
 - Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
 - Lists compare element by element by these rules, so `[1, [2]] == [1.0, [2]]` is `true`
+- Tables are equal when their column names match in order and every cell is equal by these rules. Grouping is ignored
 - Functions are equal only to themselves: after `g = f;`, `g == f` is `true`, but two separately written `x -> x` are unequal
 - Mixed types are unequal, so `1 == "1"` is `false`
 
@@ -385,6 +427,156 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - Deep recursion: calls past a fixed depth limit raise `Stack overflow`, a runtime error (exit 70), instead of crashing the host
 
 Planned for Lab 5, not built yet: `return`, the `if ... then ... else` expression form, `match`/`case`, and string interpolation.
+
+### Tables
+
+Planned, not built yet. Table verbs can't use plain call evaluation: in `filter(t, salary > 50000)`, `salary` is a column, not a variable, and the condition must run once per row.
+
+#### Parameter kinds
+
+Each native declares a kind for each parameter. The call path reads the kinds and handles every verb the same way, so no verb parses its own arguments.
+
+| Kind         | The native receives                          | Example                    |
+| ------------ | -------------------------------------------- | -------------------------- |
+| value        | the evaluated argument, as for any call      | `t` in `filter(t, ...)`    |
+| row          | the unevaluated expression, run once per row | `salary > 50000`           |
+| column       | a column name, written as a bare identifier  | `salary` in `sort(t, ...)` |
+| option       | one of a fixed set of bare words             | `desc`, `left`             |
+| named row    | any number of `name: row` pairs              | `bonus: salary * 0.1`      |
+| named column | any number of `name: column` pairs           | `dept: department`         |
+| named        | fixed names, each taking a column or option  | `on: dept`, `how: left`    |
+
+A parameter can be variadic (`select(t, cols...)`) or optional (`sort`'s direction). Lambdas have only value parameters. The aggregates are the one case whose kind depends on where they're called, see Group context.
+
+#### Row context
+
+- A row expression runs once per row, in a fresh environment whose parent is the call site's environment. Each column is bound there as a scalar holding that row's cell
+- Columns win over outer names, so in `filter(t, dept == "eng")` `dept` is the column even if a variable `dept` exists. This is the one place a name shadows an outer binding. Other names resolve as usual, so `for d in depts { t |> filter(dept == d); }` reads the loop's `d`
+- A name that is neither a column nor a variable is `Undefined variable 'x'` (exit 70)
+- Rows run top to bottom, and the expression is evaluated fully for each row. With no rows it never runs
+- Assignment follows the usual rules: it updates an outer binding if one exists, else it creates one in the row's environment, which is discarded after the row. Assigning a column name changes only that row's binding, never the table
+- Piping keeps row context: `t |> filter(salary > 50000)` is `filter(t, salary > 50000)` with the condition still unevaluated
+
+#### Column names
+
+- A column or option parameter takes a bare identifier, used as a name and never looked up, e.g. `select(t, name, dept)`, `sort(t, salary, desc)`
+- Anything else there, e.g. `select(t, "name")` or `select(t, x + 1)`, is `Expected a column name`, a runtime error (exit 70)
+- A name the table doesn't have is `Unknown column 'x'` (exit 70)
+- A bad option is `Expected one of: asc, desc` (exit 70)
+- `asc`, `desc`, `inner`, and `left` aren't keywords, so they stay usable as variable names
+- Dynamic column names (a name held in a variable) aren't supported
+
+#### Named arguments
+
+- Only natives accept them. A named argument to a lambda is `Named arguments only work with built-in functions` (exit 70)
+- In a named row parameter (`add_col`, `update_col`, `summarize`) the name is the column to create or replace and the expression is a row expression. `rename(t, dept: department)` takes column names on both sides
+- A name the native doesn't take, e.g. `join(t, u, key: id)` or `print(x: 1)`, is `Unknown argument 'key'`, and a missing required one is `Missing argument 'on'` (exit 70)
+- A name given twice is `Duplicate argument 'x'` (exit 70)
+- Arity counts positional arguments only. A variadic native's mismatch reads `Expected at least 2 arguments but got 1.`
+
+#### Group context
+
+- `group_by(t, cols...)` returns the same rows with those columns marked as group columns. Only `summarize` uses the mark; every other verb returns an ungrouped table
+- `summarize(t, name: agg...)` produces one row per group, in order of each group's first row: the group columns, then the named columns in the order written. On an ungrouped table, the whole table is one group, so the result has one row
+- A `summarize` expression runs once per group, with the group columns bound. Inside it, an aggregate call runs its argument once per row of the group and aggregates the results, so `sum(if tier == "vip" then revenue else 0)` works and `sum(salary) / count(salary)` combines two aggregates
+- Group context covers the `summarize` argument itself, not the body of a lambda it calls. Inside a lambda, and anywhere outside `summarize`, an aggregate takes a `List`: `mean(pull(t, salary))`. So `filter(t, salary > mean(salary))` is `Argument must be a list`; compute `avg = mean(pull(t, salary));` first and filter on `avg`
+- A non-group column outside an aggregate, e.g. `summarize(g, x: salary)`, is `Column 'salary' needs an aggregate`, and an aggregate inside an aggregate is `Aggregates can't nest` (exit 70)
+- Null handling of the aggregates is in #310
+
+#### Cells and columns
+
+- A cell holds a scalar: `Int`, `Float`, `Str`, `Bool`, or `Null`. Building a table with any other cell, from a literal, `add_col`, or `update_col`, is `Cell must be a scalar, got a list` (exit 70)
+- A column's type isn't enforced, so `if x then 0 else 1.5` can mix `Int` and `Float` in one column
+- A literal's ragged row or repeated header name is a syntax error, see Parser quirks. The same problems in a CSV are runtime errors (exit 70), naming the line: `Line 3 has 2 cells but header has 3`
+- Making a column that exists, with `add_col`, `rename`, or `join`, is `Column 'x' already exists`, and `update_col` on a missing one is `Unknown column 'x'` (exit 70)
+- A literal's cells are evaluated left to right, top to bottom, when the literal is evaluated
+- `length(t)` is the row count
+
+#### Joins
+
+- `join(t, other, on: col, how: kind)` matches rows where `col` is equal by the equality rules. `on` takes one column, with the same name in both tables; rename first if they differ. `how` is `inner` (the default, matched rows only) or `left` (every row of `t`, with `null` for `other`'s columns when nothing matches)
+- Each match produces one row, so a key that appears twice in `other` repeats the row of `t`. Rows keep `t`'s order, then `other`'s order within a key
+- The result has `t`'s columns, then `other`'s columns except `col`. Any other shared name is `Column 'x' already exists`; rename one side first
+- `col` must exist in both tables, else `Unknown column 'x'`. A `null` key never matches, as in SQL
+
+#### CSV
+
+- Paths are relative to the directory of the running script, so a test can read `data/x.csv` next to itself. The REPL and Jupyter resolve against the working directory. An absolute path is used as is
+- The first line is the header, and each name must be an identifier, else `Invalid column name 'first name'` (exit 70). An empty file is `Missing header` (exit 70)
+- An unquoted empty cell is `null`, and a quoted empty cell `""` is the empty `Str`
+- Types are inferred per column, ignoring `null` cells: `Int` if every cell is an integer (an optional `-`, then digits, fitting an `Int`), else `Float` if every cell is a number (the same, with digits on both sides of any `.`), else `Bool` if every cell is `true` or `false`, else `Str` for the whole column. So an ID column holding `105` and `A12` stays text
+- Parsing is hand-rolled, keeping the crate dependency-free: `,` separators, `"`-quoted cells that may hold `,`, `""`, and newlines, and `\n` or `\r\n` line ends. A trailing newline doesn't add a row
+- `write_csv(t, path)` writes the header and rows, cells by the value printing rules, `null` as an empty cell, and quotes a cell only when it holds `,`, `"`, a newline, or is the empty `Str`. It overwrites the file
+- `write_json(t, path)` writes an array with one object per row, keys in column order, and overwrites the file. JSON has no `inf` or `NaN`, so those `Float`s are written as `null`
+- A file that can't be read or written is `Can't read 'x.csv'` or `Can't write 'x.csv'` (exit 70)
+
+#### Verbs
+
+No native changes its arguments; each verb returns a new table. In the signatures, `t` is a table, `col` a column name, `expr` a row expression, and `...` means one or more (zero or more for `distinct`).
+
+**Rows**
+
+| Verb       | Signature                   | Result                                                     |
+| ---------- | --------------------------- | ---------------------------------------------------------- |
+| `filter`   | `filter(t, expr)`           | Rows where `expr` is truthy                                |
+| `sort`     | `sort(t, col, asc \| desc)` | Stable; the direction is optional and defaults to `asc`    |
+| `distinct` | `distinct(t, col...)`       | First row of each unique combination; no columns means all |
+| `head`     | `head(t, n)`                | First `n` rows, or all of them if `n` is past the end      |
+| `tail`     | `tail(t, n)`                | Last `n` rows                                              |
+| `slice`    | `slice(t, from, to)`        | Rows `from` up to but not including `to`, counting from 0  |
+
+A negative count or index is a runtime error (exit 70). `slice` clamps both ends to the row count. `sort` orders by the comparison rules and puts `null` cells last in either direction; a column mixing numbers and strings is a runtime error (exit 70). Comparing strings depends on #309.
+
+**Columns**
+
+| Verb         | Signature                        | Result                                    |
+| ------------ | -------------------------------- | ----------------------------------------- |
+| `select`     | `select(t, col...)`              | Those columns, in the order given         |
+| `drop`       | `drop(t, col...)`                | Every other column                        |
+| `add_col`    | `add_col(t, name: expr, ...)`    | New columns at the end; each must be new  |
+| `update_col` | `update_col(t, name: expr, ...)` | Replaces values in place; each must exist |
+| `rename`     | `rename(t, old: new, ...)`       | Columns keep their position               |
+
+**Grouping and combining**
+
+| Verb        | Signature                            | Result                                            |
+| ----------- | ------------------------------------ | ------------------------------------------------- |
+| `group_by`  | `group_by(t, col...)`                | Marks group columns, see Group context            |
+| `summarize` | `summarize(t, name: expr, ...)`      | One row per group, see Group context              |
+| `join`      | `join(t, other, on: col, how: kind)` | See Joins                                         |
+| `concat`    | `concat(t...)`                       | Rows stacked; same column names in the same order |
+
+**Access and files**
+
+| Native       | Signature             | Result                                                   |
+| ------------ | --------------------- | -------------------------------------------------------- |
+| `pull`       | `pull(t, col)`        | The column as a `List`                                   |
+| `first_row`  | `first_row(t)`        | A one-row table; an empty table gives an empty table     |
+| `get`        | `get(t, col)`         | The cell of a one-row table; other row counts are errors |
+| `read_csv`   | `read_csv(path)`      | A table, see CSV                                         |
+| `write_csv`  | `write_csv(t, path)`  | `null`, see CSV                                          |
+| `write_json` | `write_json(t, path)` | `null`, see CSV                                          |
+
+**Aggregates and values**
+
+| Native      | Signature                | Result                                                                  |
+| ----------- | ------------------------ | ----------------------------------------------------------------------- |
+| `sum`       | `sum(expr)`              | Total of the numbers; `0` when there are none                           |
+| `mean`      | `mean(expr)`             | Average as a `Float`; `null` when there are none                        |
+| `median`    | `median(expr)`           | Middle number; the mean of the two middle values when the count is even |
+| `min`/`max` | `min(expr)`, `max(expr)` | Smallest or largest, by the comparison rules                            |
+| `count`     | `count(expr)`            | Number of values                                                        |
+| `fill_null` | `fill_null(x, default)`  | `default` when `x` is `null`, else `x`; works on any value              |
+
+Aggregates take a row expression inside `summarize` and a `List` elsewhere, see Group context.
+
+#### Wrapping a verb
+
+A lambda can't forward a row expression. In `my_filter = (t, cond) -> filter(t, cond);`, the call `my_filter(t, salary > 50000)` evaluates `salary > 50000` at the call site, where `salary` is undefined, since lambdas have only value parameters. Wrappers instead capture what varies as values:
+
+```griz
+earns_over = (t, amount) -> filter(t, salary > amount);
+```
 
 ## Native functions
 
@@ -493,7 +685,7 @@ band = match age {
 };
 ```
 
-### Functions, closures, forwarding to a verb
+### Functions, closures, wrapping a verb
 
 ```griz
 tax = (amount, rate) -> amount * rate;
@@ -502,17 +694,17 @@ make_adder = n -> (x -> x + n);
 add5 = make_adder(5);
 add5(10);
 
-my_filter = (t, cond) -> filter(t, cond);
+earns_over = (t, amount) -> filter(t, salary > amount);
 ```
 
 ### Creating a table
 
 ```griz
 small = table [
-  name  | dept   | salary
-  "Ana" | "eng"  | 60000
-  "Bo"  | "eng"  | 45000
-  "Cy"  | "sales"| 70000
+  name  | dept    | salary,
+  "Ana" | "eng"   | 60000,
+  "Bo"  | "eng"   | 45000,
+  "Cy"  | "sales" | 70000
 ];
 
 employees = read_csv("employees.csv");
@@ -590,21 +782,21 @@ combined = concat(q1_sales, q2_sales, q3_sales);
 renamed = employees |> rename(dept: department, salary: pay);
 ```
 
-### Column and record access
+### Column and row access
 
 ```griz
-salaries = employees |> pull(salary)
+salaries = employees |> pull(salary);
 avg = mean(salaries);
 
 first = employees |> first_row();
 
-first_salary = get(first, "salary");
+first_salary = get(first, salary);
 ```
 
 ### Nulls
 
 ```griz
-employees |> update_col(quantity, fill_null(quantity, 0));
+employees |= update_col(quantity: fill_null(quantity, 0));
 ```
 
 ### String interpolation
@@ -653,10 +845,10 @@ for rate in [0.05, 0.10, 0.15] {
 
 ```griz
 monthly_regional_report = () -> {
-  orders = read_csv("orders.csv")
-  customers = read_csv("customers.csv")
+  orders = read_csv("orders.csv");
+  customers = read_csv("customers.csv");
 
-  orders |= update_col(quantity, fill_null(quantity, 0));
+  orders |= update_col(quantity: fill_null(quantity, 0));
 
   customers |= add_col(
     tier: match lifetime_spend {
@@ -703,7 +895,7 @@ The language design is grounded in tabular data transformation. Each decision ex
 
 **Functions over keywords.** `filter`, `join`, `sort`, and `sum` are ordinary functions. Keywords are reserved for constructs that genuinely need special syntax, such as `if`, `match`, loops, and `table`. User-defined transformations therefore look and behave like built-ins.
 
-**No object system.** Tables, columns, and records are plain values. Operations are functions, such as `filter(table, condition)`, and can be written with pipes as `table |> filter(condition)`. There are no methods, classes, or dot notation.
+**No object system.** Tables and lists are plain values. Operations are functions, such as `filter(table, condition)`, and can be written with pipes as `table |> filter(condition)`. There are no methods, classes, or dot notation.
 
 **Functions are values.** Functions can be assigned, passed, returned, or written anonymously (`x -> x + 1`). This provides closures naturally and lets users build new transformations from existing functions.
 
@@ -722,6 +914,14 @@ The language design is grounded in tabular data transformation. Each decision ex
 - **Functions that capture their own binding are never freed.** A function holds its environment through an `Rc`, so `f = x -> x;` stores `f` in the same environment `f` captured, and neither reference count reaches zero. That memory lives until the process exits, which is harmless for a script or a REPL session, but a long-running program creating many such functions would grow.
 
 - **No vectorized or columnar execution.** Table verbs (`filter`, `add_col`, `summarize`, `sort`, ...) are implemented as tree-walking interpretation that re-evaluates the row expression once per row, rather than compiling to a columnar, batched execution plan. This is a scope simplification since it will not scale to real-sized datasets.
+
+- **Lambdas can't forward a row expression.** Lambdas have only value parameters, so a wrapper like `(t, cond) -> filter(t, cond)` evaluates `cond` at its call site, where the columns aren't bound. Wrappers capture what varies as values instead, see Wrapping a verb.
+
+- **Column names are fixed in the source.** A column parameter takes a bare identifier, never a `Str`, so code can't pick a column from a variable, and a CSV header that isn't an identifier (`first name`) can't be loaded.
+
+- **CSV types are inferred, not declared.** A column of zip codes like `00123` loads as `Int`s and loses its leading zeros. There's no way to ask for a `Str` column.
+
+- **Only inner and left joins.** A right join is a left join with the tables swapped. Outer joins aren't supported.
 
 ## Changelog
 
