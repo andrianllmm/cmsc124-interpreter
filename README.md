@@ -380,7 +380,7 @@ Operands are evaluated left to right, and both are evaluated before the operator
 - `Int` and `Float` compare by value, so `1 == 1.0` is `true`
 - Other values are equal only to the same type with the same value, e.g. `null == null`, `print == print`
 - Lists compare element by element by these rules, so `[1, [2]] == [1.0, [2]]` is `true`
-- Tables are equal when their column names match in order and every cell is equal by these rules. Grouping is ignored
+- Tables are equal when their column names match in order and every cell is equal by these rules, so `table [a | b, 1 | 2] == table [b | a, 2 | 1]` is `false`. Grouping is ignored
 - Functions are equal only to themselves: after `g = f;`, `g == f` is `true`, but two separately written `x -> x` are unequal
 - Mixed types are unequal, so `1 == "1"` is `false`
 
@@ -581,16 +581,16 @@ earns_over = (t, amount) -> filter(t, salary > amount);
 
 ## Native functions
 
-| Name        | Arguments          | Returns | Notes                                                                |
-| ----------- | ------------------ | ------- | -------------------------------------------------------------------- |
-| `print`     | 1, any             | `Null`  | Writes the value and a newline to stdout                             |
-| `to_string` | 1, any             | `Str`   | Converts a value to text using the value printing rules              |
-| `length`    | 1, `Str` or `List` | `Int`   | Characters in a `Str` (not bytes), or elements in a `List`           |
-| `to_int`    | 1, `Str`           | `Int`   | Parses an integer; unparseable input is `Can't convert 'abc' to Int` |
-| `to_float`  | 1, `Str`           | `Float` | Parses a float; unparseable input is `Can't convert 'abc' to Float`  |
-| `append`    | 2, `List` and any  | `List`  | A new list with the value at the end; the original is unchanged      |
+| Name        | Arguments                    | Returns | Notes                                                                         |
+| ----------- | ---------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `print`     | 1, any                       | `Null`  | Writes the value and a newline to stdout                                      |
+| `to_string` | 1, any                       | `Str`   | Converts a value to text using the value printing rules                       |
+| `length`    | 1, `Str`, `List`, or `Table` | `Int`   | Characters in a `Str` (not bytes), elements in a `List`, or rows in a `Table` |
+| `to_int`    | 1, `Str`                     | `Int`   | Parses an integer; unparseable input is `Can't convert 'abc' to Int`          |
+| `to_float`  | 1, `Str`                     | `Float` | Parses a float; unparseable input is `Can't convert 'abc' to Float`           |
+| `append`    | 2, `List` and any            | `List`  | A new list with the value at the end; the original is unchanged               |
 
-A wrong argument type is `Argument must be` followed by what the native takes, e.g. `length(1)` is `Argument must be a string or list`, and `append(1, 2)` is `Argument must be a list`. Both errors are runtime errors (exit 70).
+A wrong argument type is `Argument must be` followed by what the native takes, e.g. `length(1)` is `Argument must be a string, list, or table`, and `append(1, 2)` is `Argument must be a list`. Both errors are runtime errors (exit 70).
 
 Output: in file mode, only `print` writes to stdout, and expression statements discard their values. The REPL also prints the value of each bare expression, except a call that returns `null`, so `print(5);` prints `5` once instead of `5` then `null`. `--eval` follows the same rule.
 

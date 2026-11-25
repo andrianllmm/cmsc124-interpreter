@@ -1,1 +1,1 @@
-length(1);   # expect runtime error: Argument must be a string or list
+length(1);   # expect runtime error: Argument must be a string, list, or table

@@ -3,6 +3,7 @@
 use crate::ast::LiteralValue;
 use crate::function::Function;
 use crate::native::Native;
+use crate::table::Table;
 use std::fmt;
 use std::rc::Rc;
 
@@ -21,6 +22,8 @@ pub enum Value {
     Function(Rc<Function>),
     /// Lists are immutable, so copies share one `Vec` instead of cloning it.
     List(Rc<Vec<Value>>),
+    /// Immutable like lists, so copies share one table.
+    Table(Rc<Table>),
 }
 
 impl From<LiteralValue> for Value {
@@ -59,6 +62,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, "]")
             }
+            Value::Table(table) => write!(f, "{}", table),
         }
     }
 }

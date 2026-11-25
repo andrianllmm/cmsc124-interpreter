@@ -1,0 +1,21 @@
+t = table [ name | dept | salary, "Ana" | "eng" | 60000, "Bo" | null | 4.5 ];
+print(t);                           # expect: name | dept | salary
+                                    # expect: -----+------+-------
+                                    # expect: Ana  | eng  | 60000
+                                    # expect: Bo   | null | 4.5
+print(table [ a | bb ]);            # expect: a | bb
+                                    # expect: --+---
+print(to_string(table [ x, 1 ]));   # expect: x
+                                    # expect: -
+                                    # expect: 1
+print(t == table [ name | dept | salary, "Ana" | "eng" | 60000, "Bo" | null | 4.5 ]);   # expect: true
+print(table [ a, 1 ] == table [ a, 1.0 ]);   # expect: true
+print(table [ a, 1 ] == table [ b, 1 ]);     # expect: false
+print(table [ a, 1 ] == table [ a, 2 ]);     # expect: false
+print(table [ a, 1 ] == table [ a ]);        # expect: false
+print(table [ a ] == table [ a ]);           # expect: true
+print(table [ a ] == []);                    # expect: false
+print(length(t));                            # expect: 2
+print(length(table [ a | b ]));              # expect: 0
+if table [ a ] { print("truthy"); } else { print("falsey"); }   # expect: falsey
+if t { print("truthy"); } else { print("falsey"); }             # expect: truthy

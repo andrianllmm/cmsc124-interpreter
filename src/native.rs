@@ -75,7 +75,8 @@ impl Callable for Native {
                 // Characters, not bytes, so `length("é")` is 1.
                 Value::Str(s) => Ok(Value::Int(s.chars().count() as i64)),
                 Value::List(elements) => Ok(Value::Int(elements.len() as i64)),
-                _ => Err(error(wrong_type("a string or list"))),
+                Value::Table(table) => Ok(Value::Int(table.len() as i64)),
+                _ => Err(error(wrong_type("a string, list, or table"))),
             },
             Native::ToInt => {
                 let s = string_argument(argument).map_err(error)?;
