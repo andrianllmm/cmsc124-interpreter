@@ -1,0 +1,12 @@
+x = [1, 2, 3, 4];
+
+for y in x {
+    x = [6, 6, 6];
+    print(y);
+}
+# expect: 1
+# expect: 2
+# expect: 3
+# expect: 4
+
+print(x);   # expect: [6, 6, 6]
