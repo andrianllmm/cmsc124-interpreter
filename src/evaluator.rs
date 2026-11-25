@@ -560,6 +560,7 @@ fn is_truthy(val: &Value) -> bool {
         Value::Bool(b) => *b,
         Value::Str(s) => !s.is_empty(),
         Value::List(elements) => !elements.is_empty(),
+        Value::Table(table) => !table.is_empty(),
         Value::Native(_) | Value::Function(_) => true,
     }
 }
@@ -571,6 +572,12 @@ fn is_equal(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::List(l), Value::List(r)) => {
             l.len() == r.len() && l.iter().zip(r.iter()).all(|(l, r)| is_equal(l, r))
+        }
+        (Value::Table(l), Value::Table(r)) => {
+            l.names() == r.names()
+                && l.columns().iter().zip(r.columns()).all(|(l, r)| {
+                    l.len() == r.len() && l.iter().zip(r.iter()).all(|(l, r)| is_equal(l, r))
+                })
         }
         _ => match numbers(left, right) {
             Some(Numbers::Ints(n, m)) => n == m,

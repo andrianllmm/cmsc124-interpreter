@@ -23,6 +23,7 @@ mod pipeline;
 mod repl;
 mod scanner;
 mod stage;
+mod table;
 mod token;
 mod value;
 
