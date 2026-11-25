@@ -5,6 +5,7 @@ use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::function::Function;
 use crate::native::Native;
+use crate::table::{Table, TableError};
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 use std::cell::RefCell;
@@ -57,6 +58,8 @@ pub enum RuntimeErrorKind {
     WrongArgumentType { expected: &'static str },
     /// A string that doesn't parse as `target`, e.g. `to_int("abc")`.
     ConversionFailed { text: String, target: &'static str },
+    /// A table literal that couldn't be built, e.g. a list in a cell.
+    InvalidTable(TableError),
     /// A signal to propagate the return value to the latest caller
     ReturnSignal { value: Value },
 }
@@ -84,6 +87,7 @@ impl Display for RuntimeError {
             RuntimeErrorKind::ConversionFailed { text, target } => {
                 format!("Can't convert '{}' to {}", text, target)
             }
+            RuntimeErrorKind::InvalidTable(error) => error.to_string(),
             RuntimeErrorKind::ReturnSignal { value: _ } => {
                 unreachable!("return signal is caught by the call")
             }
@@ -378,6 +382,24 @@ impl Interpreter {
                     .map(|element| self.evaluate(element))
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok(Value::List(Rc::new(values)))
+            }
+            Expr::Table {
+                keyword,
+                columns,
+                rows,
+            } => {
+                // Rows run top to bottom, left to right, then flip into columns.
+                let mut cells: Vec<Vec<Value>> = vec![Vec::new(); columns.len()];
+                for row in rows {
+                    for (column, cell) in cells.iter_mut().zip(row) {
+                        column.push(self.evaluate(cell)?);
+                    }
+                }
+                let names = columns.iter().map(|c| c.lexeme().to_string()).collect();
+                let cells = cells.into_iter().map(Rc::new).collect();
+                Table::new(names, cells)
+                    .map(|table| Value::Table(Rc::new(table)))
+                    .map_err(|e| RuntimeError::new(keyword, RuntimeErrorKind::InvalidTable(e)))
             }
             // Captures the environment the lambda is created in, not the one
             // it's later called from, which makes scope lexical.

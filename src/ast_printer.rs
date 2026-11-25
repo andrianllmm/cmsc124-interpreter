@@ -80,6 +80,19 @@ pub fn print(expr: &Expr) -> String {
             parts.extend(elements.iter().map(print));
             format!("({})", parts.join(" "))
         }
+        // `(table (name dept) ("Ana" "eng"))`: the header, then one group per row.
+        Expr::Table { columns, rows, .. } => {
+            let group = |parts: Vec<String>| format!("({})", parts.join(" "));
+            let mut parts = vec!["table".to_string()];
+            parts.push(group(
+                columns.iter().map(|c| c.lexeme().to_string()).collect(),
+            ));
+            parts.extend(
+                rows.iter()
+                    .map(|row| group(row.iter().map(print).collect())),
+            );
+            format!("({})", parts.join(" "))
+        }
         Expr::Literal { value, .. } => match value {
             // Quoted so strings can't be mistaken for identifiers.
             LiteralValue::Str(s) => format!("\"{}\"", s.escape_debug()),

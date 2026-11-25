@@ -1,0 +1,4 @@
+table [ ];                  # expect error: Missing column name at ']'
+table [ a | a ];            # expect error: Duplicate column 'a' at 'a'
+table [ a | b, 1 ];         # expect error: Expected 2 cells but got 1. at ']'
+table [ a | b, 1 | 2, ];    # expect error: Missing expression at ']'

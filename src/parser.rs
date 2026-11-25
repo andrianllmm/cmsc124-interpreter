@@ -40,22 +40,36 @@ pub enum ParseErrorKind {
     MissingIn,
     /// A return located outside of a lambda body
     InvalidReturnLoc,
+    /// A `table` not followed by `[`.
+    MissingTableBracket,
+    /// A table header entry that isn't an identifier, e.g. `table [ 1 | 2 ]`.
+    MissingColumnName,
+    /// A table header that repeats a name, e.g. `table [ a | a ]`.
+    DuplicateColumn(String),
+    /// A table row with a different number of cells than the header.
+    RaggedRow { expected: usize, found: usize },
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let message = match self.kind {
-            ParseErrorKind::MissingTerminator => "Missing ';'",
-            ParseErrorKind::UnclosedParen => "Missing ')'",
-            ParseErrorKind::UnclosedBracket => "Missing ']'",
-            ParseErrorKind::MissingBrace => "Missing '{'",
-            ParseErrorKind::UnclosedBrace => "Missing '}'",
-            ParseErrorKind::UnexpectedToken => "Missing expression",
-            ParseErrorKind::InvalidAssignTarget => "Invalid assignment target",
-            ParseErrorKind::MissingParameter => "Missing parameter name",
-            ParseErrorKind::MissingLoopVariable => "Missing loop variable",
-            ParseErrorKind::MissingIn => "Missing 'in'",
-            ParseErrorKind::InvalidReturnLoc => "Can't return from top level",
+        let message = match &self.kind {
+            ParseErrorKind::MissingTerminator => "Missing ';'".to_string(),
+            ParseErrorKind::UnclosedParen => "Missing ')'".to_string(),
+            ParseErrorKind::UnclosedBracket => "Missing ']'".to_string(),
+            ParseErrorKind::MissingBrace => "Missing '{'".to_string(),
+            ParseErrorKind::UnclosedBrace => "Missing '}'".to_string(),
+            ParseErrorKind::UnexpectedToken => "Missing expression".to_string(),
+            ParseErrorKind::InvalidAssignTarget => "Invalid assignment target".to_string(),
+            ParseErrorKind::MissingParameter => "Missing parameter name".to_string(),
+            ParseErrorKind::MissingLoopVariable => "Missing loop variable".to_string(),
+            ParseErrorKind::MissingIn => "Missing 'in'".to_string(),
+            ParseErrorKind::InvalidReturnLoc => "Can't return from top level".to_string(),
+            ParseErrorKind::MissingTableBracket => "Missing '['".to_string(),
+            ParseErrorKind::MissingColumnName => "Missing column name".to_string(),
+            ParseErrorKind::DuplicateColumn(name) => format!("Duplicate column '{}'", name),
+            ParseErrorKind::RaggedRow { expected, found } => {
+                format!("Expected {} cells but got {}.", expected, found)
+            }
         };
         let location = match &self.found {
             Some(lexeme) => format!("'{}'", lexeme),
@@ -605,7 +619,7 @@ impl Parser {
     }
 
     /// `primary → INTEGER | FLOAT | STRING | "true" | "false" | "null"
-    /// | IDENTIFIER | "(" expression ")" | "[" exprList? "]"`
+    /// | IDENTIFIER | "(" expression ")" | "[" exprList? "]" | table`
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.peek().clone();
 
@@ -641,6 +655,11 @@ impl Parser {
             });
         }
 
+        if self.check(&TokenType::Table) {
+            self.advance();
+            return self.table(token);
+        }
+
         if self.check(&TokenType::LBracket) {
             self.advance();
             let (elements, _) =
@@ -649,6 +668,51 @@ impl Parser {
         }
 
         Err(self.error(ParseErrorKind::UnexpectedToken))
+    }
+
+    /// `table → "table" "[" header ( "," row )* "]"`, with `table` already consumed.
+    ///
+    /// `header → IDENTIFIER ( "|" IDENTIFIER )*` and `row → expression ( "|" expression )*`,
+    /// every row as long as the header. A trailing `,` is an error, like in a list.
+    fn table(&mut self, keyword: Token) -> Result<Expr, ParseError> {
+        self.consume(&TokenType::LBracket, ParseErrorKind::MissingTableBracket)?;
+
+        let mut columns: Vec<Token> = Vec::new();
+        loop {
+            if !self.check(&TokenType::Identifier) {
+                return Err(self.error(ParseErrorKind::MissingColumnName));
+            }
+            if columns.iter().any(|c| c.lexeme() == self.peek().lexeme()) {
+                let name = self.peek().lexeme().to_string();
+                return Err(self.error(ParseErrorKind::DuplicateColumn(name)));
+            }
+            columns.push(self.advance().clone());
+            if self.match_token(&[TokenType::Bar]).is_none() {
+                break;
+            }
+        }
+
+        let mut rows = Vec::new();
+        while self.match_token(&[TokenType::Comma]).is_some() {
+            let mut row = vec![self.expression()?];
+            while self.match_token(&[TokenType::Bar]).is_some() {
+                row.push(self.expression()?);
+            }
+            if row.len() != columns.len() {
+                return Err(self.error(ParseErrorKind::RaggedRow {
+                    expected: columns.len(),
+                    found: row.len(),
+                }));
+            }
+            rows.push(row);
+        }
+
+        self.consume(&TokenType::RBracket, ParseErrorKind::UnclosedBracket)?;
+        Ok(Expr::Table {
+            keyword,
+            columns,
+            rows,
+        })
     }
 
     /// Returns the current token without consuming it.

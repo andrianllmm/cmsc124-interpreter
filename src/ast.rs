@@ -66,6 +66,15 @@ pub enum Expr {
     },
     /// A list literal: `[elements]`.
     List { elements: Vec<Expr> },
+    /// A table literal: `table [ a | b, 1 | 2 ]`.
+    Table {
+        /// The `table` keyword, so errors can point at the literal's line.
+        keyword: Token,
+        /// Column names from the header.
+        columns: Vec<Token>,
+        /// One expression per cell, each row as long as `columns`.
+        rows: Vec<Vec<Expr>>,
+    },
     /// A assignment to a variable
     Assign { name: Token, value: Box<Expr> },
     /// Compound assignments
