@@ -1,0 +1,1 @@
+f = x -> x; table [ a, f ];   # expect runtime error: Cell must be a scalar, got a function

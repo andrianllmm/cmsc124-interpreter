@@ -1,0 +1,1 @@
+table [ a, table [ b, 1 ] ];   # expect runtime error: Cell must be a scalar, got a table
